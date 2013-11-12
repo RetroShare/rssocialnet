@@ -1,0 +1,6 @@
+<RCC>
+	<qresource prefix="/">
+		<file>images/emblem-web.png</file>
+	</qresource>
+</RCC>
+
