@@ -5,6 +5,10 @@
 
 #include "RSWApplication.h"
 #include "RSWappFriendsPage.h"
+#include "RSWappTransfersPage.h"
+#include "RSWappChatLobbiesPage.h"
+#include "RSWappConfigPage.h"
+#include "RSWappSharedFilesPage.h"
 
 RSWApplication::RSWApplication(const WEnvironment& env)
    : WApplication(env)
@@ -14,13 +18,16 @@ RSWApplication::RSWApplication(const WEnvironment& env)
 	Wt::WContainerWidget *container = new Wt::WContainerWidget();
 	Wt::WTabWidget *tabW = new Wt::WTabWidget(container);
 
-	tabW->addTab(new RSWappFriendsPage(container), "Friends", Wt::WTabWidget::LazyLoading);
-	tabW->addTab(new Wt::WTextArea("The contents of the tabs are pre-loaded in the browser to ensure swift switching."), "Preload", Wt::WTabWidget::PreLoading);
-	tabW->addTab(new Wt::WTextArea("You could change any other style attribute of the tab widget by modifying the style class. The style class 'trhead' is applied to this tab."), "Style", Wt::WTabWidget::PreLoading);
+	tabW->addTab(new RSWappFriendsPage(container), "Friends", Wt::WTabWidget::PreLoading);
+	tabW->addTab(new RSWappTransfersPage(container),"Transfers", Wt::WTabWidget::PreLoading);
+	tabW->addTab(new RSWappSharedFilesPage(container),"Shared files", Wt::WTabWidget::PreLoading);
+	tabW->addTab(new RSWappChatLobbiesPage(container),"Chat lobbies", Wt::WTabWidget::PreLoading);
+	tabW->addTab(new RSWappConfigPage(container),"Config", Wt::WTabWidget::PreLoading);
 
-	Wt::WMenuItem *tab = tabW->addTab(new Wt::WTextArea("You can close this tab by clicking on the close icon."), "Close");
+	//Wt::WMenuItem *tab = tabW->addTab(new Wt::WTextArea("You can close this tab by clicking on the close icon."), "Close");
 	//tab->setCloseable(true);
 	tabW->setStyleClass("tabwidget");
+	setCssTheme("polished");
 
 	root()->addWidget(container) ;
 }
