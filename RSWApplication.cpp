@@ -1,3 +1,5 @@
+#include <retroshare/rsplugin.h>
+
 #include <Wt/WContainerWidget>
 #include <Wt/WMenuItem>
 #include <Wt/WTabWidget>
@@ -10,7 +12,7 @@
 #include "RSWappConfigPage.h"
 #include "RSWappSharedFilesPage.h"
 
-RSWApplication::RSWApplication(const WEnvironment& env)
+RSWApplication::RSWApplication(const WEnvironment& env,const RsPlugInInterfaces& interf)
    : WApplication(env)
 {
 	setTitle("Hello world");               // application title
@@ -18,7 +20,7 @@ RSWApplication::RSWApplication(const WEnvironment& env)
 	Wt::WContainerWidget *container = new Wt::WContainerWidget();
 	Wt::WTabWidget *tabW = new Wt::WTabWidget(container);
 
-	tabW->addTab(new RSWappFriendsPage(container), "Friends", Wt::WTabWidget::PreLoading);
+	tabW->addTab(new RSWappFriendsPage(container,interf.mPeers), "Friends", Wt::WTabWidget::PreLoading);
 	tabW->addTab(new RSWappTransfersPage(container),"Transfers", Wt::WTabWidget::PreLoading);
 	tabW->addTab(new RSWappSharedFilesPage(container),"Shared files", Wt::WTabWidget::PreLoading);
 	tabW->addTab(new RSWappChatLobbiesPage(container),"Chat lobbies", Wt::WTabWidget::PreLoading);

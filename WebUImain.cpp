@@ -1,4 +1,5 @@
 #include <util/rsthreads.h>
+#include <retroshare/rsplugin.h>
 
 #include <WServer>
 
@@ -74,7 +75,7 @@ class RSWAppThread: public RsThread
 		}
 		static WApplication *createApplication(const WEnvironment& env)
 		{
-			return new RSWApplication(env);
+			return new RSWApplication(env,*plg_interfaces);
 		}
 
 		void stopServer()
@@ -84,7 +85,10 @@ class RSWAppThread: public RsThread
 
 		static const uint32_t RSWAPP_THREAD_STATUS_STOPPED = 0x01 ;
 		static const uint32_t RSWAPP_THREAD_STATUS_RUNNING = 0x02 ;
+
+		static const RsPlugInInterfaces *plg_interfaces ;
 	private:
+
 		uint16_t _port;
 		uint32_t _ip_range ;
 
@@ -92,16 +96,19 @@ class RSWAppThread: public RsThread
 		uint32_t _status ;
 };
 
+const RsPlugInInterfaces *RSWAppThread::plg_interfaces = NULL;
+
 bool RSWebUI::isRunning() 
 { 
 	return (_thread != NULL) && _thread->isRunning() ; 
 }
-bool RSWebUI::start() 
+bool RSWebUI::start(const RsPlugInInterfaces& interfaces) 
 {
 	if(isRunning())
 		return false ;
 
 	_thread = new RSWAppThread(_port,_ip) ;
+	RSWAppThread::plg_interfaces = &interfaces ;
 
 	_thread->start() ;
 

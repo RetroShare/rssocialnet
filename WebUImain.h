@@ -1,12 +1,13 @@
 #pragma once
 
 class RSWAppThread ;
+class RsPlugInInterfaces ;
 
 class RSWebUI 
 {
 	public:
 		static bool isRunning() ;
-		static bool start() ;
+		static bool start(const RsPlugInInterfaces&) ;
 		static bool stop() ;
 
 		static void setPort(uint16_t port) ;

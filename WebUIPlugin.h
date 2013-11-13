@@ -29,7 +29,8 @@ class WebUIPlugin: public RsPlugin
 
 	private:
 		mutable RsPluginHandler *mPlugInHandler;
-		mutable RsPeers* mPeers;
+		mutable RsPlugInInterfaces plugin_interfaces ;
+
 		//mutable ConfigPage *config_page ;
 		//mutable QIcon *mIcon;
 

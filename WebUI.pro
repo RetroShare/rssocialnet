@@ -21,4 +21,4 @@ TARGET = WebUI
 INCLUDEPATH += /usr/include/Wt
 RESOURCES = WebUI_images.qrc
 
-LIBS += -lwthttp -lwt -L../../libretroshare/src/lib -lretroshare
+LIBS += -lwthttp -lwt -L../../libretroshare/src/lib -lretroshare ../../libbitdht/src/lib/libbitdht.a

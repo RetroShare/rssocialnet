@@ -72,14 +72,15 @@ QDialog *WebUIPlugin::qt_about_page() const
 WebUIPlugin::WebUIPlugin()
 {
 	mPlugInHandler = NULL;
-	mPeers = NULL;
-
-	RSWebUI::start() ;
 }
 
 void WebUIPlugin::setInterfaces(RsPlugInInterfaces &interfaces)
 {
-    mPeers = interfaces.mPeers;
+	std::cerr << "Setting plugin interfaces for WebUI plugin..." << std::endl;
+	plugin_interfaces = interfaces ;
+
+	std::cerr << "Starting the WebUI" << std::endl;
+	RSWebUI::start(interfaces) ;
 }
 
 void WebUIPlugin::setPlugInHandler(RsPluginHandler *pgHandler)
