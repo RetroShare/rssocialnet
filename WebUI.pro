@@ -9,11 +9,13 @@ QMAKE_CXXFLAGS *= -Wall
 SOURCES = RSWApplication.cpp \
           WebUImain.cpp \
 			 RSWappFriendsPage.cpp \
+			 RSWappTransfersPage.cpp \
           WebUIPlugin.cpp
 
 HEADERS = RSWApplication.h \
           WebUImain.h \
 			 RSWappFriendsPage.h \
+			 RSWappTransfersPage.h \
           WebUIPlugin.h
 
 TARGET = WebUI

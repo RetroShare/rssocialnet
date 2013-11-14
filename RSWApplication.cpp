@@ -21,7 +21,7 @@ RSWApplication::RSWApplication(const WEnvironment& env,const RsPlugInInterfaces&
 	Wt::WTabWidget *tabW = new Wt::WTabWidget(container);
 
 	tabW->addTab(new RSWappFriendsPage(container,interf.mPeers), "Friends", Wt::WTabWidget::PreLoading);
-	tabW->addTab(new RSWappTransfersPage(container),"Transfers", Wt::WTabWidget::PreLoading);
+	tabW->addTab(new RSWappTransfersPage(container,interf.mFiles),"Transfers", Wt::WTabWidget::PreLoading);
 	tabW->addTab(new RSWappSharedFilesPage(container),"Shared files", Wt::WTabWidget::PreLoading);
 	tabW->addTab(new RSWappChatLobbiesPage(container),"Chat lobbies", Wt::WTabWidget::PreLoading);
 	tabW->addTab(new RSWappConfigPage(container),"Config", Wt::WTabWidget::PreLoading);

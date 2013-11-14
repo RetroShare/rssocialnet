@@ -1,15 +1,16 @@
-#include <retroshare/rspeers.h>
+
+#include <retroshare/rsfiles.h>
 
 #include <Wt/WContainerWidget>
 #include <Wt/WAbstractTableModel>
 
-#include "RSWappFriendsPage.h"
+#include "RSWappTransfersPage.h"
 
-class FriendListModel : public Wt::WAbstractTableModel
+class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 {
 	public:
-		FriendListModel(RsPeers *peers,Wt::WObject *parent = 0)
-			: Wt::WAbstractTableModel(parent), mPeers(peers)
+		DownloadsTransfersListModel(RsFiles *mfiles,Wt::WObject *parent = 0)
+			: Wt::WAbstractTableModel(parent), mFiles(mfiles)
 		{
 			_last_time_update = 0 ;
 		}
@@ -17,7 +18,7 @@ class FriendListModel : public Wt::WAbstractTableModel
 		virtual int rowCount(const Wt::WModelIndex& parent = Wt::WModelIndex()) const
 		{
 			if (!parent.isValid())
-				return _friends.size() ;
+				return _downloads.size() ;
 			else
 				return 0;
 		}
@@ -32,28 +33,28 @@ class FriendListModel : public Wt::WAbstractTableModel
 
 		virtual boost::any data(const Wt::WModelIndex& index, int role = Wt::DisplayRole) const
 		{
-			if(index.column() >= 5 || index.row() >= _friends.size())
+			if(index.column() >= 5 || index.row() >= _downloads.size())
 				return boost::any();
 
 			switch (role) 
 			{
 				case Wt::DisplayRole:
-					switch(index.column())
-					{
-						case 0: return Wt::WString(_friends[index.row()].name) ;
-						case 1: return Wt::WString(_friends[index.row()].gpg_id) ;
-						case 2: return Wt::WString(_friends[index.row()].id) ;
-						case 3: return lastSeenString(_friends[index.row()].lastConnect) ;
-						case 4: 
-								  if(_friends[index.row()].state & RS_PEER_STATE_CONNECTED)
-								  {
-									  std::string s_ip = _friends[index.row()].extAddr ;
-
-									  return Wt::WString(_friends[index.row()].extAddr + ":{1}").arg(_friends[index.row()].extPort) ;
-								  }
-								  else
+//					switch(index.column())
+//					{
+//						case 0: return Wt::WString(_friends[index.row()].name) ;
+//						case 1: return Wt::WString(_friends[index.row()].gpg_id) ;
+//						case 2: return Wt::WString(_friends[index.row()].id) ;
+//						case 3: return lastSeenString(_friends[index.row()].lastConnect) ;
+//						case 4: 
+//								  if(_friends[index.row()].state & RS_PEER_STATE_CONNECTED)
+//								  {
+//									  std::string s_ip = _friends[index.row()].extAddr ;
+//
+//									  return Wt::WString(_friends[index.row()].extAddr + ":{1}").arg(_friends[index.row()].extPort) ;
+//								  }
+//								  else
 									  return Wt::WString("Not connected") ;
-					}
+//					}
 				default:
 					return boost::any();
 			}
@@ -66,7 +67,7 @@ class FriendListModel : public Wt::WAbstractTableModel
 															Wt::WString("Location ID"),
 															Wt::WString("Last seen"), 
 															Wt::WString("IP:Port") } ;
-			updateFriendList() ;
+			updateTransfersList() ;
 
 			if (orientation == Wt::Horizontal) 
 				switch (role) 
@@ -92,38 +93,49 @@ class FriendListModel : public Wt::WAbstractTableModel
 			return Wt::WString("Long time ago / never") ;
 		}
 	private:
-		void updateFriendList() const
+		void updateTransfersList() const
 		{
 			time_t now = time(NULL) ;
 
 			if(now < 2+_last_time_update)
 				return ;
 			
-			std::cerr << "Updating list..." << std::endl;
+			std::cerr << "Updating transfers list..." << std::endl;
 			_last_time_update = now ;
 
-			std::list<std::string> fids ;
+			std::list<std::string> hashes ;
 			
-			if(!mPeers->getFriendList(fids)) 
-				std::cerr << "(EE) " << __PRETTY_FUNCTION__ << ": can't get list of friends." << std::endl;
+				if(!mFiles->FileDownloads(hashes)) 
+					std::cerr << "(EE) " << __PRETTY_FUNCTION__ << ": can't get list of downloads." << std::endl;
 
-			_friends.clear() ;
+				_downloads.clear() ;
 
-			for(std::list<std::string>::const_iterator it(fids.begin());it!=fids.end();++it)
-			{
-				_friends.push_back(RsPeerDetails()) ;
+				FileInfo info ;
 
-				mPeers->getPeerDetails(*it,_friends.back()) ;
-			}
+				for(std::list<std::string>::const_iterator it(hashes.begin());it!=hashes.end();++it)
+					if(mFiles->FileDetails(*it,RS_FILE_HINTS_DOWNLOAD,info))
+						_downloads.push_back(info) ;
+					else
+						std::cerr << "Warning: can't get info for downloading hash " << *it << std::endl;
+
+		//		if(!mFiles->FileUploads(hashes)) 
+		//			std::cerr << "(EE) " << __PRETTY_FUNCTION__ << ": can't get list of uploads." << std::endl;
+
+		//		for(std::list<std::string>::const_iterator it(hashes.begin());it!=hashes.end();++it)
+		//			if(FileDetails(*it,RS_FILE_HINTS_UPLOAD,info))
+		//				_uploads.push_back(info) ;
+		//			else
+		//				std::cerr << "Warning: can't get info for uploading hash " << *it << std::endl;
 		}
-		int rows_, columns_;
-		mutable std::vector<RsPeerDetails> _friends ;
+
+		mutable std::vector<FileInfo> _downloads ;
 		mutable time_t _last_time_update ;
-		RsPeers *mPeers ;
+
+		RsFiles *mFiles ;
 };
 
-RSWappFriendsPage::RSWappFriendsPage(Wt::WContainerWidget *parent,RsPeers *mpeers)
-	: WCompositeWidget(parent),mPeers(mpeers)
+RSWappTransfersPage::RSWappTransfersPage(Wt::WContainerWidget *parent,RsFiles *mfiles)
+	: WCompositeWidget(parent),mFiles(mfiles)
 {
 	setImplementation(_impl = new Wt::WContainerWidget()) ;
 
@@ -142,5 +154,5 @@ RSWappFriendsPage::RSWappFriendsPage(Wt::WContainerWidget *parent,RsPeers *mpeer
 	tableView->setColumnWidth(4, 150);
 	tableView->setColumnWidth(5, 100);
 
-	tableView->setModel(new FriendListModel(mpeers)) ;
+	tableView->setModel(new DownloadsTransfersListModel(mfiles)) ;
 }
