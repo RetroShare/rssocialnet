@@ -1,6 +1,7 @@
 
 #include <retroshare/rsfiles.h>
 
+#include <Wt/WTimer>
 #include <Wt/WContainerWidget>
 #include <Wt/WAbstractTableModel>
 
@@ -39,10 +40,11 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 			switch (role) 
 			{
 				case Wt::DisplayRole:
-//					switch(index.column())
-//					{
-//						case 0: return Wt::WString(_friends[index.row()].name) ;
-//						case 1: return Wt::WString(_friends[index.row()].gpg_id) ;
+					switch(index.column())
+					{
+						case 0: return Wt::WString(_downloads[index.row()].fname) ;
+						case 1: return Wt::WString("{1}").arg((int)(_downloads[index.row()].size/1024.0))+"kB" ;
+						case 2: return Wt::WString("{1}").arg((int)(_downloads[index.row()].transfered/1024.0))+"kB" ;
 //						case 2: return Wt::WString(_friends[index.row()].id) ;
 //						case 3: return lastSeenString(_friends[index.row()].lastConnect) ;
 //						case 4: 
@@ -53,8 +55,11 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 //									  return Wt::WString(_friends[index.row()].extAddr + ":{1}").arg(_friends[index.row()].extPort) ;
 //								  }
 //								  else
+						default:
 									  return Wt::WString("Not connected") ;
-//					}
+					}
+				case Wt::ToolTipRole:
+						return Wt::WString(_downloads[index.row()].hash) ;
 				default:
 					return boost::any();
 			}
@@ -62,11 +67,11 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 
 		virtual boost::any headerData(int section, Wt::Orientation orientation = Wt::Horizontal, int role = Wt::DisplayRole) const
 		{
-			static Wt::WString col_names[5] = { Wt::WString("Name (location)"),
-															Wt::WString("PGP id"),
-															Wt::WString("Location ID"),
-															Wt::WString("Last seen"), 
-															Wt::WString("IP:Port") } ;
+			static Wt::WString col_names[5] = { Wt::WString("Hash"),
+															Wt::WString("Size id"),
+															Wt::WString("Transfered"),
+															Wt::WString("Sources"), 
+															Wt::WString("") } ;
 			updateTransfersList() ;
 
 			if (orientation == Wt::Horizontal) 
@@ -147,12 +152,17 @@ RSWappTransfersPage::RSWappTransfersPage(Wt::WContainerWidget *parent,RsFiles *m
 	tableView->setSelectionMode(Wt::ExtendedSelection);
 	tableView->setDragEnabled(true);
 
-	tableView->setColumnWidth(0, 100);
-	tableView->setColumnWidth(1, 150);
-	tableView->setColumnWidth(2, 250);
-	tableView->setColumnWidth(3, 150);
+	tableView->setColumnWidth(0, 600);
+	tableView->setColumnWidth(1, 50);
+	tableView->setColumnWidth(2, 50);
 	tableView->setColumnWidth(4, 150);
 	tableView->setColumnWidth(5, 100);
 
 	tableView->setModel(new DownloadsTransfersListModel(mfiles)) ;
+
+	_timer = new Wt::WTimer(this) ;
+
+	_timer->setInterval(1000) ;
+	_timer->timeout().connect(tableView,&Wt::WTableView::refresh) ;
+	_timer->start() ;
 }

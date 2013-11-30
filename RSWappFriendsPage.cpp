@@ -47,9 +47,9 @@ class FriendListModel : public Wt::WAbstractTableModel
 						case 4: 
 								  if(_friends[index.row()].state & RS_PEER_STATE_CONNECTED)
 								  {
-									  std::string s_ip = _friends[index.row()].extAddr ;
+									  std::string s_ip = _friends[index.row()].connectAddr ;
 
-									  return Wt::WString(_friends[index.row()].extAddr + ":{1}").arg(_friends[index.row()].extPort) ;
+									  return Wt::WString(s_ip + ":{1}").arg(_friends[index.row()].connectPort) ;
 								  }
 								  else
 									  return Wt::WString("Not connected") ;

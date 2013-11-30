@@ -10,4 +10,5 @@ class RSWappTransfersPage: public Wt::WCompositeWidget
 	private:
 		Wt::WContainerWidget *_impl;
 		RsFiles *mFiles ;
+		Wt::WTimer *_timer ;
 };
