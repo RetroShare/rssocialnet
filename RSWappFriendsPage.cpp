@@ -43,7 +43,10 @@ class FriendListModel : public Wt::WAbstractTableModel
 						case 0: return Wt::WString(_friends[index.row()].name) ;
 						case 1: return Wt::WString(_friends[index.row()].gpg_id) ;
 						case 2: return Wt::WString(_friends[index.row()].id) ;
-						case 3: return lastSeenString(_friends[index.row()].lastConnect) ;
+						case 3: if(_friends[index.row()].state & RS_PEER_STATE_CONNECTED)
+									  return Wt::WString("Now") ;
+								  else
+									  return lastSeenString(_friends[index.row()].lastConnect) ;
 						case 4: 
 								  if(_friends[index.row()].state & RS_PEER_STATE_CONNECTED)
 								  {
@@ -52,7 +55,7 @@ class FriendListModel : public Wt::WAbstractTableModel
 									  return Wt::WString(s_ip + ":{1}").arg(_friends[index.row()].connectPort) ;
 								  }
 								  else
-									  return Wt::WString("Not connected") ;
+									  return Wt::WString("---") ;
 					}
 				default:
 					return boost::any();

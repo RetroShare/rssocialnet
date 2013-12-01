@@ -12,6 +12,13 @@
 
 #include "RSWappTransfersPage.h"
 
+static const uint32_t COLUMN_ACTIONS    = 0 ;
+static const uint32_t COLUMN_FILENAME   = 1 ;
+static const uint32_t COLUMN_FILESIZE   = 2 ;
+static const uint32_t COLUMN_TRANSFERED = 3 ;
+static const uint32_t COLUMN_SPEED      = 4 ;
+static const uint32_t COLUMN_SOURCES    = 5 ;
+
 static Wt::WString make_big_number(uint64_t n)
 {
 	if(n >= 1000000)
@@ -45,14 +52,14 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 		virtual int columnCount(const Wt::WModelIndex& parent = Wt::WModelIndex()) const
 		{
 			if (!parent.isValid())
-				return 5;
+				return 6;
 			else
 				return 0;
 		}
 
 		virtual boost::any data(const Wt::WModelIndex& index, int role = Wt::DisplayRole) const
 		{
-			if(index.column() >= 5 || index.row() >= (int)_downloads.size())
+			if(index.column() >= 6 || index.row() >= (int)_downloads.size())
 				return boost::any();
 
 			switch (role) 
@@ -60,11 +67,14 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 				case Wt::DisplayRole:
 					switch(index.column())
 					{
-						case 0: return Wt::WString(_downloads[index.row()].fname) ;
-						case 1: return make_big_number(_downloads[index.row()].size) ;
-						case 2: return make_big_number(_downloads[index.row()].transfered) + Wt::WString(" ({1} %)").arg(number_round(_downloads[index.row()].transfered/(double)_downloads[index.row()].size*100.0f)) ;
-						case 3: return Wt::WString("{1} Kb/s").arg(number_round(_downloads[index.row()].tfRate)) ;
-						case 4: return Wt::WString("{1}").arg((int)_downloads[index.row()].peers.size()) ;
+						case COLUMN_ACTIONS   : return boost::any() ;
+						case COLUMN_FILENAME  : return Wt::WString(_downloads[index.row()].fname) ;
+						case COLUMN_FILESIZE  : return make_big_number(_downloads[index.row()].size) ;
+						case COLUMN_TRANSFERED: return make_big_number(_downloads[index.row()].transfered) 
+																					+ Wt::WString(" ({1} %)").arg(number_round(_downloads[index.row()]
+																								.transfered/(double)_downloads[index.row()].size*100.0f)) ;
+						case COLUMN_SPEED     : return Wt::WString("{1} Kb/s").arg(number_round(_downloads[index.row()].tfRate)) ;
+						case COLUMN_SOURCES   : return Wt::WString("{1}").arg((int)_downloads[index.row()].peers.size()) ;
 						default:
 									  return Wt::WString("Not connected") ;
 					}
@@ -77,7 +87,8 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 
 		virtual boost::any headerData(int section, Wt::Orientation orientation = Wt::Horizontal, int role = Wt::DisplayRole) const
 		{
-			static Wt::WString col_names[5] = { Wt::WString("File name"),
+			static Wt::WString col_names[6] = { Wt::WString("*"),
+															Wt::WString("File name"),
 															Wt::WString("Size"),
 															Wt::WString("Transfered"),
 															Wt::WString("Transfer speed"), 
@@ -133,9 +144,6 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 					else
 						std::cerr << "Warning: can't get info for downloading hash " << *it << std::endl;
 
-		//		if(!mFiles->FileUploads(hashes)) 
-		//			std::cerr << "(EE) " << __PRETTY_FUNCTION__ << ": can't get list of uploads." << std::endl;
-
 		//		for(std::list<std::string>::const_iterator it(hashes.begin());it!=hashes.end();++it)
 		//			if(FileDetails(*it,RS_FILE_HINTS_UPLOAD,info))
 		//				_uploads.push_back(info) ;
@@ -161,23 +169,25 @@ RSWappTransfersPage::RSWappTransfersPage(Wt::WContainerWidget *parent,RsFiles *m
 
 	tableView->setAlternatingRowColors(true);
 
-	//tableView->setModel(fileFilterModel_);
 	tableView->setSelectionMode(Wt::ExtendedSelection);
 	tableView->setDragEnabled(true);
 
-	tableView->setColumnWidth(0, 400);
-	tableView->setColumnWidth(1, 150);
-	tableView->setColumnWidth(2, 150);
-	tableView->setColumnWidth(4, 150);
-	//tableView->setColumnWidth(5, 100);
+	tableView->setColumnWidth(COLUMN_ACTIONS   ,  20);
+	tableView->setColumnWidth(COLUMN_FILENAME  , 400);
+	tableView->setColumnWidth(COLUMN_FILESIZE  , 150);
+	tableView->setColumnWidth(COLUMN_TRANSFERED, 150);
+	tableView->setColumnWidth(COLUMN_SPEED     , 150);
+	tableView->setColumnWidth(COLUMN_SOURCES   , 150);
 
 	tableView->setModel(new DownloadsTransfersListModel(mfiles)) ;
 	layout->addWidget(tableView,1) ;
-	tableView->setHeight(500) ;
+	tableView->setHeight(300) ;
+
+
 
 	link_area = new Wt::WTextArea(_impl) ;
-	link_area->setText("Paste Retroshare links here to download them,\nand press Download.") ;
-	link_area->setHeight(200) ;
+	link_area->setText("Paste Retroshare links here to download them,\nand press Parse to parse the links and download the files.") ;
+	link_area->setHeight(100) ;
 	layout->addWidget(link_area) ;
 
 	Wt::WPushButton *btn = new Wt::WPushButton("Parse!") ;
