@@ -15,6 +15,14 @@ COMPILATION on Ubuntu
 			> qmake CONFIG=debug
 			> make
 
+		This should create the following files:
+
+          libWebUI.so -> libWebUI.so.1.0.0
+          libWebUI.so.1 -> libWebUI.so.1.0.0
+          libWebUI.so.1.0 -> libWebUI.so.1.0.0
+          libWebUI.so.1.0.0
+			
+
 	- copy Wt resources and css styles in working directory
 			> cd ~/Code/RSWebUI
 			> cp -r /usr/share/Wt/resources .
@@ -26,3 +34,4 @@ COMPILATION on Ubuntu
 	- run Retroshare, or retroshare-nogui, and enable the RSWebUI plugin
 
 	- In Web browser (e.g. chromium-browser) go to localhost:9090
+
