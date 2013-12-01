@@ -12,6 +12,19 @@
 
 #include "RSWappTransfersPage.h"
 
+static Wt::WString make_big_number(uint64_t n)
+{
+	if(n >= 1000000)
+		return Wt::WString("{1}{2}").arg((int)(n/1000000)).arg((int)(n%1000000)) ;
+	else
+		return Wt::WString("{1}").arg((int)n) ;
+}
+
+static Wt::WString number_round(float f)
+{
+	return Wt::WString("{1}.{2}").arg((int)f).arg(((int)(f*100))%100);
+}
+
 class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 {
 	public:
@@ -39,7 +52,7 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 
 		virtual boost::any data(const Wt::WModelIndex& index, int role = Wt::DisplayRole) const
 		{
-			if(index.column() >= 5 || index.row() >= _downloads.size())
+			if(index.column() >= 5 || index.row() >= (int)_downloads.size())
 				return boost::any();
 
 			switch (role) 
@@ -48,18 +61,10 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 					switch(index.column())
 					{
 						case 0: return Wt::WString(_downloads[index.row()].fname) ;
-						case 1: return Wt::WString("{1}").arg((int)(_downloads[index.row()].size/1024.0))+"kB" ;
-						case 2: return Wt::WString("{1}").arg((int)(_downloads[index.row()].transfered/1024.0))+"kB" ;
-//						case 2: return Wt::WString(_friends[index.row()].id) ;
-//						case 3: return lastSeenString(_friends[index.row()].lastConnect) ;
-//						case 4: 
-//								  if(_friends[index.row()].state & RS_PEER_STATE_CONNECTED)
-//								  {
-//									  std::string s_ip = _friends[index.row()].extAddr ;
-//
-//									  return Wt::WString(_friends[index.row()].extAddr + ":{1}").arg(_friends[index.row()].extPort) ;
-//								  }
-//								  else
+						case 1: return make_big_number(_downloads[index.row()].size) ;
+						case 2: return make_big_number(_downloads[index.row()].transfered) + Wt::WString(" ({1} %)").arg(number_round(_downloads[index.row()].transfered/(double)_downloads[index.row()].size*100.0f)) ;
+						case 3: return Wt::WString("{1} Kb/s").arg(number_round(_downloads[index.row()].tfRate)) ;
+						case 4: return Wt::WString("{1}").arg((int)_downloads[index.row()].peers.size()) ;
 						default:
 									  return Wt::WString("Not connected") ;
 					}
@@ -72,11 +77,11 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 
 		virtual boost::any headerData(int section, Wt::Orientation orientation = Wt::Horizontal, int role = Wt::DisplayRole) const
 		{
-			static Wt::WString col_names[5] = { Wt::WString("Hash"),
-															Wt::WString("Size id"),
+			static Wt::WString col_names[5] = { Wt::WString("File name"),
+															Wt::WString("Size"),
 															Wt::WString("Transfered"),
-															Wt::WString("Sources"), 
-															Wt::WString("") } ;
+															Wt::WString("Transfer speed"), 
+															Wt::WString("Sources") } ;
 			updateTransfersList() ;
 
 			if (orientation == Wt::Horizontal) 
@@ -160,17 +165,19 @@ RSWappTransfersPage::RSWappTransfersPage(Wt::WContainerWidget *parent,RsFiles *m
 	tableView->setSelectionMode(Wt::ExtendedSelection);
 	tableView->setDragEnabled(true);
 
-	tableView->setColumnWidth(0, 600);
-	tableView->setColumnWidth(1, 50);
-	tableView->setColumnWidth(2, 50);
+	tableView->setColumnWidth(0, 400);
+	tableView->setColumnWidth(1, 150);
+	tableView->setColumnWidth(2, 150);
 	tableView->setColumnWidth(4, 150);
-	tableView->setColumnWidth(5, 100);
+	//tableView->setColumnWidth(5, 100);
 
 	tableView->setModel(new DownloadsTransfersListModel(mfiles)) ;
-	layout->addWidget(tableView) ;
+	layout->addWidget(tableView,1) ;
+	tableView->setHeight(500) ;
 
 	link_area = new Wt::WTextArea(_impl) ;
 	link_area->setText("Paste Retroshare links here to download them,\nand press Download.") ;
+	link_area->setHeight(200) ;
 	layout->addWidget(link_area) ;
 
 	Wt::WPushButton *btn = new Wt::WPushButton("Parse!") ;
@@ -222,7 +229,7 @@ void RSWappTransfersPage::downloadLink()
 			break ;
 
 		uint64_t size ;
-		if(sscanf(lstr.substr(s2+1,s3-s2-1).c_str(),"size=%lld",&size) != 1)
+		if(sscanf(lstr.substr(s2+1,s3-s2-1).c_str(),"size=%lu",&size) != 1)
 			break ;
 
 		size_t s4 = lstr.find_first_not_of("0123456789abcdef",s3+1+std::string("hash=").length()) ;
@@ -246,31 +253,36 @@ void RSWappTransfersPage::downloadLink()
 		sizes.push_back(size) ;
 	}
 
-	Wt::WText *out = new Wt::WText(_impl);
-	out->setMargin(10, Wt::Left);
-
-	Wt::WString num_files = Wt::WString("{1}").arg((int)names.size()) ;
-
-	Wt::WString files_str = "<ul>" ;
-	for(uint32_t i=0;i<names.size();++i)
-		files_str += "<li>" + hashs[i] + ", " + Wt::WString("{1}").arg((int)(sizes[i]/1000)) + Wt::WString("{1}").arg((int)(sizes[i]%1000)) + " bytes, name: " + names[i] + "</li>" ;
-
-	files_str += "</ul>";
-
-	Wt::StandardButton answer = Wt::WMessageBox::show("Download these files?", "<p>Download these " +num_files+" files?</p>"+files_str, Wt::Ok | Wt::Cancel);
-
-	if (answer == Wt::Ok)
+	if(names.size() > 0)
 	{
-		std::list<std::string> srcids ;
+		Wt::WText *out = new Wt::WText(_impl);
+		out->setMargin(10, Wt::Left);
 
+		Wt::WString num_files = Wt::WString("{1}").arg((int)names.size()) ;
+
+		Wt::WString files_str = "<ul>" ;
 		for(uint32_t i=0;i<names.size();++i)
-			mFiles->FileRequest(names[i],hashs[i],sizes[i],"",RS_FILE_REQ_ANONYMOUS_ROUTING,srcids) ;
+			files_str += "<li>" + hashs[i] + ", " + Wt::WString("{1}").arg((int)(sizes[i]/1000)) + Wt::WString("{1}").arg((int)(sizes[i]%1000)) + " bytes, name: " + names[i] + "</li>" ;
 
-		link_area->setText("") ;
+		files_str += "</ul>";
+
+		Wt::StandardButton answer = Wt::WMessageBox::show("Download these files?", "<p>Download these " +num_files+" files?</p>"+files_str, Wt::Ok | Wt::Cancel);
+
+		if (answer == Wt::Ok)
+		{
+			std::list<std::string> srcids ;
+
+			for(uint32_t i=0;i<names.size();++i)
+				mFiles->FileRequest(names[i],hashs[i],sizes[i],"",RS_FILE_REQ_ANONYMOUS_ROUTING,srcids) ;
+
+			link_area->setText("") ;
+		}
+		else
+		{
+			out->setText("Waiting on your decision...");
+		}
 	}
 	else
-	{
-		out->setText("Waiting on your decision...");
-	}
+		Wt::WMessageBox::show("No file parsed","No retroshare links found in supplied test. Sorry!", Wt::Ok);
 }
 
