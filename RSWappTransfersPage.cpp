@@ -4,6 +4,8 @@
 #include <Wt/WTimer>
 #include <Wt/WText>
 #include <Wt/WVBoxLayout>
+#include <Wt/WModelIndex>
+#include <Wt/WPopupMenu>
 #include <Wt/WTextArea>
 #include <Wt/WMessageBox>
 #include <Wt/WPushButton>
@@ -162,28 +164,28 @@ RSWappTransfersPage::RSWappTransfersPage(Wt::WContainerWidget *parent,RsFiles *m
 {
 	setImplementation(_impl = new Wt::WContainerWidget()) ;
 
-	Wt::WTableView *tableView = new Wt::WTableView(_impl);
+	_tableView = new Wt::WTableView(_impl);
 
 	Wt::WVBoxLayout *layout = new Wt::WVBoxLayout() ;
 	_impl->setLayout(layout) ;
 
-	tableView->setAlternatingRowColors(true);
+	_tableView->setAlternatingRowColors(true);
 
-	tableView->setSelectionMode(Wt::ExtendedSelection);
-	tableView->setDragEnabled(true);
+	_tableView->setSelectionMode(Wt::ExtendedSelection);
+	_tableView->setDragEnabled(true);
 
-	tableView->setColumnWidth(COLUMN_ACTIONS   ,  20);
-	tableView->setColumnWidth(COLUMN_FILENAME  , 400);
-	tableView->setColumnWidth(COLUMN_FILESIZE  , 150);
-	tableView->setColumnWidth(COLUMN_TRANSFERED, 150);
-	tableView->setColumnWidth(COLUMN_SPEED     , 150);
-	tableView->setColumnWidth(COLUMN_SOURCES   , 150);
+	_tableView->setColumnWidth(COLUMN_ACTIONS   ,  20);
+	_tableView->setColumnWidth(COLUMN_FILENAME  , 400);
+	_tableView->setColumnWidth(COLUMN_FILESIZE  , 150);
+	_tableView->setColumnWidth(COLUMN_TRANSFERED, 150);
+	_tableView->setColumnWidth(COLUMN_SPEED     , 150);
+	_tableView->setColumnWidth(COLUMN_SOURCES   , 150);
 
-	tableView->setModel(new DownloadsTransfersListModel(mfiles)) ;
-	layout->addWidget(tableView,1) ;
-	tableView->setHeight(300) ;
+	_tableView->setModel(new DownloadsTransfersListModel(mfiles)) ;
+	layout->addWidget(_tableView,1) ;
+	_tableView->setHeight(300) ;
 
-
+	_tableView->mouseWentUp().connect(this,&RSWappTransfersPage::showCustomPopupMenu) ;
 
 	link_area = new Wt::WTextArea(_impl) ;
 	link_area->setText("Paste Retroshare links here to download them,\nand press Parse to parse the links and download the files.") ;
@@ -197,9 +199,77 @@ RSWappTransfersPage::RSWappTransfersPage(Wt::WContainerWidget *parent,RsFiles *m
 	_timer = new Wt::WTimer(this) ;
 
 	_timer->setInterval(1000) ;
-	_timer->timeout().connect(tableView,&Wt::WTableView::refresh) ;
+	_timer->timeout().connect(_tableView,&Wt::WTableView::refresh) ;
 	_timer->start() ;
 }
+
+void RSWappTransfersPage::showCustomPopupMenu(const Wt::WModelIndex& item, const Wt::WMouseEvent& event) 
+{
+	std::cerr << "Custom poopup menu requested." << std::endl;
+
+	if (event.button() == Wt::WMouseEvent::RightButton) 
+	{
+		// Select the item, it was not yet selected.
+		//
+		if (!_tableView->isSelected(item))
+			_tableView->select(item);
+
+		if (!_popupMenu) 
+		{
+			_popupMenu = new Wt::WPopupMenu();
+			_popupMenu->addItem("icons/folder_new.gif", "Create a New Folder");
+			_popupMenu->addItem("Rename this Folder")->setCheckable(true);
+			_popupMenu->addItem("Delete this Folder");
+			_popupMenu->addSeparator();
+			_popupMenu->addItem("Folder Details");
+			_popupMenu->addSeparator();
+			_popupMenu->addItem("Application Inventory");
+			_popupMenu->addItem("Hardware Inventory");
+			_popupMenu->addSeparator();
+
+			Wt::WPopupMenu *subMenu = new Wt::WPopupMenu();
+
+			subMenu->addItem("Sub Item 1");
+			subMenu->addItem("Sub Item 2");
+
+			_popupMenu->addMenu("File Deployments", subMenu);
+
+			/*
+			 * This is one method of executing a popup, which does not block a
+			 * thread for a reentrant event loop, and thus scales.
+			 *
+			 * Alternatively you could call WPopupMenu::exec(), which returns
+			 * the result, but while waiting for it, blocks the thread.
+			 */      
+			_popupMenu->aboutToHide().connect(this, &RSWappTransfersPage::popupAction);
+		}
+
+		if (_popupMenu->isHidden())
+			_popupMenu->popup(event);
+		else
+			_popupMenu->hide();
+	}
+}
+
+void RSWappTransfersPage::popupAction() 
+{
+	if (_popupMenu->result()) 
+	{
+		/*
+		 * You could also bind extra data to an item using setData() and
+		 * check here for the action asked. For now, we just use the text.
+		 */
+		Wt::WString text = _popupMenu->result()->text();
+		_popupMenu->hide();
+
+		Wt::WMessageBox::show("Popup called", "<p>text is : "+text+"</p>", Wt::Ok | Wt::Cancel);
+		//popupActionBox_->buttonClicked().connect(this, &TreeViewDragDrop::dialogDone);
+		//popupActionBox_->show();
+	} 
+	else 
+		_popupMenu->hide();
+}
+
 
 void RSWappTransfersPage::downloadLink()
 {
