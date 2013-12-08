@@ -3,6 +3,8 @@
 #include <Wt/WTableView>
 #include <Wt/WTextArea>
 
+class DownloadsTransfersListModel ;
+
 class RSWappTransfersPage: public Wt::WCompositeWidget
 {
 	public:
@@ -11,6 +13,7 @@ class RSWappTransfersPage: public Wt::WCompositeWidget
 		void downloadLink() ;
 		void showCustomPopupMenu(const Wt::WModelIndex&, const Wt::WMouseEvent&) ;
 		void popupAction() ;
+		void toggleShowCacheTransfers() ;
 
 	private:
 		Wt::WContainerWidget *_impl;
@@ -19,4 +22,6 @@ class RSWappTransfersPage: public Wt::WCompositeWidget
 		Wt::WTextArea *link_area ;
 		Wt::WPopupMenu *_popupMenu ;
 		Wt::WTableView *_tableView ;
+		std::string _selected_hash ;
+		DownloadsTransfersListModel *_download_model ;
 };

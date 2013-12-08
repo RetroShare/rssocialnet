@@ -4,6 +4,7 @@
 #include <Wt/WTimer>
 #include <Wt/WText>
 #include <Wt/WVBoxLayout>
+#include <Wt/WCheckBox>
 #include <Wt/WModelIndex>
 #include <Wt/WPopupMenu>
 #include <Wt/WTextArea>
@@ -41,7 +42,11 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 			: Wt::WAbstractTableModel(parent), mFiles(mfiles)
 		{
 			_last_time_update = 0 ;
+			_show_cache_transfers = true ;
 		}
+
+		void toggleShowCacheTransfers() { _show_cache_transfers = !_show_cache_transfers ; }
+		bool showCacheTransfers() const { return _show_cache_transfers ; }
 
 		virtual int rowCount(const Wt::WModelIndex& parent = Wt::WModelIndex()) const
 		{
@@ -79,6 +84,11 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 						case COLUMN_SOURCES   : return Wt::WString("{1}").arg((int)_downloads[index.row()].peers.size()) ;
 						default:
 									  return Wt::WString("Not connected") ;
+					}
+				case Wt::UserRole:
+					switch(index.column())
+					{
+						default: return Wt::WString(_downloads[index.row()].hash) ;
 					}
 				case Wt::ToolTipRole:
 						return Wt::WString(_downloads[index.row()].hash) ;
@@ -142,7 +152,10 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 
 				for(std::list<std::string>::const_iterator it(hashes.begin());it!=hashes.end();++it)
 					if(mFiles->FileDetails(*it,RS_FILE_HINTS_DOWNLOAD,info))
-						_downloads.push_back(info) ;
+					{
+						if(_show_cache_transfers || !(info.transfer_info_flags & RS_FILE_REQ_CACHE))
+							_downloads.push_back(info) ;
+					}
 					else
 						std::cerr << "Warning: can't get info for downloading hash " << *it << std::endl;
 
@@ -155,6 +168,7 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 
 		mutable std::vector<FileInfo> _downloads ;
 		mutable time_t _last_time_update ;
+		mutable bool _show_cache_transfers ;
 
 		RsFiles *mFiles ;
 };
@@ -181,11 +195,20 @@ RSWappTransfersPage::RSWappTransfersPage(Wt::WContainerWidget *parent,RsFiles *m
 	_tableView->setColumnWidth(COLUMN_SPEED     , 150);
 	_tableView->setColumnWidth(COLUMN_SOURCES   , 150);
 
-	_tableView->setModel(new DownloadsTransfersListModel(mfiles)) ;
+	_download_model = new DownloadsTransfersListModel(mfiles) ;
+
+	_tableView->setModel(_download_model) ;
 	layout->addWidget(_tableView,1) ;
 	_tableView->setHeight(300) ;
+	_popupMenu = NULL ;
 
 	_tableView->mouseWentUp().connect(this,&RSWappTransfersPage::showCustomPopupMenu) ;
+
+	Wt::WCheckBox *cb = new Wt::WCheckBox(Wt::WString("Show cache transfers"),_impl) ;
+	cb->changed().connect(this,&RSWappTransfersPage::toggleShowCacheTransfers) ;
+	layout->addWidget(cb) ;
+
+	cb->setChecked(_download_model->showCacheTransfers());
 
 	link_area = new Wt::WTextArea(_impl) ;
 	link_area->setText("Paste Retroshare links here to download them,\nand press Parse to parse the links and download the files.") ;
@@ -207,47 +230,59 @@ void RSWappTransfersPage::showCustomPopupMenu(const Wt::WModelIndex& item, const
 {
 	std::cerr << "Custom poopup menu requested." << std::endl;
 
-	if (event.button() == Wt::WMouseEvent::RightButton) 
+	if (event.button() == Wt::WMouseEvent::LeftButton) 
 	{
 		// Select the item, it was not yet selected.
 		//
 		if (!_tableView->isSelected(item))
 			_tableView->select(item);
 
-		if (!_popupMenu) 
+		if (_popupMenu) 
+			delete _popupMenu ;
+
+		// request information about the hash
+
+		std::string hash (boost::any_cast<Wt::WString>(_tableView->model()->data(item,Wt::UserRole)).toUTF8());
+
+		_selected_hash = hash ;
+		std::cerr << "Making menu for hash " << hash << std::endl;
+
+		FileInfo info ;
+		if(!mFiles->FileDetails(hash,RS_FILE_HINTS_DOWNLOAD,info))
 		{
-			_popupMenu = new Wt::WPopupMenu();
-			_popupMenu->addItem("icons/folder_new.gif", "Create a New Folder");
-			_popupMenu->addItem("Rename this Folder")->setCheckable(true);
-			_popupMenu->addItem("Delete this Folder");
-			_popupMenu->addSeparator();
-			_popupMenu->addItem("Folder Details");
-			_popupMenu->addSeparator();
-			_popupMenu->addItem("Application Inventory");
-			_popupMenu->addItem("Hardware Inventory");
-			_popupMenu->addSeparator();
+			std::cerr << "Can't get file details for hash " << hash << std::endl;
+			return ;
+		}
+		_popupMenu = new Wt::WPopupMenu();
 
-			Wt::WPopupMenu *subMenu = new Wt::WPopupMenu();
-
-			subMenu->addItem("Sub Item 1");
-			subMenu->addItem("Sub Item 2");
-
-			_popupMenu->addMenu("File Deployments", subMenu);
-
-			/*
-			 * This is one method of executing a popup, which does not block a
-			 * thread for a reentrant event loop, and thus scales.
-			 *
-			 * Alternatively you could call WPopupMenu::exec(), which returns
-			 * the result, but while waiting for it, blocks the thread.
-			 */      
-			_popupMenu->aboutToHide().connect(this, &RSWappTransfersPage::popupAction);
+		if((uint32_t)info.status == FT_STATE_DOWNLOADING)
+		{
+			_popupMenu->addItem("Cancel");
+			_popupMenu->addItem("Pause");
+		}
+		if((uint32_t)info.status == FT_STATE_PAUSED)
+		{
+			_popupMenu->addItem("Resume");
 		}
 
-		if (_popupMenu->isHidden())
-			_popupMenu->popup(event);
-		else
-			_popupMenu->hide();
+		// Wt::WPopupMenu *subMenu = new Wt::WPopupMenu();
+		// subMenu->addItem("Streaming");
+		// subMenu->addItem("Progressive");
+		// subMenu->addItem("Random");
+		// subMenu->addItem("Sub Item 2");
+		// _popupMenu->addMenu("Chunk strategy",subMenu);
+
+		/*
+		 * This is one method of executing a popup, which does not block a
+		 * thread for a reentrant event loop, and thus scales.
+		 *
+		 * Alternatively you could call WPopupMenu::exec(), which returns
+		 * the result, but while waiting for it, blocks the thread.
+		 */      
+		_popupMenu->aboutToHide().connect(this, &RSWappTransfersPage::popupAction);
+		_popupMenu->popup(event);
+
+		std::cerr << "Popuping up menu!" << std::endl;
 	}
 }
 
@@ -262,7 +297,18 @@ void RSWappTransfersPage::popupAction()
 		Wt::WString text = _popupMenu->result()->text();
 		_popupMenu->hide();
 
-		Wt::WMessageBox::show("Popup called", "<p>text is : "+text+"</p>", Wt::Ok | Wt::Cancel);
+		if(text == "Cancel")
+		{
+			if(Wt::WMessageBox::show("Cancel transfer?", "<p>Do you really want to cancel this file (hash="+_selected_hash+")</p>", Wt::Ok | Wt::No) == Wt::Ok)
+				mFiles->FileCancel(_selected_hash) ;
+		}
+		else if(text == "Pause")
+			mFiles->FileControl(_selected_hash,RS_FILE_CTRL_PAUSE) ;
+		else if(text == "Resume")
+			mFiles->FileControl(_selected_hash,RS_FILE_CTRL_START) ;
+		else if(text == "Show cache transfers")
+			_download_model->toggleShowCacheTransfers();
+
 		//popupActionBox_->buttonClicked().connect(this, &TreeViewDragDrop::dialogDone);
 		//popupActionBox_->show();
 	} 
@@ -270,6 +316,11 @@ void RSWappTransfersPage::popupAction()
 		_popupMenu->hide();
 }
 
+void RSWappTransfersPage::toggleShowCacheTransfers()
+{
+	std::cerr << "Toggling show cache transfers." << std::endl;
+	_download_model->toggleShowCacheTransfers() ;
+}
 
 void RSWappTransfersPage::downloadLink()
 {
