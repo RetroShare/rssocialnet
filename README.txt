@@ -8,10 +8,11 @@ COMPILATION on Ubuntu
 	- install packages 
 			> sudo apt-get install witty-dev libwt-dev
 
-	In the later, assume that the RSWapp Plugin code is in ~/Code/RSWapp/
+	In the later, assume that the RSWapp Plugin code is in ~/Code/retroshare/trunk/plugins/RSWebUI/
+	This is required to get the retroshare_plugin.pri file in ../common/
 
 	- compilation
-			> cd ~/Code/RSWapp/
+			> cd ~/Code/retroshare/trunk/plugins/RSWebUI/
 			> qmake CONFIG=debug
 			> make
 
@@ -22,7 +23,6 @@ COMPILATION on Ubuntu
           libWebUI.so.1.0 -> libWebUI.so.1.0.0
           libWebUI.so.1.0.0
 			
-
 	- copy Wt resources and css styles in working directory
 			> cd ~/Code/RSWebUI
 			> cp -r /usr/share/Wt/resources .

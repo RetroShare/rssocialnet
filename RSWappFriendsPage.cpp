@@ -1,5 +1,6 @@
 #include <retroshare/rspeers.h>
 
+#include <Wt/WTimer>
 #include <Wt/WContainerWidget>
 #include <Wt/WAbstractTableModel>
 
@@ -69,8 +70,6 @@ class FriendListModel : public Wt::WAbstractTableModel
 															Wt::WString("Location ID"),
 															Wt::WString("Last seen"), 
 															Wt::WString("IP:Port") } ;
-			updateFriendList() ;
-
 			if (orientation == Wt::Horizontal) 
 				switch (role) 
 				{
@@ -93,6 +92,11 @@ class FriendListModel : public Wt::WAbstractTableModel
 			if(now < 7*86400+s) return Wt::WString("Few days ago") ;
 
 			return Wt::WString("Long time ago / never") ;
+		}
+		void refresh()
+		{
+			updateFriendList() ;
+			dataChanged() ;
 		}
 	private:
 		void updateFriendList() const
@@ -130,20 +134,35 @@ RSWappFriendsPage::RSWappFriendsPage(Wt::WContainerWidget *parent,RsPeers *mpeer
 {
 	setImplementation(_impl = new Wt::WContainerWidget()) ;
 
-	Wt::WTableView *tableView = new Wt::WTableView(_impl);
+	_tableView = new Wt::WTableView(_impl);
 
-	tableView->setAlternatingRowColors(true);
+	_tableView->setAlternatingRowColors(true);
 
 	//tableView->setModel(fileFilterModel_);
-	tableView->setSelectionMode(Wt::ExtendedSelection);
-	tableView->setDragEnabled(true);
+	_tableView->setSelectionMode(Wt::ExtendedSelection);
+	_tableView->setDragEnabled(true);
 
-	tableView->setColumnWidth(0, 100);
-	tableView->setColumnWidth(1, 150);
-	tableView->setColumnWidth(2, 250);
-	tableView->setColumnWidth(3, 150);
-	tableView->setColumnWidth(4, 150);
-	tableView->setColumnWidth(5, 100);
+	_tableView->setColumnWidth(0, 100);
+	_tableView->setColumnWidth(1, 150);
+	_tableView->setColumnWidth(2, 250);
+	_tableView->setColumnWidth(3, 150);
+	_tableView->setColumnWidth(4, 150);
+	_tableView->setColumnWidth(5, 100);
 
-	tableView->setModel(new FriendListModel(mpeers)) ;
+	_tableView->setModel(_model = new FriendListModel(mpeers)) ;
+	_model->refresh() ;
+
+	_timer = new Wt::WTimer(this) ;
+
+	_timer->setInterval(5000) ;
+	_timer->timeout().connect(this,&RSWappFriendsPage::refresh) ;
+	_timer->start() ;
 }
+
+void RSWappFriendsPage::refresh()
+{
+	std::cerr << "refreshing friends page" << std::endl;
+	_model->refresh() ;
+	_tableView->refresh();
+}
+

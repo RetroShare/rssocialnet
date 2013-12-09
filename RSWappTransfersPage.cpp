@@ -45,7 +45,11 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 			_show_cache_transfers = true ;
 		}
 
-		void toggleShowCacheTransfers() { _show_cache_transfers = !_show_cache_transfers ; }
+		void toggleShowCacheTransfers() 
+		{ 
+			_show_cache_transfers = !_show_cache_transfers ; 
+			dataChanged() ;
+		}
 		bool showCacheTransfers() const { return _show_cache_transfers ; }
 
 		virtual int rowCount(const Wt::WModelIndex& parent = Wt::WModelIndex()) const
@@ -129,6 +133,12 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 			if(now < 7*86400+s) return Wt::WString("Few days ago") ;
 
 			return Wt::WString("Long time ago / never") ;
+		}
+
+		virtual void refresh()
+		{
+			updateTransfersList() ;
+			dataChanged() ;
 		}
 	private:
 		void updateTransfersList() const
@@ -221,7 +231,7 @@ RSWappTransfersPage::RSWappTransfersPage(Wt::WContainerWidget *parent,RsFiles *m
 
 	_timer = new Wt::WTimer(this) ;
 
-	_timer->setInterval(1000) ;
+	_timer->setInterval(3000) ;
 	_timer->timeout().connect(_tableView,&Wt::WTableView::refresh) ;
 	_timer->start() ;
 }

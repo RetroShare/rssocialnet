@@ -10,12 +10,14 @@ SOURCES = RSWApplication.cpp \
           WebUImain.cpp \
 			 RSWappFriendsPage.cpp \
 			 RSWappTransfersPage.cpp \
+			 RSWappSharedFilesPage.cpp \
           WebUIPlugin.cpp
 
 HEADERS = RSWApplication.h \
           WebUImain.h \
 			 RSWappFriendsPage.h \
 			 RSWappTransfersPage.h \
+			 RSWappSharedFilesPage.h \
           WebUIPlugin.h
 
 TARGET = WebUI
