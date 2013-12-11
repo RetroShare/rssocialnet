@@ -32,6 +32,7 @@ static Wt::WString make_big_number(uint64_t n)
 
 static Wt::WString number_round(float f)
 {
+	std::cerr << "number rounding " << f << " = " << Wt::WString("{1}.{2}").arg((int)f).arg(((int)(f*100))%100) << std::endl;
 	return Wt::WString("{1}.{2}").arg((int)f).arg(((int)(f*100))%100);
 }
 
@@ -82,9 +83,9 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 						case COLUMN_FILENAME  : return Wt::WString(_downloads[index.row()].fname) ;
 						case COLUMN_FILESIZE  : return make_big_number(_downloads[index.row()].size) ;
 						case COLUMN_TRANSFERED: return make_big_number(_downloads[index.row()].transfered) 
-																					+ Wt::WString(" ({1} %)").arg(number_round(_downloads[index.row()]
-																								.transfered/(double)_downloads[index.row()].size*100.0f)) ;
-						case COLUMN_SPEED     : return Wt::WString("{1} Kb/s").arg(number_round(_downloads[index.row()].tfRate)) ;
+																					+ " (" + number_round(_downloads[index.row()].transfered
+																									/(double)_downloads[index.row()].size*100.0f) + " %)";
+						case COLUMN_SPEED     : return number_round(_downloads[index.row()].tfRate*1024)+" Kb/s";
 						case COLUMN_SOURCES   : return Wt::WString("{1}").arg((int)_downloads[index.row()].peers.size()) ;
 						default:
 									  return Wt::WString("Not connected") ;
@@ -165,7 +166,10 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 				if(mFiles->FileDetails(*it,RS_FILE_HINTS_DOWNLOAD,info))
 				{
 					if(_show_cache_transfers || !(info.transfer_info_flags & RS_FILE_REQ_CACHE))
+					{
 						_downloads.push_back(info) ;
+						std::cerr << "info.tfRate = " << info.tfRate*1024 << std::endl;
+					}
 				}
 				else
 					std::cerr << "Warning: can't get info for downloading hash " << *it << std::endl;
