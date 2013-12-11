@@ -15,6 +15,7 @@ class RSWappTransfersPage: public Wt::WCompositeWidget
 		void popupAction() ;
 		void toggleShowCacheTransfers() ;
 
+		virtual void refresh() ;
 	private:
 		Wt::WContainerWidget *_impl;
 		RsFiles *mFiles ;

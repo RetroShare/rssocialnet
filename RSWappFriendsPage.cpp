@@ -96,7 +96,7 @@ class FriendListModel : public Wt::WAbstractTableModel
 		void refresh()
 		{
 			updateFriendList() ;
-			dataChanged() ;
+			dataChanged().emit(index(0,0),index(rowCount(),columnCount())) ;
 		}
 	private:
 		void updateFriendList() const
@@ -142,7 +142,7 @@ RSWappFriendsPage::RSWappFriendsPage(Wt::WContainerWidget *parent,RsPeers *mpeer
 	_tableView->setSelectionMode(Wt::ExtendedSelection);
 	_tableView->setDragEnabled(true);
 
-	_tableView->setColumnWidth(0, 100);
+	_tableView->setColumnWidth(0, 200);
 	_tableView->setColumnWidth(1, 150);
 	_tableView->setColumnWidth(2, 250);
 	_tableView->setColumnWidth(3, 150);

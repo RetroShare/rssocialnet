@@ -15,12 +15,12 @@
 
 #include "RSWappTransfersPage.h"
 
-static const uint32_t COLUMN_ACTIONS    = 0 ;
-static const uint32_t COLUMN_FILENAME   = 1 ;
-static const uint32_t COLUMN_FILESIZE   = 2 ;
-static const uint32_t COLUMN_TRANSFERED = 3 ;
-static const uint32_t COLUMN_SPEED      = 4 ;
-static const uint32_t COLUMN_SOURCES    = 5 ;
+//static const uint32_t COLUMN_ACTIONS    = 0 ;
+static const uint32_t COLUMN_FILENAME   = 0 ;
+static const uint32_t COLUMN_FILESIZE   = 1 ;
+static const uint32_t COLUMN_TRANSFERED = 2 ;
+static const uint32_t COLUMN_SPEED      = 3 ;
+static const uint32_t COLUMN_SOURCES    = 4 ;
 
 static Wt::WString make_big_number(uint64_t n)
 {
@@ -43,34 +43,34 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 		{
 			_last_time_update = 0 ;
 			_show_cache_transfers = true ;
+
+			updateTransfersList() ;
 		}
 
 		void toggleShowCacheTransfers() 
 		{ 
 			_show_cache_transfers = !_show_cache_transfers ; 
-			dataChanged() ;
+			refresh() ;
 		}
 		bool showCacheTransfers() const { return _show_cache_transfers ; }
 
 		virtual int rowCount(const Wt::WModelIndex& parent = Wt::WModelIndex()) const
 		{
-			if (!parent.isValid())
-				return _downloads.size() ;
-			else
-				return 0;
+			std::cerr << "asked for row count. Returning " << _downloads.size() << std::endl;
+
+			return _downloads.size() ;
 		}
 
 		virtual int columnCount(const Wt::WModelIndex& parent = Wt::WModelIndex()) const
 		{
-			if (!parent.isValid())
-				return 6;
-			else
-				return 0;
+			std::cerr << "asked for column count" << std::endl;
+			
+			return 5;
 		}
 
 		virtual boost::any data(const Wt::WModelIndex& index, int role = Wt::DisplayRole) const
 		{
-			if(index.column() >= 6 || index.row() >= (int)_downloads.size())
+			if(index.column() >= 5 || index.row() >= (int)_downloads.size())
 				return boost::any();
 
 			switch (role) 
@@ -78,7 +78,7 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 				case Wt::DisplayRole:
 					switch(index.column())
 					{
-						case COLUMN_ACTIONS   : return boost::any() ;
+						//case COLUMN_ACTIONS   : return boost::any() ;
 						case COLUMN_FILENAME  : return Wt::WString(_downloads[index.row()].fname) ;
 						case COLUMN_FILESIZE  : return make_big_number(_downloads[index.row()].size) ;
 						case COLUMN_TRANSFERED: return make_big_number(_downloads[index.row()].transfered) 
@@ -103,13 +103,12 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 
 		virtual boost::any headerData(int section, Wt::Orientation orientation = Wt::Horizontal, int role = Wt::DisplayRole) const
 		{
-			static Wt::WString col_names[6] = { Wt::WString("*"),
+			static Wt::WString col_names[5] = { //Wt::WString("*"),
 															Wt::WString("File name"),
 															Wt::WString("Size"),
 															Wt::WString("Transfered"),
 															Wt::WString("Transfer speed"), 
 															Wt::WString("Sources") } ;
-			updateTransfersList() ;
 
 			if (orientation == Wt::Horizontal) 
 				switch (role) 
@@ -138,7 +137,9 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 		virtual void refresh()
 		{
 			updateTransfersList() ;
-			dataChanged() ;
+			std::cerr << "Updating transfers model rows=" << rowCount() << ", columns=" << columnCount()  << std::endl;
+
+			dataChanged().emit(index(0,0),index(rowCount()-1,columnCount()-1)) ;
 		}
 	private:
 		void updateTransfersList() const
@@ -147,33 +148,35 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 
 			if(now < 2+_last_time_update)
 				return ;
-			
+
 			std::cerr << "Updating transfers list..." << std::endl;
 			_last_time_update = now ;
 
 			std::list<std::string> hashes ;
-			
-				if(!mFiles->FileDownloads(hashes)) 
-					std::cerr << "(EE) " << __PRETTY_FUNCTION__ << ": can't get list of downloads." << std::endl;
 
-				_downloads.clear() ;
+			if(!mFiles->FileDownloads(hashes)) 
+				std::cerr << "(EE) " << __PRETTY_FUNCTION__ << ": can't get list of downloads." << std::endl;
 
-				FileInfo info ;
+			_downloads.clear() ;
 
-				for(std::list<std::string>::const_iterator it(hashes.begin());it!=hashes.end();++it)
-					if(mFiles->FileDetails(*it,RS_FILE_HINTS_DOWNLOAD,info))
-					{
-						if(_show_cache_transfers || !(info.transfer_info_flags & RS_FILE_REQ_CACHE))
-							_downloads.push_back(info) ;
-					}
-					else
-						std::cerr << "Warning: can't get info for downloading hash " << *it << std::endl;
+			FileInfo info ;
 
-		//		for(std::list<std::string>::const_iterator it(hashes.begin());it!=hashes.end();++it)
-		//			if(FileDetails(*it,RS_FILE_HINTS_UPLOAD,info))
-		//				_uploads.push_back(info) ;
-		//			else
-		//				std::cerr << "Warning: can't get info for uploading hash " << *it << std::endl;
+			for(std::list<std::string>::const_iterator it(hashes.begin());it!=hashes.end();++it)
+				if(mFiles->FileDetails(*it,RS_FILE_HINTS_DOWNLOAD,info))
+				{
+					if(_show_cache_transfers || !(info.transfer_info_flags & RS_FILE_REQ_CACHE))
+						_downloads.push_back(info) ;
+				}
+				else
+					std::cerr << "Warning: can't get info for downloading hash " << *it << std::endl;
+
+			//		for(std::list<std::string>::const_iterator it(hashes.begin());it!=hashes.end();++it)
+			//			if(FileDetails(*it,RS_FILE_HINTS_UPLOAD,info))
+			//				_uploads.push_back(info) ;
+			//			else
+			//				std::cerr << "Warning: can't get info for uploading hash " << *it << std::endl;
+
+			std::cerr << _downloads.size() << " transfers in list." << std::endl;
 		}
 
 		mutable std::vector<FileInfo> _downloads ;
@@ -198,7 +201,7 @@ RSWappTransfersPage::RSWappTransfersPage(Wt::WContainerWidget *parent,RsFiles *m
 	_tableView->setSelectionMode(Wt::ExtendedSelection);
 	_tableView->setDragEnabled(true);
 
-	_tableView->setColumnWidth(COLUMN_ACTIONS   ,  20);
+	//_tableView->setColumnWidth(COLUMN_ACTIONS   ,  20);
 	_tableView->setColumnWidth(COLUMN_FILENAME  , 400);
 	_tableView->setColumnWidth(COLUMN_FILESIZE  , 150);
 	_tableView->setColumnWidth(COLUMN_TRANSFERED, 150);
@@ -232,8 +235,14 @@ RSWappTransfersPage::RSWappTransfersPage(Wt::WContainerWidget *parent,RsFiles *m
 	_timer = new Wt::WTimer(this) ;
 
 	_timer->setInterval(3000) ;
-	_timer->timeout().connect(_tableView,&Wt::WTableView::refresh) ;
+	_timer->timeout().connect(this,&RSWappTransfersPage::refresh) ;
 	_timer->start() ;
+}
+
+void RSWappTransfersPage::refresh()
+{
+	_download_model->refresh();
+	//_tableView->scheduleRender();
 }
 
 void RSWappTransfersPage::showCustomPopupMenu(const Wt::WModelIndex& item, const Wt::WMouseEvent& event) 
@@ -425,5 +434,7 @@ void RSWappTransfersPage::downloadLink()
 	}
 	else
 		Wt::WMessageBox::show("No file parsed","No retroshare links found in supplied test. Sorry!", Wt::Ok);
+
+	refresh();
 }
 
