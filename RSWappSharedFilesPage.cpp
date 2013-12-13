@@ -20,6 +20,7 @@ class LocalSharedFilesModel: public Wt::WAbstractTableModel
 		LocalSharedFilesModel(RsFiles *mfiles,Wt::WObject *parent = 0)
 			: Wt::WAbstractTableModel(parent), mFiles(mfiles)
 		{
+			_last_time_update = 0 ;
 		}
 
 		virtual int rowCount(const Wt::WModelIndex& parent = Wt::WModelIndex()) const
