@@ -85,7 +85,7 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 						case COLUMN_TRANSFERED: return make_big_number(_downloads[index.row()].transfered) 
 																					+ " (" + number_round(_downloads[index.row()].transfered
 																									/(double)_downloads[index.row()].size*100.0f) + " %)";
-						case COLUMN_SPEED     : return number_round(_downloads[index.row()].tfRate*1024)+" Kb/s";
+						case COLUMN_SPEED     : return number_round(_downloads[index.row()].tfRate)+" Kb/s";
 						case COLUMN_SOURCES   : return Wt::WString("{1}").arg((int)_downloads[index.row()].peers.size()) ;
 						default:
 									  return Wt::WString("Not connected") ;
@@ -147,8 +147,8 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 		{
 			time_t now = time(NULL) ;
 
-			if(now < 2+_last_time_update)
-				return ;
+			//if(now < 2+_last_time_update)
+			//	return ;
 
 			std::cerr << "Updating transfers list..." << std::endl;
 			_last_time_update = now ;
@@ -160,9 +160,10 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 
 			_downloads.clear() ;
 
-			FileInfo info ;
-
 			for(std::list<std::string>::const_iterator it(hashes.begin());it!=hashes.end();++it)
+			{
+				FileInfo info ;	// needs to be here, so that lists are empty.
+
 				if(mFiles->FileDetails(*it,RS_FILE_HINTS_DOWNLOAD,info))
 				{
 					if(_show_cache_transfers || !(info.transfer_info_flags & RS_FILE_REQ_CACHE))
@@ -173,6 +174,7 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 				}
 				else
 					std::cerr << "Warning: can't get info for downloading hash " << *it << std::endl;
+			}
 
 			//		for(std::list<std::string>::const_iterator it(hashes.begin());it!=hashes.end();++it)
 			//			if(FileDetails(*it,RS_FILE_HINTS_UPLOAD,info))
