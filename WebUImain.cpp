@@ -86,7 +86,7 @@ class RSWAppThread: public RsThread
 		static const uint32_t RSWAPP_THREAD_STATUS_STOPPED = 0x01 ;
 		static const uint32_t RSWAPP_THREAD_STATUS_RUNNING = 0x02 ;
 
-		static const RsPlugInInterfaces *plg_interfaces ;
+		static RsPlugInInterfaces *plg_interfaces ;
 	private:
 
 		uint16_t _port;
@@ -96,7 +96,9 @@ class RSWAppThread: public RsThread
 		uint32_t _status ;
 };
 
-const RsPlugInInterfaces *RSWAppThread::plg_interfaces = NULL;
+// Needs to be constructed on heap, so that it's not copy+writed in the thread.
+//
+RsPlugInInterfaces *RSWAppThread::plg_interfaces = new RsPlugInInterfaces;
 
 bool RSWebUI::isRunning() 
 { 
@@ -107,9 +109,9 @@ bool RSWebUI::start(const RsPlugInInterfaces& interfaces)
 	if(isRunning())
 		return false ;
 
-	_thread = new RSWAppThread(_port,_ip) ;
-	RSWAppThread::plg_interfaces = &interfaces ;
+	*RSWAppThread::plg_interfaces = interfaces ;
 
+	_thread = new RSWAppThread(_port,_ip) ;
 	_thread->start() ;
 
 	return true ;
