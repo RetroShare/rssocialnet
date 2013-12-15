@@ -42,14 +42,14 @@ class FriendListModel : public Wt::WAbstractTableModel
 		virtual int columnCount(const Wt::WModelIndex& parent = Wt::WModelIndex()) const
 		{
 			if (!parent.isValid())
-				return 5;
+				return 6;
 			else
 				return 0;
 		}
 
 		virtual boost::any data(const Wt::WModelIndex& index, int role = Wt::DisplayRole) const
 		{
-			if(index.column() >= 5 || index.row() >= _friends.size())
+			if(index.column() >= 6 || index.row() >= _friends.size())
 				return boost::any();
 
 			switch (role) 
@@ -86,7 +86,7 @@ class FriendListModel : public Wt::WAbstractTableModel
 
 		virtual boost::any headerData(int section, Wt::Orientation orientation = Wt::Horizontal, int role = Wt::DisplayRole) const
 		{
-			static Wt::WString col_names[6] = { Wt::WString("Avatar"),
+			static Wt::WString col_names[6] = { Wt::WString(""),
 															Wt::WString("Name (location)"),
 															Wt::WString("PGP id"),
 															Wt::WString("Location ID"),
@@ -214,12 +214,12 @@ RSWappFriendsPage::RSWappFriendsPage(Wt::WContainerWidget *parent,RsPeers *mpeer
 	_tableView->setSelectionMode(Wt::ExtendedSelection);
 	_tableView->setDragEnabled(true);
 
-	_tableView->setColumnWidth(0, 200);
-	_tableView->setColumnWidth(1, 150);
-	_tableView->setColumnWidth(2, 250);
-	_tableView->setColumnWidth(3, 150);
-	_tableView->setColumnWidth(4, 150);
-	_tableView->setColumnWidth(5, 100);
+	_tableView->setColumnWidth(COLUMN_AVATAR,  20);
+	_tableView->setColumnWidth(COLUMN_NAME  , 200);
+	_tableView->setColumnWidth(COLUMN_PGP_ID, 150);
+	_tableView->setColumnWidth(COLUMN_SSL_ID, 250);
+	_tableView->setColumnWidth(COLUMN_LAST_S, 150);
+	_tableView->setColumnWidth(COLUMN_IP    , 150);
 
 	_tableView->setModel(_model = new FriendListModel(mpeers,mmsgs)) ;
 	_model->refresh() ;
