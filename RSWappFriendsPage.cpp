@@ -1,10 +1,21 @@
 #include <retroshare/rspeers.h>
 
 #include <Wt/WTimer>
+#include <Wt/WPopupMenu>
+#include <Wt/WPushButton>
+#include <Wt/WMessageBox>
+#include <Wt/WVBoxLayout>
 #include <Wt/WContainerWidget>
 #include <Wt/WAbstractTableModel>
 
 #include "RSWappFriendsPage.h"
+
+static const uint32_t COLUMN_AVATAR = 0x00 ;
+static const uint32_t COLUMN_NAME   = 0x01 ;
+static const uint32_t COLUMN_PGP_ID = 0x02 ;
+static const uint32_t COLUMN_SSL_ID = 0x03 ;
+static const uint32_t COLUMN_LAST_S = 0x04 ;
+static const uint32_t COLUMN_IP     = 0x05 ;
 
 class FriendListModel : public Wt::WAbstractTableModel
 {
@@ -41,14 +52,14 @@ class FriendListModel : public Wt::WAbstractTableModel
 				case Wt::DisplayRole:
 					switch(index.column())
 					{
-						case 0: return Wt::WString(_friends[index.row()].name) ;
-						case 1: return Wt::WString(_friends[index.row()].gpg_id) ;
-						case 2: return Wt::WString(_friends[index.row()].id) ;
-						case 3: if(_friends[index.row()].state & RS_PEER_STATE_CONNECTED)
+						case COLUMN_NAME: return Wt::WString(_friends[index.row()].name) ;
+						case COLUMN_PGP_ID: return Wt::WString(_friends[index.row()].gpg_id) ;
+						case COLUMN_SSL_ID: return Wt::WString(_friends[index.row()].id) ;
+						case COLUMN_LAST_S: if(_friends[index.row()].state & RS_PEER_STATE_CONNECTED)
 									  return Wt::WString("Now") ;
 								  else
 									  return lastSeenString(_friends[index.row()].lastConnect) ;
-						case 4: 
+						case COLUMN_IP: 
 								  if(_friends[index.row()].state & RS_PEER_STATE_CONNECTED)
 								  {
 									  std::string s_ip = _friends[index.row()].connectAddr ;
@@ -58,6 +69,10 @@ class FriendListModel : public Wt::WAbstractTableModel
 								  else
 									  return Wt::WString("---") ;
 					}
+
+				case Wt::UserRole:
+					return Wt::WString(_friends[index.row()].id) ;
+
 				default:
 					return boost::any();
 			}
@@ -65,7 +80,8 @@ class FriendListModel : public Wt::WAbstractTableModel
 
 		virtual boost::any headerData(int section, Wt::Orientation orientation = Wt::Horizontal, int role = Wt::DisplayRole) const
 		{
-			static Wt::WString col_names[5] = { Wt::WString("Name (location)"),
+			static Wt::WString col_names[6] = { Wt::WString("Avatar"),
+															Wt::WString("Name (location)"),
 															Wt::WString("PGP id"),
 															Wt::WString("Location ID"),
 															Wt::WString("Last seen"), 
@@ -134,8 +150,10 @@ RSWappFriendsPage::RSWappFriendsPage(Wt::WContainerWidget *parent,RsPeers *mpeer
 {
 	setImplementation(_impl = new Wt::WContainerWidget()) ;
 
-	_tableView = new Wt::WTableView(_impl);
+	Wt::WVBoxLayout *layout = new Wt::WVBoxLayout() ;
+	_impl->setLayout(layout) ;
 
+	_tableView = new Wt::WTableView(_impl);
 	_tableView->setAlternatingRowColors(true);
 
 	//tableView->setModel(fileFilterModel_);
@@ -152,6 +170,16 @@ RSWappFriendsPage::RSWappFriendsPage(Wt::WContainerWidget *parent,RsPeers *mpeer
 	_tableView->setModel(_model = new FriendListModel(mpeers)) ;
 	_model->refresh() ;
 
+	Wt::WPushButton *add_friend_button = new Wt::WPushButton("Add new friend") ;
+	layout->addWidget(add_friend_button,1) ;
+
+	layout->addWidget(_tableView) ;
+
+	_popupMenu = NULL ;
+	_tableView->mouseWentUp().connect(this,&RSWappFriendsPage::showCustomPopupMenu) ;
+
+	add_friend_button->clicked().connect(this,&RSWappFriendsPage::addFriend) ;
+
 	// add a button to add new friends.
 	//
 	_timer = new Wt::WTimer(this) ;
@@ -161,10 +189,101 @@ RSWappFriendsPage::RSWappFriendsPage(Wt::WContainerWidget *parent,RsPeers *mpeer
 	_timer->start() ;
 }
 
+void RSWappFriendsPage::showCustomPopupMenu(const Wt::WModelIndex& item, const Wt::WMouseEvent& event) 
+{
+	std::cerr << "Custom poopup menu requested." << std::endl;
+
+	if (event.button() == Wt::WMouseEvent::LeftButton) 
+	{
+		// Select the item, it was not yet selected.
+		//
+		if (!_tableView->isSelected(item))
+			_tableView->select(item);
+
+		if (_popupMenu) 
+			delete _popupMenu ;
+
+		// request information about the hash
+
+		std::string friend_id(boost::any_cast<Wt::WString>(_tableView->model()->data(item,Wt::UserRole)).toUTF8());
+
+		_selected_friend = friend_id ;
+		std::cerr << "Making menu for friend id " << friend_id << std::endl;
+
+		_popupMenu = new Wt::WPopupMenu();
+
+		_popupMenu->addItem("Show details");
+		_popupMenu->addItem("Deny friend");
+
+		/*
+		 * This is one method of executing a popup, which does not block a
+		 * thread for a reentrant event loop, and thus scales.
+		 *
+		 * Alternatively you could call WPopupMenu::exec(), which returns
+		 * the result, but while waiting for it, blocks the thread.
+		 */      
+		_popupMenu->aboutToHide().connect(this, &RSWappFriendsPage::popupAction);
+		_popupMenu->popup(event);
+
+		std::cerr << "Popuping up menu!" << std::endl;
+	}
+}
+
 void RSWappFriendsPage::refresh()
 {
 	std::cerr << "refreshing friends page" << std::endl;
 	_model->refresh() ;
 	_tableView->refresh();
 }
+
+void RSWappFriendsPage::addFriend()
+{
+}
+
+void RSWappFriendsPage::showFriendDetails(const std::string& friend_id)
+{
+	RsPeerDetails info ;
+
+	if(!mPeers->getPeerDetails(friend_id,info))
+	{
+		std::cerr << "Can't get file details for friend " << friend_id << std::endl;
+		return ;
+	}
+
+	std::cerr << "Showing peer details: " << std::endl;
+	std::cerr << info << std::endl;
+}
+
+void RSWappFriendsPage::popupAction() 
+{
+	if (_popupMenu->result()) 
+	{
+		/*
+		 * You could also bind extra data to an item using setData() and
+		 * check here for the action asked. For now, we just use the text.
+		 */
+		Wt::WString text = _popupMenu->result()->text();
+		_popupMenu->hide();
+
+		if(text == "Show details")
+			showFriendDetails(_selected_friend) ;
+		else if(text == "Deny friend")
+		{
+	RsPeerDetails info ;
+
+	if(!mPeers->getPeerDetails(_selected_friend,info))
+	{
+		std::cerr << "Can't get file details for hash " << _selected_friend << std::endl;
+		return ;
+	}
+			if(Wt::WMessageBox::show("Deny friend?", "<p>Do you really want to deny this friend? If so, you can add it back again later.\n\nPGP id: "+info.gpg_id+"\nName : " +info.name, Wt::Yes | Wt::No) == Wt::Yes)
+				std::cerr << "Denying this friend" << std::endl;
+			else
+				std::cerr << "Keeping this friend" << std::endl;
+		}
+	} 
+	else 
+		_popupMenu->hide();
+}
+
 
