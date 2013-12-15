@@ -152,6 +152,8 @@ RSWappFriendsPage::RSWappFriendsPage(Wt::WContainerWidget *parent,RsPeers *mpeer
 	_tableView->setModel(_model = new FriendListModel(mpeers)) ;
 	_model->refresh() ;
 
+	// add a button to add new friends.
+	//
 	_timer = new Wt::WTimer(this) ;
 
 	_timer->setInterval(5000) ;

@@ -15,7 +15,7 @@
 RSWApplication::RSWApplication(const WEnvironment& env,const RsPlugInInterfaces& interf)
    : WApplication(env)
 {
-	setTitle("Hello world");               // application title
+	setTitle(Wt::WString("Retroshare Web UI. Version {1}").arg(SVN_REVISION_NUMBER));               // application title
 
 	Wt::WContainerWidget *container = new Wt::WContainerWidget();
 	Wt::WTabWidget *tabW = new Wt::WTabWidget(container);
