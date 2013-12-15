@@ -3,11 +3,13 @@
 
 #include <Wt/WTimer>
 #include <Wt/WPopupMenu>
+#include <Wt/WLabel>
 #include <Wt/WPushButton>
 #include <Wt/WImage>
 #include <Wt/WMessageBox>
 #include <Wt/WRasterImage>
 #include <Wt/WVBoxLayout>
+#include <Wt/WHBoxLayout>
 #include <Wt/WContainerWidget>
 #include <Wt/WAbstractTableModel>
 #include <Wt/WAbstractItemDelegate>
@@ -120,7 +122,7 @@ class FriendListModel : public Wt::WAbstractTableModel
 			updateFriendList() ;
 			dataChanged().emit(index(0,0),index(rowCount(),columnCount())) ;
 		}
-		const std::string& getAvatarUrl(int row)
+		const std::string& getAvatarUrl(int row) const
 		{
 			static const std::string null_str ;
 
@@ -128,6 +130,14 @@ class FriendListModel : public Wt::WAbstractTableModel
 				return null_str ;
 			else
 				return _friend_avatars[row] ;
+		}
+		const std::string& getAvatarUrl(const std::string& peer_id) const
+		{
+			for(uint32_t i=0;i<_friends.size();++i)
+				if(peer_id == _friends[i].id)
+					return getAvatarUrl(i) ;
+
+			return "" ;
 		}
 
 	private:
@@ -308,6 +318,40 @@ void RSWappFriendsPage::showFriendDetails(const std::string& friend_id)
 
 	std::cerr << "Showing peer details: " << std::endl;
 	std::cerr << info << std::endl;
+
+	Wt::WDialog dialog ;
+	dialog.setModal(false) ;
+
+	Wt::WVBoxLayout *layout = new Wt::WVBoxLayout ;
+	dialog.contents()->setLayout(layout) ;
+
+	Wt::WHBoxLayout *layout2 = new Wt::WHBoxLayout ;
+	Wt::WImage *img = new Wt::WImage(_model->getAvatarUrl(friend_id),dialog.contents());
+
+	img->setMinimumSize(128,128) ;
+	img->setMaximumSize(128,128) ;
+
+	layout2->addWidget(img) ;
+	layout2->addStretch() ;
+
+	layout->addLayout(layout2,1) ;
+
+	Wt::WString str ;
+	str += "<br/>" ;
+	str += "<b>Name</b>   \t\t: " + info.name + "<br/>" ;
+	str += "<b>PGP id</b> \t\t: " + info.gpg_id + "<br/>" ;
+	str += "<b>PGP fingerprint</b> \t: " + info.fpr + "<br/>" ;
+	str += "<b>Location name  </b> \t: " + info.location + "<br/>" ;
+	str += "<b>Location ID    </b> \t: " + info.id + "<br/>" ;
+
+	layout->addWidget(new Wt::WLabel(str,dialog.contents())) ;
+
+	Wt::WPushButton ok("Ok", dialog.contents());
+	layout->addWidget(&ok) ;
+
+	ok.clicked().connect(&dialog, &Wt::WDialog::accept);
+
+	dialog.exec() ;
 }
 
 void RSWappFriendsPage::popupAction() 
@@ -325,14 +369,14 @@ void RSWappFriendsPage::popupAction()
 			showFriendDetails(_selected_friend) ;
 		else if(text == "Deny friend")
 		{
-	RsPeerDetails info ;
+			RsPeerDetails info ;
 
-	if(!mPeers->getPeerDetails(_selected_friend,info))
-	{
-		std::cerr << "Can't get file details for hash " << _selected_friend << std::endl;
-		return ;
-	}
-			if(Wt::WMessageBox::show("Deny friend?", "<p>Do you really want to deny this friend? If so, you can add it back again later.\n\nPGP id: "+info.gpg_id+"\nName : " +info.name, Wt::Yes | Wt::No) == Wt::Yes)
+			if(!mPeers->getPeerDetails(_selected_friend,info))
+			{
+				std::cerr << "Can't get file details for hash " << _selected_friend << std::endl;
+				return ;
+			}
+			if(Wt::WMessageBox::show("Deny friend?", "Do you really want to deny this friend? If so, you can add it back again later.\n\nPGP id: "+info.gpg_id+"\nName : " +info.name, Wt::Yes | Wt::No) == Wt::Yes)
 				std::cerr << "Denying this friend" << std::endl;
 			else
 				std::cerr << "Keeping this friend" << std::endl;
