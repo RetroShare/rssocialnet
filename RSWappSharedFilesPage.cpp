@@ -8,6 +8,7 @@
 #include <Wt/WPushButton>
 #include <Wt/WModelIndex>
 #include <Wt/WTimer>
+#include <Wt/WLineEdit>
 
 #include "RSWappSharedFilesPage.h"
 
@@ -59,14 +60,14 @@ class LocalSharedFilesModel: public Wt::WAbstractTableModel
 				return boost::any();
 
 			//DirDetails dd;
-			//dd.;
+			//dd.count;
 			switch (role) 
 			{
 				case Wt::DisplayRole:
 					switch(index.column())
 					{
 						case COLUMN_FILENAME  : return Wt::WString(_searchResults[index.row()].name) ;
-						//case COLUMN_SIZE  : return make_big_number(_downloads[index.row()].size) ;
+						case COLUMN_SIZE  : return make_big_number(_searchResults[index.row()].count) ;
 						case COLUMN_AGE: return make_big_number(_searchResults[index.row()].age);
 						default:
 														return boost::any();
@@ -107,6 +108,15 @@ class LocalSharedFilesModel: public Wt::WAbstractTableModel
 			else
 				return boost::any();
 		}
+		std::list<DirDetails> getItems(std::list<int> jobList) const{
+			std::list<DirDetails> items;
+		    for(std::list<int>::iterator resultsIter = jobList.begin(); resultsIter != jobList.end(); resultsIter ++)
+		    {
+		        int index = *resultsIter;
+				items.push_back(_searchResults[index]) ;
+			}
+			return items;
+		}
 		void displayList(std::list<DirDetails> dList) const
 		{
 			_searchResults.clear() ;
@@ -140,11 +150,23 @@ RSWappSharedFilesPage::RSWappSharedFilesPage(Wt::WContainerWidget *parent,RsFile
 {
 	setImplementation(_impl = new Wt::WContainerWidget()) ;
 
+
+
 	//_treeView = new Wt::WTreeView(_impl);
 	_tableView = new Wt::WTableView(_impl);
 
 	Wt::WVBoxLayout *layout = new Wt::WVBoxLayout() ;
 	_impl->setLayout(layout) ;
+
+
+	search_box = new Wt::WLineEdit(_impl) ;
+	search_box->setText("mp3") ;
+	//search_box->setHeight(50) ;
+	layout->addWidget(search_box) ;
+
+	Wt::WPushButton *btn = new Wt::WPushButton("Search!") ;
+	btn->clicked().connect(this,&RSWappSharedFilesPage::searchClicked) ;
+	layout->addWidget(btn) ;
 
 	_tableView->setAlternatingRowColors(true);
 
@@ -162,20 +184,55 @@ RSWappSharedFilesPage::RSWappSharedFilesPage(Wt::WContainerWidget *parent,RsFile
 	_shared_files_model = new LocalSharedFilesModel(mfiles) ;
 
 	_tableView->setModel(_shared_files_model) ;
+
+	_tableView->doubleClicked().connect(this,&RSWappSharedFilesPage::tableClicked) ;
 	layout->addWidget(_tableView,1) ;
 
 	_tableView->setHeight(300) ;
 
-	search_box = new Wt::WTextArea(_impl) ;
-	search_box->setText("mp3") ;
-	search_box->setHeight(100) ;
-	layout->addWidget(search_box) ;
 
-	Wt::WPushButton *btn = new Wt::WPushButton("Search!") ;
-	btn->clicked().connect(this,&RSWappSharedFilesPage::searchClicked) ;
-	layout->addWidget(btn) ;
+	Wt::WPushButton *dlbtn = new Wt::WPushButton("Download selected") ;
+	dlbtn->clicked().connect(this,&RSWappSharedFilesPage::searchClicked) ;
+	layout->addWidget(dlbtn) ;
+
 
 	searchClicked();
+}
+
+void RSWappSharedFilesPage::tableClicked()
+{
+	//_tableView->selectedIndexes().begin().
+	Wt::WModelIndex index;
+	std::list<int> jobList;
+	const Wt::WModelIndexSet selectedRows = _tableView->selectedIndexes();
+	for (Wt::WModelIndexSet::iterator i = selectedRows.begin();
+		i != selectedRows.end(); ++i) {
+			index = *i;
+			jobList.push_back(index.row());
+	}
+	DirDetails dd;
+	std::list<DirDetails> items = _shared_files_model->getItems(jobList);
+	for (std::list<DirDetails>::iterator i = items.begin();
+		i != items.end(); ++i) {
+			dd = *i;
+
+			FileInfo finfo ;
+		    rsFiles->FileDetails(dd.hash, RS_FILE_HINTS_REMOTE, finfo) ;
+
+		    std::list<std::string> srcIds;
+		    for(std::list<TransferInfo>::const_iterator it(finfo.peers.begin());it!=finfo.peers.end();++it)
+		    {
+		        srcIds.push_back((*it).peerId) ;
+		    }
+
+		    if (rsFiles->FileRequest(dd.name, dd.hash, dd.count, "", RS_FILE_REQ_ANONYMOUS_ROUTING, srcIds)) {
+				std::cerr << "\n\n DOWNLOADING: " << dd.name << ", " << dd.hash << ", " << dd.count <<std::endl;
+		    } else {
+				std::cerr << "\n\n SKIPDL: " << dd.name << ", " << dd.hash << ", " << dd.count <<std::endl;
+		        //fileExist.append(link.name());
+		    }
+	}
+	//dryRunSignal().emit(jobList);
 }
 
 void RSWappSharedFilesPage::searchClicked()
