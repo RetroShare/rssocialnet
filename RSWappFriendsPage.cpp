@@ -1,13 +1,18 @@
 #include <retroshare/rspeers.h>
+#include <retroshare/rsmsgs.h>
 
 #include <Wt/WTimer>
 #include <Wt/WPopupMenu>
 #include <Wt/WPushButton>
+#include <Wt/WImage>
 #include <Wt/WMessageBox>
+#include <Wt/WRasterImage>
 #include <Wt/WVBoxLayout>
 #include <Wt/WContainerWidget>
 #include <Wt/WAbstractTableModel>
+#include <Wt/WAbstractItemDelegate>
 
+#include <util/radix64.h>
 #include "RSWappFriendsPage.h"
 
 static const uint32_t COLUMN_AVATAR = 0x00 ;
@@ -20,8 +25,8 @@ static const uint32_t COLUMN_IP     = 0x05 ;
 class FriendListModel : public Wt::WAbstractTableModel
 {
 	public:
-		FriendListModel(RsPeers *peers,Wt::WObject *parent = 0)
-			: Wt::WAbstractTableModel(parent), mPeers(peers)
+		FriendListModel(RsPeers *peers,RsMsgs *msgs,Wt::WObject *parent = 0)
+			: Wt::WAbstractTableModel(parent), mPeers(peers), mMsgs(msgs) 
 		{
 			_last_time_update = 0 ;
 		}
@@ -52,6 +57,7 @@ class FriendListModel : public Wt::WAbstractTableModel
 				case Wt::DisplayRole:
 					switch(index.column())
 					{
+						case COLUMN_AVATAR: return Wt::WString("") ;
 						case COLUMN_NAME: return Wt::WString(_friends[index.row()].name) ;
 						case COLUMN_PGP_ID: return Wt::WString(_friends[index.row()].gpg_id) ;
 						case COLUMN_SSL_ID: return Wt::WString(_friends[index.row()].id) ;
@@ -114,6 +120,16 @@ class FriendListModel : public Wt::WAbstractTableModel
 			updateFriendList() ;
 			dataChanged().emit(index(0,0),index(rowCount(),columnCount())) ;
 		}
+		const std::string& getAvatarUrl(int row)
+		{
+			static const std::string null_str ;
+
+			if(row >= _friend_avatars.size())
+				return null_str ;
+			else
+				return _friend_avatars[row] ;
+		}
+
 	private:
 		void updateFriendList() const
 		{
@@ -131,21 +147,59 @@ class FriendListModel : public Wt::WAbstractTableModel
 				std::cerr << "(EE) " << __PRETTY_FUNCTION__ << ": can't get list of friends." << std::endl;
 
 			_friends.clear() ;
+			_friend_avatars.clear() ;
 
 			for(std::list<std::string>::const_iterator it(fids.begin());it!=fids.end();++it)
 			{
 				_friends.push_back(RsPeerDetails()) ;
 
 				mPeers->getPeerDetails(*it,_friends.back()) ;
+
+				unsigned char *data = NULL ;
+				int size = 0 ;
+
+				mMsgs->getAvatarData(*it,data,size) ;
+
+				std::string base64_string ;
+				Radix64::encode((const char *)data,size,base64_string) ;
+
+				_friend_avatars.push_back(std::string("data:image/jpeg;base64,"+base64_string)) ;
+
+				std::cerr << "Got new avatar for friend " << *it << ": " << _friend_avatars.back() << std::endl;
 			}
 		}
 		int rows_, columns_;
 		mutable std::vector<RsPeerDetails> _friends ;
+		mutable std::vector<std::string> _friend_avatars;
 		mutable time_t _last_time_update ;
+
 		RsPeers *mPeers ;
+		RsMsgs *mMsgs ;
 };
 
-RSWappFriendsPage::RSWappFriendsPage(Wt::WContainerWidget *parent,RsPeers *mpeers)
+class FriendPageAvatarDelegate: public Wt::WAbstractItemDelegate
+{
+	public:
+		FriendPageAvatarDelegate(FriendListModel *model)
+		:	_model(model)
+		{
+		}
+		virtual Wt::WWidget *update(Wt::WWidget *widget,const Wt::WModelIndex& index,Wt::WFlags<Wt::ViewItemRenderFlag> flags)
+		{
+			if(widget != NULL && dynamic_cast<Wt::WImage*>(widget) != NULL)
+			{
+				static_cast<Wt::WImage*>(widget)->setImageRef(_model->getAvatarUrl( index.row() )) ;
+				return widget ;
+			}
+			else
+				return new Wt::WImage(_model->getAvatarUrl( index.row() )) ;
+		}
+
+	private:
+		FriendListModel *_model ;
+};
+
+RSWappFriendsPage::RSWappFriendsPage(Wt::WContainerWidget *parent,RsPeers *mpeers,RsMsgs *mmsgs)
 	: WCompositeWidget(parent),mPeers(mpeers)
 {
 	setImplementation(_impl = new Wt::WContainerWidget()) ;
@@ -167,8 +221,10 @@ RSWappFriendsPage::RSWappFriendsPage(Wt::WContainerWidget *parent,RsPeers *mpeer
 	_tableView->setColumnWidth(4, 150);
 	_tableView->setColumnWidth(5, 100);
 
-	_tableView->setModel(_model = new FriendListModel(mpeers)) ;
+	_tableView->setModel(_model = new FriendListModel(mpeers,mmsgs)) ;
 	_model->refresh() ;
+
+	_tableView->setItemDelegateForColumn(COLUMN_AVATAR,new FriendPageAvatarDelegate(_model)) ;
 
 	Wt::WPushButton *add_friend_button = new Wt::WPushButton("Add new friend") ;
 	layout->addWidget(add_friend_button,1) ;
