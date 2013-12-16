@@ -16,6 +16,9 @@ class RSWappSharedFilesPage: public Wt::WCompositeWidget
 		Wt::WTreeView *_treeView ;
 		Wt::WTableView* _tableView;
 		Wt::WLineEdit *search_box ;
+		Wt::WCheckBox *localcb;
+		Wt::WCheckBox *remotecb;
+		Wt::WCheckBox *distantcb;
 		RsFiles *mFiles ;
 		LocalSharedFilesModel *_shared_files_model ;
 		void searchClicked();

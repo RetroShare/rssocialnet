@@ -9,6 +9,7 @@
 #include <Wt/WModelIndex>
 #include <Wt/WTimer>
 #include <Wt/WLineEdit>
+#include <Wt/WCheckBox>
 
 #include "RSWappSharedFilesPage.h"
 
@@ -164,6 +165,13 @@ RSWappSharedFilesPage::RSWappSharedFilesPage(Wt::WContainerWidget *parent,RsFile
 	//search_box->setHeight(50) ;
 	layout->addWidget(search_box) ;
 
+	localcb = new Wt::WCheckBox(Wt::WString("Search Local"),_impl) ;
+	layout->addWidget(localcb);
+	remotecb = new Wt::WCheckBox(Wt::WString("Search Remote"),_impl) ;
+	layout->addWidget(remotecb);
+	distantcb = new Wt::WCheckBox(Wt::WString("Search Distant"),_impl) ;
+	layout->addWidget(distantcb);
+
 	Wt::WPushButton *btn = new Wt::WPushButton("Search!") ;
 	btn->clicked().connect(this,&RSWappSharedFilesPage::searchClicked) ;
 	layout->addWidget(btn) ;
@@ -251,17 +259,27 @@ void RSWappSharedFilesPage::searchClicked()
         strings.push_back(s);
     }
 
-	FileSearchFlags fsf = RS_FILE_HINTS_REMOTE;
 
-	std::list<DirDetails> initialResults;
-	std::cerr << "stringlen "<< strings.size() <<std::endl;
-	for(std::list<std::string>::iterator resultsIter = strings.begin(); resultsIter != strings.end(); resultsIter ++)
-    {
-        std::cerr << "str: " << *resultsIter << std::endl;
+	std::list<DirDetails> results;
+	if(localcb->checkState()){
+		FileSearchFlags fsf = RS_FILE_HINTS_LOCAL;
+		std::list<DirDetails> initialResults;
+		mFiles->SearchKeywords(strings,initialResults,fsf);
+		std::cerr << "RESULTLEN: "<< initialResults.size() <<std::endl;
+
+		for (std::list<DirDetails>::iterator i = initialResults.begin(); i != initialResults.end(); ++i)
+			results.push_back(*i);
 	}
-	mFiles->SearchKeywords(strings,initialResults,fsf);
-	std::cerr << "RESULTLEN: "<< initialResults.size() <<std::endl;
-	_shared_files_model->displayList(initialResults);
+	if(remotecb->checkState()){
+		FileSearchFlags fsf = RS_FILE_HINTS_REMOTE;
+		std::list<DirDetails> initialResults;
+		mFiles->SearchKeywords(strings,initialResults,fsf);
+		std::cerr << "RESULTLEN: "<< initialResults.size() <<std::endl;
+
+		for (std::list<DirDetails>::iterator i = initialResults.begin(); i != initialResults.end(); ++i)
+			results.push_back(*i);
+	}
+	_shared_files_model->displayList(results);
 	refresh();
 
 }
