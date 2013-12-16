@@ -3,12 +3,12 @@
 #include <Wt/WTreeView>
 
 class RsFiles ;
-class LocalSharedFilesModel ;
+class LocalSearchFilesModel ;
 
-class RSWappSharedFilesPage: public Wt::WCompositeWidget
+class RSWappSearchFilesPage: public Wt::WCompositeWidget
 {
 	public:
-		RSWappSharedFilesPage(Wt::WContainerWidget *container,RsFiles *rsfiles) ;
+		RSWappSearchFilesPage(Wt::WContainerWidget *container,RsFiles *rsfiles) ;
 
 		virtual void refresh() ;
 	private:
@@ -20,7 +20,7 @@ class RSWappSharedFilesPage: public Wt::WCompositeWidget
 		Wt::WCheckBox *remotecb;
 		Wt::WCheckBox *distantcb;
 		RsFiles *mFiles ;
-		LocalSharedFilesModel *_shared_files_model ;
+		LocalSearchFilesModel *_shared_files_model ;
 		void searchClicked();
 		void tableClicked();
 };

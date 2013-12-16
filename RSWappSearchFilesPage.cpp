@@ -11,10 +11,12 @@
 #include <Wt/WLineEdit>
 #include <Wt/WCheckBox>
 
-#include "RSWappSharedFilesPage.h"
+#include "RSWappSearchFilesPage.h"
 
 #include <retroshare/rsfiles.h>
 #include <retroshare/rstypes.h>
+#include <retroshare/rsturtle.h>
+#include <retroshare/rsnotify.h>
 
 #define COLUMN_FILENAME 0
 #define COLUMN_SIZE     1
@@ -30,10 +32,10 @@ static Wt::WString make_big_number(uint64_t n)
 		return Wt::WString("{1}").arg((int)n) ;
 }
 
-class LocalSharedFilesModel: public Wt::WAbstractTableModel
+class LocalSearchFilesModel: public Wt::WAbstractTableModel
 {
 	public:
-		LocalSharedFilesModel(RsFiles *mfiles,Wt::WObject *parent = 0)
+		LocalSearchFilesModel(RsFiles *mfiles,Wt::WObject *parent = 0)
 			: Wt::WAbstractTableModel(parent), mFiles(mfiles)
 		{
 		}
@@ -146,7 +148,7 @@ class LocalSharedFilesModel: public Wt::WAbstractTableModel
 		RsFiles *mFiles ;
 };
 
-RSWappSharedFilesPage::RSWappSharedFilesPage(Wt::WContainerWidget *parent,RsFiles *mfiles)
+RSWappSearchFilesPage::RSWappSearchFilesPage(Wt::WContainerWidget *parent,RsFiles *mfiles)
 	: WCompositeWidget(parent),mFiles(mfiles)
 {
 	setImplementation(_impl = new Wt::WContainerWidget()) ;
@@ -173,7 +175,7 @@ RSWappSharedFilesPage::RSWappSharedFilesPage(Wt::WContainerWidget *parent,RsFile
 	layout->addWidget(distantcb);
 
 	Wt::WPushButton *btn = new Wt::WPushButton("Search!") ;
-	btn->clicked().connect(this,&RSWappSharedFilesPage::searchClicked) ;
+	btn->clicked().connect(this,&RSWappSearchFilesPage::searchClicked) ;
 	layout->addWidget(btn) ;
 
 	_tableView->setAlternatingRowColors(true);
@@ -189,25 +191,25 @@ RSWappSharedFilesPage::RSWappSharedFilesPage(Wt::WContainerWidget *parent,RsFile
 	_tableView->setColumnWidth(4, 150);
 	_tableView->setColumnWidth(5, 100);
 
-	_shared_files_model = new LocalSharedFilesModel(mfiles) ;
+	_shared_files_model = new LocalSearchFilesModel(mfiles) ;
 
 	_tableView->setModel(_shared_files_model) ;
 
-	_tableView->doubleClicked().connect(this,&RSWappSharedFilesPage::tableClicked) ;
+	_tableView->doubleClicked().connect(this,&RSWappSearchFilesPage::tableClicked) ;
 	layout->addWidget(_tableView,1) ;
 
 	_tableView->setHeight(300) ;
 
 
 	Wt::WPushButton *dlbtn = new Wt::WPushButton("Download selected") ;
-	dlbtn->clicked().connect(this,&RSWappSharedFilesPage::searchClicked) ;
+	dlbtn->clicked().connect(this,&RSWappSearchFilesPage::searchClicked) ;
 	layout->addWidget(dlbtn) ;
 
 
 	searchClicked();
 }
 
-void RSWappSharedFilesPage::tableClicked()
+void RSWappSearchFilesPage::tableClicked()
 {
 	//_tableView->selectedIndexes().begin().
 	Wt::WModelIndex index;
@@ -243,7 +245,7 @@ void RSWappSharedFilesPage::tableClicked()
 	//dryRunSignal().emit(jobList);
 }
 
-void RSWappSharedFilesPage::searchClicked()
+void RSWappSearchFilesPage::searchClicked()
 {
 	std::cerr << "SEARCHCLICKED"<<std::endl;
 	std::string lstr = search_box->text().toUTF8() ;
@@ -258,6 +260,13 @@ void RSWappSharedFilesPage::searchClicked()
         std::cout << s << std::endl;
         strings.push_back(s);
     }
+
+	/*TurtleRequestId req_id ;
+
+    if(distantcb->checkState())
+    {
+        req_id = rsTurtle->turtleSearch(strings.front()) ;
+    }*/
 
 
 	std::list<DirDetails> results;
@@ -284,7 +293,7 @@ void RSWappSharedFilesPage::searchClicked()
 
 }
 
-void RSWappSharedFilesPage::refresh() {
+void RSWappSearchFilesPage::refresh() {
 	_shared_files_model->refresh();
 	_tableView->refresh();
 	_tableView->setHeight(300);//Without this line - wt wont update for me (wt3.3)
