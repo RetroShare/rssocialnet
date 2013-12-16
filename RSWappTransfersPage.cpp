@@ -248,6 +248,7 @@ RSWappTransfersPage::RSWappTransfersPage(Wt::WContainerWidget *parent,RsFiles *m
 void RSWappTransfersPage::refresh()
 {
 	_download_model->refresh();
+	_tableView->setHeight(_tableView->height());
 	//_tableView->scheduleRender();
 }
 
