@@ -16,12 +16,12 @@
 RSWApplication::RSWApplication(const WEnvironment& env,const RsPlugInInterfaces& interf)
    : WApplication(env)
 {
-	setTitle("Hello world");               // application title
+	setTitle(Wt::WString("Retroshare Web UI. Version {1}").arg(SVN_REVISION_NUMBER));               // application title
 
 	Wt::WContainerWidget *container = new Wt::WContainerWidget();
 	Wt::WTabWidget *tabW = new Wt::WTabWidget(container);
 
-	tabW->addTab(new RSWappFriendsPage(container,interf.mPeers), "Friends", Wt::WTabWidget::PreLoading);
+	tabW->addTab(new RSWappFriendsPage(container,interf.mPeers,interf.mMsgs), "Friends", Wt::WTabWidget::PreLoading);
 	tabW->addTab(new RSWappTransfersPage(container,interf.mFiles),"Transfers", Wt::WTabWidget::PreLoading);
 	tabW->addTab(new RSWappSharedFilesPage(container,interf.mFiles),"Shared files", Wt::WTabWidget::PreLoading);
 	tabW->addTab(new RSWappSearchFilesPage(container,interf.mFiles),"Search files", Wt::WTabWidget::PreLoading);
