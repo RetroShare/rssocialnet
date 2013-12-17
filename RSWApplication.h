@@ -1,9 +1,9 @@
-#include <WApplication>
-#include <WBreak>
-#include <WContainerWidget>
-#include <WLineEdit>
-#include <WPushButton>
-#include <WText>
+#include <Wt/WApplication>
+#include <Wt/WBreak>
+#include <Wt/WContainerWidget>
+#include <Wt/WLineEdit>
+#include <Wt/WPushButton>
+#include <Wt/WText>
 
 using namespace Wt;
 

@@ -24,7 +24,27 @@ HEADERS = RSWApplication.h \
 
 TARGET = WebUI
 
-INCLUDEPATH += /usr/include/Wt
 RESOURCES = WebUI_images.qrc
 
-LIBS += -lwthttp -lwt -L../../libretroshare/src/lib -lretroshare ../../libbitdht/src/lib/libbitdht.a
+LIBS += -lwthttp -lwt
+
+################################# Linux ##########################################
+
+linux-* {
+	INCLUDEPATH += /usr/include/Wt
+
+	LIBS += -L../../libretroshare/src/lib -lretroshare ../../libbitdht/src/lib/libbitdht.a
+}
+
+#################################### Windows #####################################
+
+win32 {
+	WT_DIR = ../../../lib/wt-3.3.1
+	BOOST_DIR = ../../../lib/boost-1.55.0
+
+	INCLUDEPATH += $${WT_DIR}/include $${BOOST_DIR}/include/boost-1_55
+
+	LIBS += -lws2_32 -lwsock32
+	LIBS += -L"$${WT_DIR}/lib" -L"$${BOOST_DIR}/lib"
+	LIBS += -lboost_date_time-mgw44-mt-1_55 -lboost_filesystem-mgw44-mt-1_55 -lboost_program_options-mgw44-mt-1_55 -lboost_random-mgw44-mt-1_55 -lboost_regex-mgw44-mt-1_55 -lboost_system-mgw44-mt-1_55 -lboost_thread-mgw44-mt-1_55
+}

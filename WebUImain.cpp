@@ -1,7 +1,7 @@
 #include <util/rsthreads.h>
 #include <retroshare/rsplugin.h>
 
-#include <WServer>
+#include <Wt/WServer>
 
 #include "RSWApplication.h"
 #include "WebUImain.h"
@@ -126,7 +126,11 @@ bool RSWebUI::stop()
 
 	while(_thread->isRunning())
 	{
+#ifndef WINDOWS_SYS
 		usleep(500000) ;		// wait half a sec.
+#else
+		Sleep(500) ;		// wait half a sec.
+#endif
 	}
 	std::cerr << "done." << std::endl;
 
