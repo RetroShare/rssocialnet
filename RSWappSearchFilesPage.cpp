@@ -165,6 +165,8 @@ RSWappSearchFilesPage::RSWappSearchFilesPage(Wt::WContainerWidget *parent,RsFile
 
 	search_box = new Wt::WLineEdit(_impl) ;
 	search_box->setText("mp3") ;
+	search_box->enterPressed().connect(this,&RSWappSearchFilesPage::searchClicked) ;
+
 	//search_box->setHeight(50) ;
 
 	localcb = new Wt::WCheckBox(Wt::WString("Search Local"),_impl) ;
