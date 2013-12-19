@@ -85,9 +85,9 @@ Wt::WString friendlyUnit(float val)
 
     for(unsigned int i=0; i<5; ++i) 
 	 {
-        if (val < 1024.) {
-            return Wt::WString("{1}").arg(val) + units[i] ;
-        }
+        if(val < 1024.) 
+            return Wt::WString("{1}.{2}").arg((int)floor(val)).arg((int)floor(100*(val - floor(val)))) + units[i] ;
+   
         val /= 1024.;
     }
     return  Wt::WString("{1}").arg(val) + Wt::WString(" TB");
@@ -190,7 +190,7 @@ class LocalSharedFilesModel: public Wt::WAbstractItemModel
 
 			return Wt::WString(str) ;
 		}
-		Wt::WString getGroupsString(const std::list<std::string>& group_ids)
+		Wt::WString getGroupsString(const std::list<std::string>& group_ids) const
 		{
 			Wt::WString groups_str ;
 			RsGroupInfo group_info ;
@@ -240,17 +240,24 @@ class LocalSharedFilesModel: public Wt::WAbstractItemModel
 
 		boost::any displayRole(const DirDetails& details,int coln) const
 		{
-			if (details.type == DIR_TYPE_FILE) /* File */
-				switch(coln)
-				{
-					case 0: return Wt::WString::fromUTF8(details.name.c_str());
-					case 1: return friendlyUnit(details.count);
-					case 2: return userFriendlyDuration(details.age);
-					case 3: return Wt::WString::fromUTF8(rsPeers->getPeerName(details.id).c_str());
-					case 4: return computeDirectoryPath(details);
-					default:
+			switch(coln)
+			{
+				case 0: if(details.type == DIR_TYPE_PERSON)
+							  return "My shared files" ;
+						  else
+							  return Wt::WString::fromUTF8(details.name.c_str());
+
+				case 1: if (details.type == DIR_TYPE_FILE) /* File */
+							  return friendlyUnit(details.count);
+						  else
 							  return boost::any() ;
-				}
+
+				case 2: return userFriendlyDuration(details.age);
+				case 3: return getFlagsString(details.flags);
+				case 4: return getGroupsString(details.parent_groups) ;
+				default:
+						  return boost::any() ;
+			}
 
 			return boost::any();
 		} /* end of DisplayRole */
@@ -398,8 +405,7 @@ class LocalSharedFilesModel: public Wt::WAbstractItemModel
 
 		virtual boost::any headerData(int section, Wt::Orientation orientation = Wt::Horizontal, int role = Wt::DisplayRole) const
 		{
-			static Wt::WString col_names[6] = { 
-				Wt::WString("*"),
+			static Wt::WString col_names[5] = { 
 				Wt::WString("File name"),
 				Wt::WString("Size"),
 				Wt::WString("Age"),
