@@ -147,8 +147,9 @@ class FriendListModel : public Wt::WAbstractTableModel
 
 			if(now < 2+_last_time_update)
 				return ;
-			
+#ifdef DEBUG_FRIENDSPAGE	
 			std::cerr << "Updating list..." << std::endl;
+#endif
 			_last_time_update = now ;
 
 			std::list<std::string> fids ;
@@ -175,7 +176,9 @@ class FriendListModel : public Wt::WAbstractTableModel
 
 				_friend_avatars.push_back(std::string("data:image/jpeg;base64,"+base64_string)) ;
 
+#ifdef DEBUG_FRIENDSPAGE	
 				std::cerr << "Got new avatar for friend " << *it << ": " << _friend_avatars.back() << std::endl;
+#endif
 			}
 		}
 		int rows_, columns_;
@@ -257,7 +260,9 @@ RSWappFriendsPage::RSWappFriendsPage(Wt::WContainerWidget *parent,RsPeers *mpeer
 
 void RSWappFriendsPage::showCustomPopupMenu(const Wt::WModelIndex& item, const Wt::WMouseEvent& event) 
 {
+#ifdef DEBUG_FRIENDSPAGE	
 	std::cerr << "Custom poopup menu requested." << std::endl;
+#endif
 
 	if (event.button() == Wt::WMouseEvent::LeftButton) 
 	{
@@ -274,7 +279,9 @@ void RSWappFriendsPage::showCustomPopupMenu(const Wt::WModelIndex& item, const W
 		std::string friend_id(boost::any_cast<Wt::WString>(_tableView->model()->data(item,Wt::UserRole)).toUTF8());
 
 		_selected_friend = friend_id ;
+#ifdef DEBUG_FRIENDSPAGE	
 		std::cerr << "Making menu for friend id " << friend_id << std::endl;
+#endif
 
 		_popupMenu = new Wt::WPopupMenu();
 
@@ -291,13 +298,17 @@ void RSWappFriendsPage::showCustomPopupMenu(const Wt::WModelIndex& item, const W
 		_popupMenu->aboutToHide().connect(this, &RSWappFriendsPage::popupAction);
 		_popupMenu->popup(event);
 
+#ifdef DEBUG_FRIENDSPAGE	
 		std::cerr << "Popuping up menu!" << std::endl;
+#endif
 	}
 }
 
 void RSWappFriendsPage::refresh()
 {
+#ifdef DEBUG_FRIENDSPAGE	
 	std::cerr << "refreshing friends page" << std::endl;
+#endif
 	_model->refresh() ;
 	_tableView->refresh();
 }
@@ -316,8 +327,10 @@ void RSWappFriendsPage::showFriendDetails(const std::string& friend_id)
 		return ;
 	}
 
+#ifdef DEBUG_FRIENDSPAGE	
 	std::cerr << "Showing peer details: " << std::endl;
 	std::cerr << info << std::endl;
+#endif
 
 	Wt::WDialog dialog ;
 	dialog.setModal(false) ;

@@ -1,5 +1,5 @@
 #include <Wt/WContainerWidget>
-#include <Wt/WAbstractTableModel>
+#include <Wt/WAbstractItemModel>
 #include <Wt/WVBoxLayout>
 #include <Wt/WTreeView>
 
@@ -93,14 +93,13 @@ Wt::WString friendlyUnit(float val)
     return  Wt::WString("{1}").arg(val) + Wt::WString(" TB");
 }
 
-
-class LocalSharedFilesModel: public Wt::WAbstractTableModel
+class LocalSharedFilesModel: public Wt::WAbstractItemModel
 {
 	public:
 		LocalSharedFilesModel(RsFiles *mfiles,RsPeers *mpeers,Wt::WObject *parent = 0)
-			: Wt::WAbstractTableModel(parent), mFiles(mfiles), mPeers(mpeers)
+			: Wt::WAbstractItemModel(parent), mFiles(mfiles), mPeers(mpeers)
 		{
-			RemoteMode = true ;
+			RemoteMode = false ;
 		}
 
 		virtual int rowCount(const Wt::WModelIndex& parent = Wt::WModelIndex()) const
@@ -428,6 +427,7 @@ class LocalSharedFilesModel: public Wt::WAbstractTableModel
 
 		Wt::WModelIndex index(int row, int column, const Wt::WModelIndex & parent) const
 		{
+			std::cerr << "index: row=" << row << ", column=" << column << std::endl;
 			if(row < 0)
 				return Wt::WModelIndex() ;
 
@@ -453,6 +453,7 @@ class LocalSharedFilesModel: public Wt::WAbstractTableModel
 
 			/* we can just grab the reference now */
 
+			std::cerr << "returning new index with ref=" << (void*)it->ref << std::endl;
 			return createIndex(row, column, it->ref);
 		}
 
