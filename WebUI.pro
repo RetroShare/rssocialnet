@@ -32,7 +32,7 @@ LIBS += -lwthttp -lwt
 
 linux-* {
 	INCLUDEPATH += /usr/include/Wt
-	LIBS += -L../../libretroshare/src/lib -lretroshare 
+	LIBS += -L../../libretroshare/src/lib -lretroshare ../../libbitdht/src/lib/libbitdht.a
 }
 
 #################################### Windows #####################################
