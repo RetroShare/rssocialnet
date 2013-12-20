@@ -1,6 +1,7 @@
 #include <Wt/WContainerWidget>
 #include <Wt/WAbstractTableModel>
 #include <Wt/WVBoxLayout>
+#include <Wt/WHBoxLayout>
 #include <Wt/WTreeView>
 #include <Wt/WTableView>
 #include <Wt/WTextArea>
@@ -164,19 +165,31 @@ RSWappSearchFilesPage::RSWappSearchFilesPage(Wt::WContainerWidget *parent,RsFile
 
 	search_box = new Wt::WLineEdit(_impl) ;
 	search_box->setText("mp3") ;
+	search_box->enterPressed().connect(this,&RSWappSearchFilesPage::searchClicked) ;
+
 	//search_box->setHeight(50) ;
-	layout->addWidget(search_box) ;
 
 	localcb = new Wt::WCheckBox(Wt::WString("Search Local"),_impl) ;
-	layout->addWidget(localcb);
 	remotecb = new Wt::WCheckBox(Wt::WString("Search Remote"),_impl) ;
-	layout->addWidget(remotecb);
 	distantcb = new Wt::WCheckBox(Wt::WString("Search Distant"),_impl) ;
-	layout->addWidget(distantcb);
+	localcb->setChecked(true);
+	remotecb->setChecked(true);
 
 	Wt::WPushButton *btn = new Wt::WPushButton("Search!") ;
 	btn->clicked().connect(this,&RSWappSearchFilesPage::searchClicked) ;
-	layout->addWidget(btn) ;
+
+	Wt::WContainerWidget *hSearchBox = new Wt::WContainerWidget();
+	Wt::WHBoxLayout *hSearchLayout = new Wt::WHBoxLayout ;
+	hSearchBox->setLayout(hSearchLayout);
+
+	hSearchLayout->addWidget(search_box) ;
+	hSearchLayout->addWidget(localcb);
+	//hSearchLayout->addWidget(distantcb);
+	hSearchLayout->addWidget(remotecb);
+	hSearchLayout->addWidget(btn) ;
+
+	layout->addWidget(hSearchBox) ;
+	search_box->setWidth(1000);
 
 	_tableView->setAlternatingRowColors(true);
 
@@ -205,8 +218,6 @@ RSWappSearchFilesPage::RSWappSearchFilesPage(Wt::WContainerWidget *parent,RsFile
 	dlbtn->clicked().connect(this,&RSWappSearchFilesPage::searchClicked) ;
 	layout->addWidget(dlbtn) ;
 
-
-	searchClicked();
 }
 
 void RSWappSearchFilesPage::tableClicked()
