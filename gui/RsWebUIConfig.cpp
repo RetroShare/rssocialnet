@@ -11,6 +11,7 @@ RsWebUIConfig::RsWebUIConfig(QWidget * parent, Qt::WindowFlags flags)
 	 _current_mask = 0 ;
 
 	 QObject::connect(ui.IPmask_LE,SIGNAL(textChanged(const QString&)),this,SLOT(on_IPmaskChanged(const QString&))) ;
+	 QObject::connect(ui.enableWebUI_CB,SIGNAL(toggled(bool)),this,SLOT(on_enableSwitch(bool))) ;
 }
 
 RsWebUIConfig::~RsWebUIConfig() {}
@@ -21,6 +22,7 @@ void RsWebUIConfig::load()
     loadSettings();
 
 	 on_IPmaskChanged(ui.IPmask_LE->text()) ;
+	 ui.enableWebUI_CB->setChecked(RSWebUI::isRunning()) ;
 }
 
 static QString IPmaskToString(uint32_t ip_mask)
@@ -91,6 +93,12 @@ QColor color ;
 void RsWebUIConfig::on_enableSwitch(bool b)
 {
 	ui.params_GB->setEnabled(b) ;
+
+	if(!b)
+	{
+		std::cerr << "Stopping server." << std::endl;
+		RSWebUI::stop() ;
+	}
 }
 
 QString RsWebUIConfig::helpText() const

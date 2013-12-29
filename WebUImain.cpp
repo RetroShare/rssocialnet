@@ -39,7 +39,7 @@ class RSWAppThread: public RsThread
 			std::string s6("--http-port") ;
 			std::string s7( os2.str() ) ;
 
-			std::cerr << "Using http address " << s5 << ", and port " << s7 << std::endl;
+			std::cerr << "RSWEBUI: Using http address " << s5 << ", and port " << s7 << std::endl;
 
 			int argc = 7 ;
 			char *argv[] = {  strdup(s1.c_str()),
@@ -50,7 +50,7 @@ class RSWAppThread: public RsThread
 									strdup(s6.c_str()),
 									strdup(s7.c_str()) } ;
 
-			std::cerr << "In server thread. Launching..." << std::endl;
+			std::cerr << "RSWEBUI: In server thread. Launching..." << std::endl;
 
 			WServer server(argv[0]);
 
@@ -62,7 +62,7 @@ class RSWAppThread: public RsThread
 
 			if(!server.start()) 
 			{
-				std::cerr << "Server failed to start. Giving up." << std::endl;
+				std::cerr << "RSWEBUI: Server failed to start. Giving up." << std::endl;
 				join() ;
 				stop() ;
 			}
@@ -72,7 +72,7 @@ class RSWAppThread: public RsThread
 
 			//Wt::WServer::waitForShutdown();
 
-			std::cerr << "Stopping server." << std::endl;
+			std::cerr << "RSWEBUI: Stopping server." << std::endl;
 			server.stop();
 
 			join() ;
@@ -116,7 +116,7 @@ bool RSWebUI::start(const RsPlugInInterfaces& interfaces)
 
 	*RSWAppThread::plg_interfaces = interfaces ;
 
-	std::cerr << "Starting WebUI service with port=" << _port << " and ip=" << _ip << std::endl;
+	std::cerr << "RSWEBUI: Starting WebUI service with port=" << _port << " and ip=" << _ip << std::endl;
 
 	_thread = new RSWAppThread(_port,_ip) ;
 	_thread->start() ;
@@ -125,6 +125,8 @@ bool RSWebUI::start(const RsPlugInInterfaces& interfaces)
 }
 bool RSWebUI::restart() 
 {
+	std::cerr << "RSWEBUI: Scheduling webserver restart..." << std::endl;
+
 	stop() ;
 	start(*RSWAppThread::plg_interfaces) ;
 
@@ -135,7 +137,7 @@ bool RSWebUI::stop()
 	if(_thread == NULL)
 		return false ;
 
-	std::cerr << "Stopping web server..." << std::endl;
+	std::cerr << "RSWEBUI: Stopping web server..." << std::endl;
 	_thread->stopServer() ;
 
 	while(_thread->isRunning())
@@ -146,7 +148,7 @@ bool RSWebUI::stop()
 		Sleep(500) ;		// wait half a sec.
 #endif
 	}
-	std::cerr << "done." << std::endl;
+	std::cerr << "RSWEBUI: done." << std::endl;
 
 	delete _thread ;
 	_thread = NULL ;
