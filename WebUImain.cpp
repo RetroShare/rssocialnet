@@ -67,7 +67,12 @@ class RSWAppThread: public RsThread
 				stop() ;
 			}
 
-			Wt::WServer::waitForShutdown();
+			while(!_should_stop)
+				sleep(1) ;
+
+			//Wt::WServer::waitForShutdown();
+
+			std::cerr << "Stopping server." << std::endl;
 			server.stop();
 
 			join() ;
@@ -111,8 +116,17 @@ bool RSWebUI::start(const RsPlugInInterfaces& interfaces)
 
 	*RSWAppThread::plg_interfaces = interfaces ;
 
+	std::cerr << "Starting WebUI service with port=" << _port << " and ip=" << _ip << std::endl;
+
 	_thread = new RSWAppThread(_port,_ip) ;
 	_thread->start() ;
+
+	return true ;
+}
+bool RSWebUI::restart() 
+{
+	stop() ;
+	start(*RSWAppThread::plg_interfaces) ;
 
 	return true ;
 }

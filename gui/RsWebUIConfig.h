@@ -1,6 +1,7 @@
 #ifndef _AUDIOINPUTCONFIG_H
 #define _AUDIOINPUTCONFIG_H
 
+#include <stdint.h>
 #include <QWidget>
 
 #include "retroshare-gui/configpage.h"
@@ -23,16 +24,20 @@ class RsWebUIConfig : public ConfigPage
 
 		virtual QPixmap iconPixmap() const { return QPixmap(":/images/emblem-web.png") ; }
 		virtual QString pageName() const { return tr("Web UI") ; }
-		virtual QString helpText() const { return "Provides a web interface to control Retroshare with your web browser"; }
+		virtual QString helpText() const ;
 
 	private slots:
-		void on_portChanged(int port);
+		void on_IPmaskChanged(const QString& mask);
 		void on_enableSwitch(bool b);
 
 	private:
 		Ui::RsWebUIConfig ui;
 
 		void loadSettings();
+
+		uint32_t _current_mask ;
+		uint32_t _old_mask ;
+		uint16_t _old_port ;
 };
 
 #endif

@@ -52,7 +52,10 @@ void WebUIPlugin::getPluginVersion(int& major,int& minor,int& svn_rev) const
 
 ConfigPage *WebUIPlugin::qt_config_page() const
 {
-	static RsWebUIConfig *cfg_widget = new RsWebUIConfig ;
+	static RsWebUIConfig *cfg_widget = NULL ;
+	
+	if(cfg_widget == NULL)
+		cfg_widget = new RsWebUIConfig ;
 
 	return cfg_widget ;
 }
