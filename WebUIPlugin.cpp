@@ -6,6 +6,7 @@
 
 #include "WebUIPlugin.h"
 #include "WebUImain.h"
+#include <gui/RsWebUIConfig.h>
 
 static void *inited = new WebUIPlugin() ;
 
@@ -47,6 +48,13 @@ void WebUIPlugin::getPluginVersion(int& major,int& minor,int& svn_rev) const
 	major = 5 ;
 	minor = 4 ;
 	svn_rev = SVN_REVISION_NUMBER ;
+}
+
+ConfigPage *WebUIPlugin::qt_config_page() const
+{
+	static RsWebUIConfig *cfg_widget = new RsWebUIConfig ;
+
+	return cfg_widget ;
 }
 
 QDialog *WebUIPlugin::qt_about_page() const
