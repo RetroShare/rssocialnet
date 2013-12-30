@@ -9,6 +9,7 @@ RsWebUIConfig::RsWebUIConfig(QWidget * parent, Qt::WindowFlags flags)
     /* Invoke the Qt Designer generated object setup routine */
     ui.setupUi(this);
 	 _current_mask = 0 ;
+	 _old_port = RSWebUI::port() ;
 
 	 QObject::connect(ui.IPmask_LE,SIGNAL(textChanged(const QString&)),this,SLOT(on_IPmaskChanged(const QString&))) ;
 	 QObject::connect(ui.enableWebUI_CB,SIGNAL(toggled(bool)),this,SLOT(on_enableSwitch(bool))) ;
@@ -31,16 +32,46 @@ static QString IPmaskToString(uint32_t ip_mask)
 
 	for(int i=0;i<4;++i)
 	{
-		out += QString::number(ip_mask & 0xff) ;
-		if(i < 3)
-			out += "." ;
+		if(out.isNull())
+			out = QString::number(ip_mask & 0xff) ;
+		else
+			out = QString::number(ip_mask & 0xff) + "." + out;
 		ip_mask >>= 8 ;
 	}
 	return out ;
 }
 static uint32_t stringToIPmask(const QString IP_string,bool& ok)
 {
-	return 0 ;
+	uint32_t res = 0 ;
+	ok = false ;
+
+	QStringList lst = IP_string.split('.') ;
+
+	if(lst.size() != 4)
+		return 0;
+
+	for(QStringList::const_iterator it(lst.begin());it!=lst.end();++it)
+	{
+		res <<= 8 ;
+		std::cerr << "Parsing string " << (*it).toStdString() << std::endl;
+		bool b = false ;
+		int a = (*it).toInt(&b) ;
+
+		std::cerr << "got a=" << a << std::endl;
+		if(!b)
+			return 0 ;
+
+		if(a < 0 || a > 255)
+			return 0;
+
+		res += a ;
+
+		std::cerr << "now res=" << res << std::endl;
+	}
+
+	ok = true ;
+	std::cerr << "returning " << res << std::endl;
+	return res ;
 }
 
 void RsWebUIConfig::loadSettings() 
@@ -74,6 +105,8 @@ void RsWebUIConfig::on_IPmaskChanged(const QString& IPmask)
 {
 	bool b ;
 
+	std::cerr << "Checking IP mask..." ;
+
 	uint32_t ipm = stringToIPmask(IPmask,b) ;
 QColor color ;
 
@@ -82,9 +115,13 @@ QColor color ;
 		_current_mask = ipm ;
 
 		color = QApplication::palette().color(QPalette::Active,QPalette::Base) ;
+		std::cerr << " - ok. New mask = " << ipm << std::endl;
 	}
 	else
+	{
+		std::cerr << " - bad" << std::endl;
 		color = QApplication::palette().color(QPalette::Disabled,QPalette::Base) ;
+	}
 
 	QPalette palette = ui.IPmask_LE->palette();
 	palette.setColor(ui.IPmask_LE->backgroundRole(), color);

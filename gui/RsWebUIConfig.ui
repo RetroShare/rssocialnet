@@ -49,7 +49,11 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QLineEdit" name="IPmask_LE"/>
+       <widget class="QLineEdit" name="IPmask_LE">
+        <property name="toolTip">
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;IP Mask usage examples:&lt;/p&gt;&lt;p&gt;	0.0.0.0	: UI can be contacted from any IP&lt;/p&gt;&lt;p&gt;	127.0.0.1	: UI can be contacted from local computer only&lt;/p&gt;&lt;p&gt;	192.168.0.0 : UI can be contacted from local network only&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        </property>
+       </widget>
       </item>
       <item row="0" column="2">
        <spacer name="horizontalSpacer">

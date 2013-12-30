@@ -21,15 +21,20 @@ class RSWAppThread: public RsThread
 		{
 			std::string s1 ( "./Hello" );
 			std::string s2 ( "--docroot" );
-			std::string s3 ( "." );
+			std::string s3 ( "/usr/share/Wt" );
 			std::string s4 ( "--http-address" );
 
-			std::ostringstream os ;
 			uint32_t ip = _ip_range ;
-			os << (ip & 0xff) << "." ; ip >>= 8 ;
-			os << (ip & 0xff) << "." ; ip >>= 8 ;
-			os << (ip & 0xff) << "." ; ip >>= 8 ;
-			os << (ip & 0xff) ;
+			unsigned char a[4];
+
+			for(uint32_t i=0;i<4;++i)
+			{
+				a[i] = ip & 0xff ;
+				ip >>= 8 ;
+			}
+			std::ostringstream os ;
+			os << (int)a[3] << "." << (int)a[2] << "." << (int)a[1] << "." << (int)a[0] ;
+			os.flush();
 
 			std::string s5 ( os.str() ) ;
 
