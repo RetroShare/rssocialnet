@@ -23,10 +23,6 @@ COMPILATION on Ubuntu
           libWebUI.so.1.0 -> libWebUI.so.1.0.0
           libWebUI.so.1.0.0
 			
-	- copy Wt resources and css styles in working directory
-			> cd ~/Code/RSWebUI
-			> cp -r /usr/share/Wt/resources .
-
 	- create a link to the plugin in retroshare plugin directory
 			> cd ~/.retroshare/extensions
 			> ln -s ~/Code/RSWebUI/libWebUI.so.1.0.0 libWebUI.so
