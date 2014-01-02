@@ -21,7 +21,11 @@ class RSWAppThread: public RsThread
 		{
 			std::string s1 ( "./Hello" );
 			std::string s2 ( "--docroot" );
+#ifdef WINDOWS_SYS
+			std::string s3 ( "." );
+#else
 			std::string s3 ( "/usr/share/Wt" );
+#endif
 			std::string s4 ( "--http-address" );
 
 			uint32_t ip = _ip_range ;
@@ -73,7 +77,11 @@ class RSWAppThread: public RsThread
 			}
 
 			while(!_should_stop)
+#ifdef WINDOWS_SYS
+				Sleep(1000) ;
+#else
 				sleep(1) ;
+#endif
 
 			//Wt::WServer::waitForShutdown();
 
@@ -147,10 +155,10 @@ bool RSWebUI::stop()
 
 	while(_thread->isRunning())
 	{
-#ifndef WINDOWS_SYS
-		usleep(500000) ;		// wait half a sec.
-#else
+#ifdef WINDOWS_SYS
 		Sleep(500) ;		// wait half a sec.
+#else
+		usleep(500000) ;		// wait half a sec.
 #endif
 	}
 	std::cerr << "RSWEBUI: done." << std::endl;
