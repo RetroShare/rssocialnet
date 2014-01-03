@@ -1,21 +1,25 @@
+#include <stdio.h>
+
 #include <util/rsthreads.h>
 #include <retroshare/rsplugin.h>
 
 #include <Wt/WServer>
+#include <Wt/WEnvironment>
 
 #include "RSWApplication.h"
 #include "WebUImain.h"
 
-uint32_t  RSWebUI::_ip         = 0 ;
+bool c ;
+std::vector<RSWebUI::IPRange>  RSWebUI::_ip(1,RSWebUI::IPRange::make_range("127.0.0.1",c));
 uint16_t  RSWebUI::_port       = 9090 ;
 RSWAppThread *RSWebUI::_thread = NULL ;
 
 class RSWAppThread: public RsThread
 {
 	public:
-		RSWAppThread(uint16_t port,uint32_t ip_range)
-			: _port(port),_ip_range(ip_range)
+		RSWAppThread()
 		{
+			_should_stop = false ;
 		}
 		virtual void run()
 		{
@@ -28,22 +32,10 @@ class RSWAppThread: public RsThread
 #endif
 			std::string s4 ( "--http-address" );
 
-			uint32_t ip = _ip_range ;
-			unsigned char a[4];
-
-			for(uint32_t i=0;i<4;++i)
-			{
-				a[i] = ip & 0xff ;
-				ip >>= 8 ;
-			}
-			std::ostringstream os ;
-			os << (int)a[3] << "." << (int)a[2] << "." << (int)a[1] << "." << (int)a[0] ;
-			os.flush();
-
-			std::string s5 ( os.str() ) ;
+			std::string s5 ( "0.0.0.0" ) ;
 
 			std::ostringstream os2 ;
-			os2 << _port ;
+			os2 << RSWebUI::port()  ;
 
 			std::string s6("--http-port") ;
 			std::string s7( os2.str() ) ;
@@ -93,7 +85,23 @@ class RSWAppThread: public RsThread
 		}
 		static WApplication *createApplication(const WEnvironment& env)
 		{
-			return new RSWApplication(env,*plg_interfaces);
+			bool b ;
+			RSWebUI::IPRange r = RSWebUI::IPRange::make_range(env.clientAddress(),b) ;
+
+			std::cerr << "*******************************************" << std::endl;
+			std::cerr << "******* Creating application for IP " << env.clientAddress() << std::endl;
+			std::cerr << "*******************************************" << std::endl;
+
+			// Check that the IP range allows that particular IP from the client.
+
+			bool found = false ;
+			for(std::vector<RSWebUI::IPRange>::const_iterator it(RSWebUI::ipMask().begin());it!=RSWebUI::ipMask().end() && !found;++it)
+				found = (*it).contains(r) ;
+
+			if(found)
+				return new RSWApplication(env,*plg_interfaces);
+			else
+				return NULL ;
 		}
 
 		void stopServer()
@@ -106,9 +114,6 @@ class RSWAppThread: public RsThread
 
 		static RsPlugInInterfaces *plg_interfaces ;
 	private:
-
-		uint16_t _port;
-		uint32_t _ip_range ;
 
 		bool 		_should_stop ;
 		uint32_t _status ;
@@ -129,9 +134,9 @@ bool RSWebUI::start(const RsPlugInInterfaces& interfaces)
 
 	*RSWAppThread::plg_interfaces = interfaces ;
 
-	std::cerr << "RSWEBUI: Starting WebUI service with port=" << _port << " and ip=" << _ip << std::endl;
+	std::cerr << "RSWEBUI: Starting WebUI service with port=" << _port << std::endl;
 
-	_thread = new RSWAppThread(_port,_ip) ;
+	_thread = new RSWAppThread() ;
 	_thread->start() ;
 
 	return true ;
@@ -169,4 +174,49 @@ bool RSWebUI::stop()
 	return true ;
 };
 
+std::string RSWebUI::IPRange::toStdString() const 
+{
+	uint32_t tip = ip ;
+	unsigned char a[4];
+
+	for(uint32_t i=0;i<4;++i)
+	{
+		a[i] = tip & 0xff ;
+		tip >>= 8 ;
+	}
+	std::ostringstream os ;
+	os << (int)a[3] << "." << (int)a[2] << "." << (int)a[1] << "." << (int)a[0] ;
+	os << "/" << (int)bits ; 
+	os.flush();
+
+	return os.str();
+}
+RSWebUI::IPRange RSWebUI::IPRange::make_range(const std::string& str,bool& success)
+{
+	uint32_t a[4] ;
+	success = true ;
+	uint32_t bts;
+
+	if(sscanf(str.c_str(),"%u.%u.%u.%u/%u",&a[0],&a[1],&a[2],&a[3],&bts) == 5)
+		if(a[0]<256 && a[1] <256 && a[2] < 256 && a[3] < 256 && bts < 33)
+			return IPRange( (((((a[0]<<8)+a[1])<<8)+a[2])<<8)+a[3], bts) ;
+
+	if(sscanf(str.c_str(),"%u.%u.%u.%u",&a[0],&a[1],&a[2],&a[3]) == 4)
+		if(a[0]<256 && a[1] <256 && a[2] < 256 && a[3] < 256)
+			return IPRange( (((((a[0]<<8)+a[1])<<8)+a[2])<<8)+a[3], 32) ;
+
+	success = false ;
+	return IPRange(0,0) ;
+}
+
+bool RSWebUI::IPRange::contains(const RSWebUI::IPRange& r) const
+{
+	// nullify the last bits.
+	uint32_t rmin = ip & ~(0xffffffff >> (32 - bits)) ;
+	uint32_t rmax = ip |  (0xffffffff >> bits) ;
+
+	std::cerr << "Contain: rmin=" << std::hex << rmin << " rmax=" << rmax << std::dec << std::endl;
+
+	return r.ip >= rmin && r.ip <= rmax ;
+}
 

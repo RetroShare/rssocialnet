@@ -6,6 +6,7 @@
 
 #include "retroshare-gui/configpage.h"
 #include "ui_RsWebUIConfig.h"
+#include "WebUImain.h"
 
 class RsWebUIConfig : public ConfigPage 
 {
@@ -35,9 +36,10 @@ class RsWebUIConfig : public ConfigPage
 
 		void loadSettings();
 
-		uint32_t _current_mask ;
-		uint32_t _old_mask ;
+		std::vector<RSWebUI::IPRange> _current_ip_list ;
+		std::vector<RSWebUI::IPRange> _old_ip_list ;
 		uint16_t _old_port ;
+		bool _ip_list_changed ;
 };
 
 #endif

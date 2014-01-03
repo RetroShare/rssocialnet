@@ -8,8 +8,9 @@ RsWebUIConfig::RsWebUIConfig(QWidget * parent, Qt::WindowFlags flags)
 {
     /* Invoke the Qt Designer generated object setup routine */
     ui.setupUi(this);
-	 _current_mask = 0 ;
+	 _current_ip_list.clear();
 	 _old_port = RSWebUI::port() ;
+	 _ip_list_changed = false ;
 
 	 QObject::connect(ui.IPmask_LE,SIGNAL(textChanged(const QString&)),this,SLOT(on_IPmaskChanged(const QString&))) ;
 	 QObject::connect(ui.enableWebUI_CB,SIGNAL(toggled(bool)),this,SLOT(on_enableSwitch(bool))) ;
@@ -77,19 +78,24 @@ static uint32_t stringToIPmask(const QString IP_string,bool& ok)
 void RsWebUIConfig::loadSettings() 
 {
 	ui.port_SB->setValue( RSWebUI::port() ) ;
-	ui.IPmask_LE->setText( IPmaskToString(RSWebUI::ipMask()) ) ;
+
+	QString str ;
+	for(std::vector<RSWebUI::IPRange>::const_iterator it(RSWebUI::ipMask().begin());it!=RSWebUI::ipMask().end();++it)
+		str += QString::fromStdString((*it).toStdString()) ;
+
+	ui.IPmask_LE->setText( str ) ;
 }
 
 bool RsWebUIConfig::save(QString &/*errmsg*/) 
 {
 	std::cerr << "Saving: checking params..." << std::endl;
 
-	if(_old_port != ui.port_SB->value() || _old_mask != _current_mask)
+	if(_old_port != ui.port_SB->value() || _ip_list_changed)
 	{
-		std::cerr << "RsWebUIConfig::save() setting new port to " << ui.port_SB->value() << ", and mask = " << _current_mask << std::endl;
+		//std::cerr << "RsWebUIConfig::save() setting new port to " << ui.port_SB->value() << ", and mask = " << _current_ip_list << std::endl;
 
 		RSWebUI::setPort(ui.port_SB->value()) ;
-		RSWebUI::setIPMask(_current_mask) ;
+		RSWebUI::setIPMask(_current_ip_list) ;
 
 		RSWebUI::restart() ;
 
@@ -103,19 +109,40 @@ bool RsWebUIConfig::save(QString &/*errmsg*/)
 
 void RsWebUIConfig::on_IPmaskChanged(const QString& IPmask)
 {
-	bool b ;
+	bool b =true;
 
 	std::cerr << "Checking IP mask..." ;
+	std::vector<RSWebUI::IPRange> iprlst ;
 
-	uint32_t ipm = stringToIPmask(IPmask,b) ;
-QColor color ;
+	QStringList lst = IPmask.split(';') ;
+
+	for(QStringList::const_iterator it(lst.begin());it!=lst.end();++it)
+	{
+		bool c ;
+		RSWebUI::IPRange rng = RSWebUI::IPRange::make_range( (*it).toStdString(),c) ;
+
+		if(c)
+			iprlst.push_back(rng) ;
+		else
+		{
+			b = false ;
+			break ;
+		}
+	}
+
+	QColor color ;
 
 	if(b)
 	{
-		_current_mask = ipm ;
+		_old_ip_list = _current_ip_list ;
+		_current_ip_list = iprlst ;
+		_ip_list_changed = true ;
 
 		color = QApplication::palette().color(QPalette::Active,QPalette::Base) ;
-		std::cerr << " - ok. New mask = " << ipm << std::endl;
+		std::cerr << " - ok. New mask = " ;
+		for(std::vector<RSWebUI::IPRange>::const_iterator it(iprlst.begin());it!=iprlst.end();++it)
+			std::cerr << (*it).toStdString() << " - " ;
+		std::cerr << std::endl;
 	}
 	else
 	{
