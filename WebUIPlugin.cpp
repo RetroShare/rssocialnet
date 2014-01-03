@@ -94,6 +94,12 @@ void WebUIPlugin::setInterfaces(RsPlugInInterfaces &interfaces)
 	RSWebUI::start(interfaces) ;
 }
 
+void WebUIPlugin::stop()
+{
+	std::cerr << "Stopping the WebUI" << std::endl;
+	RSWebUI::stop();
+}
+
 void WebUIPlugin::setPlugInHandler(RsPluginHandler *pgHandler)
 {
     mPlugInHandler = pgHandler;
