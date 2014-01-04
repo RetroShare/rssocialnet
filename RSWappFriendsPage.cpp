@@ -51,7 +51,7 @@ class FriendListModel : public Wt::WAbstractTableModel
 
 		virtual boost::any data(const Wt::WModelIndex& index, int role = Wt::DisplayRole) const
 		{
-			if(index.column() >= 6 || index.row() >= _friends.size())
+			if(index.column() >= 6 || index.row() >= (int)_friends.size())
 				return boost::any();
 
 			switch (role) 
@@ -126,18 +126,20 @@ class FriendListModel : public Wt::WAbstractTableModel
 		{
 			static const std::string null_str ;
 
-			if(row >= _friend_avatars.size())
+			if(row >= (int)_friend_avatars.size())
 				return null_str ;
 			else
 				return _friend_avatars[row] ;
 		}
 		const std::string& getAvatarUrl(const std::string& peer_id) const
 		{
+			static const std::string null_string("") ;
+
 			for(uint32_t i=0;i<_friends.size();++i)
 				if(peer_id == _friends[i].id)
 					return getAvatarUrl(i) ;
 
-			return "" ;
+			return null_string;
 		}
 
 	private:
