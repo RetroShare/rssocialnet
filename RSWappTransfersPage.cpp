@@ -230,7 +230,7 @@ RSWappTransfersPage::RSWappTransfersPage(Wt::WContainerWidget *parent,RsFiles *m
 	cb->setChecked(_download_model->showCacheTransfers());
 
 	link_area = new Wt::WTextArea(_impl) ;
-	link_area->setText("Paste Retroshare links here to download them,\nand press Parse to parse the links and download the files.") ;
+	link_area->setEmptyText("Paste Retroshare links here to download them,\nand press Parse to parse the links and download the files.") ;
 	link_area->setHeight(100) ;
 	layout->addWidget(link_area) ;
 

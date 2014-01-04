@@ -2,6 +2,7 @@
 #include <retroshare/rsmsgs.h>
 
 #include <Wt/WTimer>
+#include <Wt/WTextArea>
 #include <Wt/WPopupMenu>
 #include <Wt/WLabel>
 #include <Wt/WPushButton>
@@ -214,6 +215,184 @@ class FriendPageAvatarDelegate: public Wt::WAbstractItemDelegate
 		FriendListModel *_model ;
 };
 
+class AddFriendDialog: public Wt::WDialog
+{
+	public:
+		AddFriendDialog(RsPeers *mp) : mPeers(mp)
+	{
+		Wt::WVBoxLayout *layout = new Wt::WVBoxLayout ;
+		contents()->setLayout(layout) ;
+
+		// add a text box to paste the certificate into
+		_cert_area = new Wt::WTextArea(contents()) ;
+		_cert_area->setEmptyText("Paste a Retroshare certificate here to make friend with someone.") ;
+		_cert_area->setMinimumSize(560,300) ;
+		layout->addWidget(_cert_area,1) ;
+
+		_cert_area->changed().connect(this,&AddFriendDialog::updateCertInfo) ;
+
+		// add a text label to display the info
+	Wt::WString str ;
+	str += "Not a valid certificate<br/>" ;
+	str += "<b>Name</b>   \t\t: <br/>" ;
+	str += "<b>PGP id</b> \t\t: <br/>" ;
+	str += "<b>PGP fingerprint</b> \t: <br/>" ;
+	str += "<b>Location name  </b> \t: <br/>" ;
+	str += "<b>Location ID    </b> \t: <br/>" ;
+
+		_info_label = new Wt::WLabel(str,contents()) ;
+		_info_label->setMinimumSize(128,0) ;
+
+		layout->addWidget(_info_label) ;
+
+		// add buttons 'make friend', 'only add to keyring', 'cancel'
+
+		Wt::WHBoxLayout *lay2 = new Wt::WHBoxLayout;
+
+		_ok_bnt = new Wt::WPushButton("Make friend", contents());
+		lay2->addWidget(_ok_bnt) ;
+		_ok_bnt->clicked().connect(this, &AddFriendDialog::makeFriend);
+		_ok_bnt->setEnabled(false) ;
+
+		Wt::WPushButton *cn_bnt = new Wt::WPushButton("Cancel", contents());
+		lay2->addWidget(cn_bnt) ;
+		cn_bnt->clicked().connect(this, &Wt::WDialog::reject);
+
+		lay2->addStretch() ;
+
+		layout->addLayout(lay2) ;
+		layout->addSpacing(0);
+
+		_timer = new Wt::WTimer(this) ;
+		_timer->setInterval(1000) ;
+		_timer->timeout().connect(this,&AddFriendDialog::updateCertInfo) ;
+		_timer->start() ;
+
+		setMinimumSize(620,300) ;
+		//resize() ;
+	}
+
+		virtual ~AddFriendDialog()
+		{
+			delete _info_label ;
+			delete _cert_area ;
+		}
+
+		// updates the text when the pasted key has been parsed/changed.
+
+		void updateCertInfo()
+		{
+			std::cerr << "updating cert info" << std::endl;
+
+			std::string cert_str = _cert_area->text().toUTF8() ;
+			std::string clean_cert ;
+			uint32_t error_code ;
+			int error;
+
+			if((!mPeers->cleanCertificate(cert_str,clean_cert,error)) || clean_cert.empty())
+			{
+				Wt::WString str ;
+				str += "<h2>Not a valid certificate</h2>" ;
+				str += "<b>Name</b>   \t\t: <br/>" ;
+				str += "<b>PGP id</b> \t\t: <br/>" ;
+				str += "<b>PGP fingerprint</b> \t: <br/>" ;
+				str += "<b>Location name  </b> \t: <br/>" ;
+				str += "<b>Location ID    </b> \t: <br/>" ;
+
+				_info_label->setText(str) ;
+				_ok_bnt->setEnabled(false) ;
+				return ;
+			}
+			RsPeerDetails pd ;
+
+			if(mPeers->loadDetailsFromStringCert(clean_cert,pd,error_code)) 
+			{
+				Wt::WString str ;
+
+				std::string new_name ;
+				for(uint32_t i=0;i<pd.name.length();++i)
+					if(pd.name[i] == '<')
+						new_name += "&lt;" ;
+					else if(pd.name[i] == '>')
+						new_name += "&gt;" ;
+					else
+						new_name += pd.name[i] ;
+
+				str += "<h2>Certificate info</h2>" ;
+				str += "<b>Name</b>   \t\t: " + new_name + "<br/>" ;
+				str += "<b>PGP id</b> \t\t: " + pd.gpg_id + "<br/>" ;
+				str += "<b>Location name  </b> \t: " + pd.location +" <br/>" ;
+				str += "<b>Location ID    </b> \t: " + pd.id + " <br/>" ;
+				_ok_bnt->setEnabled(true) ;
+
+				_info_label->setText(str) ;
+			}
+			else
+			{
+				Wt::WString str ;
+				str += "<h2>Not a valid certificate</h2>" ;
+				str += "<b>Name</b>   \t\t: <br/>" ;
+				str += "<b>PGP id</b> \t\t: <br/>" ;
+				str += "<b>PGP fingerprint</b> \t: <br/>" ;
+				str += "<b>Location name  </b> \t: <br/>" ;
+				str += "<b>Location ID    </b> \t: <br/>" ;
+				_ok_bnt->setEnabled(false) ;
+
+				_info_label->setText(str) ;
+				return ;
+			}
+		}
+
+		void makeFriend()
+		{
+			std::cerr << "making friend. " << std::endl;
+			int error ;
+			std::string ssl_id ;
+			std::string pgp_id ;
+
+			std::string cert_str = _cert_area->text().toUTF8() ;
+			std::string clean_cert ;
+			uint32_t error_code ;
+			std::string error_str ;
+
+			if((!mPeers->cleanCertificate(cert_str,clean_cert,error)) || clean_cert.empty())
+			{
+				Wt::WString str ;
+				str += "<h2>Not a valid certificate</h2>" ;
+				str += "<b>Name</b>   \t\t: <br/>" ;
+				str += "<b>PGP id</b> \t\t: <br/>" ;
+				str += "<b>PGP fingerprint</b> \t: <br/>" ;
+				str += "<b>Location name  </b> \t: <br/>" ;
+				str += "<b>Location ID    </b> \t: <br/>" ;
+
+				_info_label->setText(str) ;
+				_ok_bnt->setEnabled(false) ;
+				return ;
+			}
+			if(! mPeers->loadCertificateFromString(clean_cert,ssl_id,pgp_id,error_str))
+			{
+				Wt::WMessageBox::show("Certificate error", "The certificate could not be loaded.\n\nError : "+error_str, Wt::Ok);
+				return ;
+			}
+
+			if(! mPeers->addFriend(ssl_id,pgp_id))
+			{
+				Wt::WMessageBox::show("Certificate error", "The friend could not be added.)", Wt::Ok) ;
+				return ;
+			}
+
+			Wt::WMessageBox::show("Added friend", "This friend has been successfuly added<br/>PGP id: "+pgp_id+"<br/>Location id : " +ssl_id, Wt::Ok);
+			close() ;
+		}
+
+	private:
+		Wt::WLabel *_info_label ;
+		Wt::WTextArea *_cert_area ;
+		Wt::WTimer *_timer ;
+		Wt::WPushButton *_ok_bnt ;
+		RsPeers *mPeers ;
+};
+
 RSWappFriendsPage::RSWappFriendsPage(Wt::WContainerWidget *parent,RsPeers *mpeers,RsMsgs *mmsgs)
 	: WCompositeWidget(parent),mPeers(mpeers)
 {
@@ -317,6 +496,9 @@ void RSWappFriendsPage::refresh()
 
 void RSWappFriendsPage::addFriend()
 {
+	// Popup a window to paste the friends' certificate. Also include a few info about the cert, if it's correct.
+
+	AddFriendDialog(mPeers).exec() ;
 }
 
 void RSWappFriendsPage::showFriendDetails(const std::string& friend_id)
