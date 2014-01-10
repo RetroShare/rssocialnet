@@ -126,6 +126,8 @@ class LocalSearchFilesModel: public Wt::WAbstractTableModel
 		}
 		void displayList(const std::list<DirDetails>& dList) const
 		{
+			std::cerr << "Updating search model rows=" << rowCount() << ", columns=" << columnCount()  << std::endl;
+
 			RsStackMutex mtx(_mtx) ;
 			_searchResults.clear() ;
 
@@ -136,17 +138,16 @@ class LocalSearchFilesModel: public Wt::WAbstractTableModel
 		        dd = *resultsIter;
 				_searchResults.push_back(dd) ;
 			}
-			std::cerr << "Updating search model rows=" << rowCount() << ", columns=" << columnCount()  << std::endl;
 
 		}
 		void addToList(uint32_t id,const std::list<DirDetails>& lst)
 		{
-			RsStackMutex mtx(_mtx) ;
+			{
+				RsStackMutex mtx(_mtx) ;
 
-			for(std::list<DirDetails>::const_iterator it(lst.begin());it!=lst.end();++it)
-				_searchResults.push_back(*it) ;
-
-			//refresh() ;
+				for(std::list<DirDetails>::const_iterator it(lst.begin());it!=lst.end();++it)
+					_searchResults.push_back(*it) ;
+			}
 		}
 
 		virtual void refresh()
