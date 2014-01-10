@@ -37,12 +37,13 @@ class LocalSearchFilesModel: public Wt::WAbstractTableModel
 {
 	public:
 		LocalSearchFilesModel(RsFiles *mfiles,Wt::WObject *parent = 0)
-			: Wt::WAbstractTableModel(parent), mFiles(mfiles)
+			: Wt::WAbstractTableModel(parent), mFiles(mfiles),_mtx("LocalSearchFilesModel")
 		{
 		}
 
 		virtual int rowCount(const Wt::WModelIndex& parent = Wt::WModelIndex()) const
 		{
+			RsStackMutex mtx(_mtx) ;
 			if (!parent.isValid())
 				return _searchResults.size() ;
 			else
@@ -59,6 +60,7 @@ class LocalSearchFilesModel: public Wt::WAbstractTableModel
 
 		virtual boost::any data(const Wt::WModelIndex& index, int role = Wt::DisplayRole) const
 		{
+			RsStackMutex mtx(_mtx) ;
 			std::cerr << "data row: " << index.row() << std::endl;
 			if(index.column() >= 6 || index.row() >= (int)_searchResults.size())
 				return boost::any();
@@ -91,6 +93,7 @@ class LocalSearchFilesModel: public Wt::WAbstractTableModel
 
 		virtual boost::any headerData(int section, Wt::Orientation orientation = Wt::Horizontal, int role = Wt::DisplayRole) const
 		{
+			RsStackMutex mtx(_mtx) ;
 			static Wt::WString col_names[6] = { 
 				Wt::WString("File Name"),
 				Wt::WString("Size"),
@@ -121,12 +124,13 @@ class LocalSearchFilesModel: public Wt::WAbstractTableModel
 			}
 			return items;
 		}
-		void displayList(std::list<DirDetails> dList) const
+		void displayList(const std::list<DirDetails>& dList) const
 		{
+			RsStackMutex mtx(_mtx) ;
 			_searchResults.clear() ;
 
 			DirDetails dd;
-		    for(std::list<DirDetails>::iterator resultsIter = dList.begin(); resultsIter != dList.end(); resultsIter ++)
+		    for(std::list<DirDetails>::const_iterator resultsIter = dList.begin(); resultsIter != dList.end(); resultsIter ++)
 		    {
 		        std::cerr << "RSWUI search result: " << dd.hash << std::endl;
 		        dd = *resultsIter;
@@ -134,6 +138,15 @@ class LocalSearchFilesModel: public Wt::WAbstractTableModel
 			}
 			std::cerr << "Updating search model rows=" << rowCount() << ", columns=" << columnCount()  << std::endl;
 
+		}
+		void addToList(uint32_t id,const std::list<DirDetails>& lst)
+		{
+			RsStackMutex mtx(_mtx) ;
+
+			for(std::list<DirDetails>::const_iterator it(lst.begin());it!=lst.end();++it)
+				_searchResults.push_back(*it) ;
+
+			//refresh() ;
 		}
 
 		virtual void refresh()
@@ -147,14 +160,13 @@ class LocalSearchFilesModel: public Wt::WAbstractTableModel
 		mutable std::vector<DirDetails> _searchResults ;
 
 		RsFiles *mFiles ;
+		mutable RsMutex _mtx ;
 };
 
 RSWappSearchFilesPage::RSWappSearchFilesPage(Wt::WContainerWidget *parent,RsFiles *mfiles)
 	: WCompositeWidget(parent),mFiles(mfiles)
 {
 	setImplementation(_impl = new Wt::WContainerWidget()) ;
-
-
 
 	//_treeView = new Wt::WTreeView(_impl);
 	_tableView = new Wt::WTableView(_impl);
@@ -184,7 +196,7 @@ RSWappSearchFilesPage::RSWappSearchFilesPage(Wt::WContainerWidget *parent,RsFile
 
 	hSearchLayout->addWidget(search_box) ;
 	hSearchLayout->addWidget(localcb);
-	//hSearchLayout->addWidget(distantcb);
+	hSearchLayout->addWidget(distantcb);
 	hSearchLayout->addWidget(remotecb);
 	hSearchLayout->addWidget(btn) ;
 
@@ -272,12 +284,14 @@ void RSWappSearchFilesPage::searchClicked()
         strings.push_back(s);
     }
 
-	/*TurtleRequestId req_id ;
+	TurtleRequestId req_id ;
 
     if(distantcb->checkState())
     {
+		 std::cerr << "Init turtle search" << std::endl;
         req_id = rsTurtle->turtleSearch(strings.front()) ;
-    }*/
+		  std::cerr << "New turtle search id = " << std::hex << req_id << std::dec << std::endl;
+    }
 
 
 	std::list<DirDetails> results;
@@ -310,3 +324,25 @@ void RSWappSearchFilesPage::refresh() {
 	_tableView->setHeight(300);//Without this line - wt wont update for me (wt3.3)
 
 }
+
+void RSWappSearchFilesPage::notifyTurtleSearchResult(uint32_t search_id,const std::list<TurtleFileInfo>& files)
+{
+	std::list<DirDetails> dfiles ;
+
+	for(std::list<TurtleFileInfo>::const_iterator it(files.begin());it!=files.end();++it)
+	{
+		DirDetails d ;
+		d.hash = (*it).hash ;
+		d.count = (*it).size ;
+		d.age = 0 ;
+		d.name = (*it).name ;
+
+		dfiles.push_back(d) ;
+
+		std::cerr << "notifySearchResult: hash=" << d.hash << ", size=" << d.count << ", name=" << d.name << std::endl;
+	}
+
+	std::cerr << "added new items to model..." << std::endl;
+	_shared_files_model->addToList(search_id,dfiles) ;
+}
+
