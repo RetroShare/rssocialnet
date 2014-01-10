@@ -382,7 +382,7 @@ class AddFriendDialog: public Wt::WDialog
 			}
 
 			Wt::WMessageBox::show("Added friend", "This friend has been successfuly added<br/>PGP id: "+pgp_id+"<br/>Location id : " +ssl_id, Wt::Ok);
-			close() ;
+			accept() ;
 		}
 
 	private:
