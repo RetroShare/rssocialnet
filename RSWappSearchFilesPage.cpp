@@ -281,25 +281,23 @@ void RSWappSearchFilesPage::searchClicked()
 	std::string lstr = search_box->text().toUTF8() ;
 	std::istringstream iss(lstr);
 	/*std::vector<std::string> tokens;
-	tokens = {std::istream_iterator<std::string>{iss},
-	         std::istream_iterator<std::string>{}};*/
+	  tokens = {std::istream_iterator<std::string>{iss},
+	  std::istream_iterator<std::string>{}};*/
 
 	std::list<std::string> strings;
-    std::string s;
-    while (std::getline(iss, s, ' ')) {
-        std::cout << s << std::endl;
-        strings.push_back(s);
-    }
+	std::string s;
+	while (std::getline(iss, s, ' ')) {
+		std::cout << s << std::endl;
+		strings.push_back(s);
+	}
 
-	TurtleRequestId req_id ;
-
-    if(distantcb->checkState())
-    {
-		 std::cerr << "Init turtle search" << std::endl;
-        req_id = rsTurtle->turtleSearch(strings.front()) ;
-		  std::cerr << "New turtle search id = " << std::hex << req_id << std::dec << std::endl;
-    }
-
+	if(distantcb->checkState())
+	{
+		TurtleRequestId req_id ;
+		std::cerr << "Init turtle search" << std::endl;
+		req_id = rsTurtle->turtleSearch(strings.front()) ;
+		std::cerr << "New turtle search id = " << std::hex << req_id << std::dec << std::endl;
+	}
 
 	std::list<DirDetails> results;
 	if(localcb->checkState()){

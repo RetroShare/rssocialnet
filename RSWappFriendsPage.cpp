@@ -61,7 +61,7 @@ class FriendListModel : public Wt::WAbstractTableModel
 					switch(index.column())
 					{
 						case COLUMN_AVATAR: return Wt::WString("") ;
-						case COLUMN_NAME: return Wt::WString(_friends[index.row()].name) ;
+						case COLUMN_NAME: return Wt::WString(_friends[index.row()].name) + " (" + Wt::WString(_friends[index.row()].location)+")" ;
 						case COLUMN_PGP_ID: return Wt::WString(_friends[index.row()].gpg_id) ;
 						case COLUMN_SSL_ID: return Wt::WString(_friends[index.row()].id) ;
 						case COLUMN_LAST_S: if(_friends[index.row()].state & RS_PEER_STATE_CONNECTED)
