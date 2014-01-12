@@ -23,6 +23,7 @@ class RSWappSearchFilesPage: public Wt::WCompositeWidget, public NotifyClient
 		Wt::WCheckBox *localcb;
 		Wt::WCheckBox *remotecb;
 		Wt::WCheckBox *distantcb;
+		Wt::WTimer *_timer ;
 		RsFiles *mFiles ;
 		LocalSearchFilesModel *_shared_files_model ;
 		void searchClicked();

@@ -231,6 +231,10 @@ RSWappSearchFilesPage::RSWappSearchFilesPage(Wt::WContainerWidget *parent,RsFile
 	dlbtn->clicked().connect(this,&RSWappSearchFilesPage::searchClicked) ;
 	layout->addWidget(dlbtn) ;
 
+	_timer = new Wt::WTimer(this) ;
+	_timer->setInterval(5000) ;
+	_timer->timeout().connect(this,&RSWappSearchFilesPage::refresh) ;
+	_timer->start() ;
 }
 
 void RSWappSearchFilesPage::tableClicked()
@@ -324,6 +328,7 @@ void RSWappSearchFilesPage::refresh() {
 	_tableView->refresh();
 	_tableView->setHeight(300);//Without this line - wt wont update for me (wt3.3)
 
+	std::cerr << "Refreshing search page." << std::endl;
 }
 
 void RSWappSearchFilesPage::notifyTurtleSearchResult(uint32_t search_id,const std::list<TurtleFileInfo>& files)

@@ -22,8 +22,8 @@ class RSWappFriendsPage: public Wt::WCompositeWidget
 		RsPeers *mPeers ;
 		RsMsgs *mMsgs ;
 		FriendListModel *_model ;
-		Wt::WTimer *_timer ;
 		Wt::WTableView *_tableView ;
 		Wt::WPopupMenu *_popupMenu ;
 		std::string _selected_friend ;
+		Wt::WTimer *_timer ;
 };
