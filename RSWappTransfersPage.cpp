@@ -280,10 +280,10 @@ void RSWappTransfersPage::showCustomPopupMenu(const Wt::WModelIndex& item, const
 			return ;
 		}
 		_popupMenu = new Wt::WPopupMenu();
+		_popupMenu->addItem("Cancel");
 
 		if((uint32_t)info.downloadStatus == FT_STATE_DOWNLOADING)
 		{
-			_popupMenu->addItem("Cancel");
 			_popupMenu->addItem("Pause");
 		}
 		if((uint32_t)info.downloadStatus == FT_STATE_PAUSED)

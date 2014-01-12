@@ -185,8 +185,10 @@ RSWappSearchFilesPage::RSWappSearchFilesPage(Wt::WContainerWidget *parent,RsFile
 	localcb = new Wt::WCheckBox(Wt::WString("Search Local"),_impl) ;
 	remotecb = new Wt::WCheckBox(Wt::WString("Search Remote"),_impl) ;
 	distantcb = new Wt::WCheckBox(Wt::WString("Search Distant"),_impl) ;
-	localcb->setChecked(true);
+
+	localcb->setChecked(false);
 	remotecb->setChecked(true);
+	distantcb->setChecked(true);
 
 	Wt::WPushButton *btn = new Wt::WPushButton("Search!") ;
 	btn->clicked().connect(this,&RSWappSearchFilesPage::searchClicked) ;
