@@ -1,0 +1,109 @@
+questions:
+- which source files should i read, where are the useful comments?
+
+
+
+From the users point of view
+
+- first and most important: add friends
+- list and edit contacts. There are different kinds of people: friends, friends-of-friends, other known identities
+- prevent adding of wrong friends with fake names: need to verify friends and prevent malicious keys in the keyring
+- private chat and chatlobbies
+- private distant chat/messages
+- one to many and many-to-many communication
+  it should be obvious to see which people the post can reach.
+- maybe you are fine if the content is shared network wide, but you don't want to expose your name
+  others have to repost the content, or we need a pseudonymous identity
+- notification about new posts
+- different types of content: text, images, maybe files
+- want to vote for content, or recommend them to others?
+- some sort of group feature: a list of persons which share common interests
+  want to send a message to the group members
+
+
+Other networks/projects
+facebook
+facebook has algorithms to rank content and show only the top content
+
+diaspora
+adressing used in diaspora:
+#keyword
+@username
+
+friendica
+
+
+what happens when a user meakes a post?
+
+A user will upload some content like a short text or image.
+Then we have to sort this content into gxs.
+If the post is a reply, then things are simple: the content has to go the reverse way. And it will show up below the original post.
+What will happen if the post is a head?
+We need to have a context in which the post is created. The context defines who can read the post.
+In tradiditional channels and forums this is obvious.
+
+Every post needs a context. A context is the thing around the post. Like a channel name or forum name.
+Maybe it is possible to have a post without context? This would be a post in nowhere.
+
+Retroshare: what is there
+
+location, pgp-key, gxs-identity
+don't want to ask the user too many questions at start
+-> create pgp-key and gxs-identity with same name at start
+
+gxs-identities
+- everyone needs at least one gxs-identity
+- what about voting for ids?
+gxs-service
+- user does not have to know about service ids and services
+gxs-group
+- this gives us a set of messages where one can subscribe to
+- subscribe by hand, or automated by a set of rules? There are certainly some messages where you don't want to subscribe by hand
+gxs-message
+gxs-circles
+- circles bring gxs-groups from different gxs-services together
+  gxs-group points to circle
+gxs-forums
+gxs-channels
+gxs-wiki
+gxs-posted
+
+
+retroshare/rswire.h
+- twitter like service
+- https://dev.twitter.com/docs/platform-objects
+
+retroshare uses schema like this:
+service->group->message
+
+maybe this would be cleaner:
+group->service->message
+
+to make all ressources for a certain group of people, for a certain topic, available at one place
+maybe make a news section for a group of people
+example: there is a group of people doing x together. They want to share information only with members of their group and with no one else. To share information, there could be things like a forum, a wiki, a calendar.
+Such a group of people would provide a context for message distribution.
+
+
+
+Security
+ssl as transport
+login: name+password
+key based login would be more secure.
+
+how can we prevent guessing of login data?
+http://lists.alioth.debian.org/pipermail/freedombox-discuss/2014-March/006192.html
+http://bsdly.blogspot.no/search/label/Hail%20Mary%20Cloud
+"The Hail Mary Cloud was a widely distributed, low intensity password guessing botnet that targeted Secure Shell (ssh) servers on the public Internet."
+
+- limit login to whitelisted ip ranges?
+
+- never ever send untrusted html to the browser
+  use plain text for first and rely on wt to do the filtering
+- jpg, png, gif is safe? do we have to verify the file type before sending data to the browser?
+- what about svg?
+
+trouble with different passwords:
+- ssl-password: ok, this is hidden from the user
+- pgp-password
+- password for login on webpage
