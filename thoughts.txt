@@ -1,4 +1,8 @@
 questions:
+
+	- what about having one GxsMessageItem for forums and wall. A forum post and a wall post are very similar.
+	  use the same for gxs-channel comments?
+
 	- which source files should i read, where are the useful comments?
 		C: hard to say. I suggest to start with RSWebUI on one side, and GXSidentity files on the RS side.
 
@@ -13,8 +17,141 @@ C: We should start with something simple:
 	- that GXS id can be anonymous, or attached to the current PGP key + location (e.g. to the current network node). 
 		The user should be able to choose.
 
-From the users point of view
 
+Symmetric sharing: two users get posts from each other
+For this we need a symmetric relation. Friendship is such a relation.
+
+Asymmetric sharing: one user publishes, others subscribe
+
+Access restrictions: this is where pgp-ids become visible.
+Maintain a list of gxs-ids with permissions. This leads to a gxs-circle.
+
+Friends
+Friendship is a symmetric relation. So friends receive posts from each other.
+Need a list of friends. This list will be a gxs-circle. The circle gets distributed to the list of gxs-ids in it.
+Everyone has a list with gxs-ids of friends.
+
+If the service sees the own gxs-id on a incoming friendslist, then tell the user "friendship request from xy".
+
+Interesting advatage, if friends are gxs-ids: it is much easier to make friends, and you can have hundreds of them without scaling issues.
+Limitation: can only have gxs-id as friend when one of my connected neighbor servers has the same gxs-id as friends to. This is not a big problem in the real world: two friends often have same friends.
+
+
+Wall Service
+============
+A wall is a place for and about a user. The user and his friends can post to a wall.
+In Retroshare, a user is a gxs-id and a wall is a gxs-group.
+
+When does a user subscribe to a wall to receive messages?
+If two gxs-ids are friends, then they subscribe to each others Wall.
+So friendslist has two purposes: 1. define who can receive a private Wall 2. to know which walls the system should subscribe to
+This is even cooler: the circle as friendslist will be synced between locations by gxs
+
+What about private/public wall?
+A private wall is visible to friends only.
+A public wall is visible to everyone who can reach it.
+Maybe we have two wall groups inside the service: one private which is limited to a circle of friends, and a public one without limitations
+Then merge results from private and public group.
+This could be extended to let different friends see different walls.
+But who will subscribe and spread my public wall?
+I don't want to subscribe to all public profiles, because i never can read them.
+We should subscribe to all needed resources, but not the unneeded. When is a ressource needed?
+
+What data is stored in a wall message?
+- GxsMessageMeta
+- text
+- images
+
+Things to make it look nice
+- user defined profile image
+
+How will a wall message look like?
+Copy facebook or diaspora. This is good for the users and easy for me.
+
+Have a profile section, where the user can describe his interests?
+It would be good to see a public profile without being gxs-id friends or pgp-id connected.
+
+What about passing on public messages?
+This is like a manual turtle router: if i think some public post of a friend is nice, then i put on my own wall.
+
+
+Private Messages
+================
+- private chat and chatlobbies
+	* C: arg. Chat is based on SSL ids. That is contradictory. And we cannot use distant chat. I think that chat should
+		be suspended for now until we find a proper system.
+- private distant chat/messages
+	* C: => distant messages between GXS ids.
+
+
+What do users want? What do they expect from social networks?
+=============================================================
+
+german text comparing social networks:
+http://www.edition1.net/rs7/da/soziale_netze.pdf
+
+figure 3.2 looks like this:
+
+##                  games
+###                 docs
+#####               share files
+#####               get to know others
+########            group organizing
+########            share pictures
+############        decide when and where to meet
+#################   stay in contact with friends
+##################  news
+
+#################### 100%
+
+A wall service is good for news, to stay in contact and to announce meetings.
+No surprise: facebook has a wall.
+Maybe just offer the same services as facebook, because facebook should know what they are doing.
+
+
+some slides:
+http://www.slideshare.net/PetterB/why-people-use-social-networkign-sites
+
+slide 13: reasons to stop using social networks
+- usability
+- content
+- people
+
+We have to make things simple. (Not really a new idea)
+
+slide 19: motivations to use a social network
+- new relations
+- friends
+- socializing = sharing of experiences, small-talk, being part of something (slide 25)
+
+How can we make it possible to learn about new people?
+To learn about new people, a public profile is needed.
+This is important in the first-use phase.
+We need to make sure that every user has a connection to the network very fast.
+
+
+
+Unsorted
+========
+- need accessible use on desktop. don't confuse the user with to much gxs-..., turtle, discovery, ...
+  this is a general challenge of Retroshare v0.6
+
+- need better support for retroshare-nogui, to use on raspberry pi, NAS, ArkOS, freedombox, ...
+  previous work is in my github repo: https://github.com/electron128/retroshare
+
+v0.5.5-daemon
+Fork retroshare-nogui to background and allow automatic start at boot. (Linux only)
+
+v0.5.5-mmi
+"mmi" is short for machine-machine-interface. It adds command line parameters, which allow managment of identities and locations with retroshare-nogui.
+
+v0.5.5-pluginparam
+Small patch to pass the port for rswebui as commandline parameter.
+
+
+
+From the users point of view
+----------------------------
 - first and most important: add friends
 	* C: two different concepts here:
 		1 - friend nodes for network communication: SSL ids in Retroshare network.
@@ -32,11 +169,6 @@ From the users point of view
 
 - prevent adding of wrong friends with fake names: need to verify friends and prevent malicious keys in the keyring
 	* this works based on PGP signatures. 
-- private chat and chatlobbies
-	* C: arg. Chat is based on SSL ids. That is contradictory. And we cannot use distant chat. I think that chat should
-		be suspended for now until we find a proper system.
-- private distant chat/messages
-	* C: => distant messages between GXS ids.
 - one to many and many-to-many communication
   it should be obvious to see which people the post can reach.
 - maybe you are fine if the content is shared network wide, but you don't want to expose your name
@@ -51,6 +183,10 @@ Other networks/projects
   * facebook
 		facebook has algorithms to rank content and show only the top content
 
+		nice explanation of facebooks wall:
+		http://www.harmonenterprises.com/blog/coaching/facebooks-wall-vs-news-feed-explained
+
+
   * diaspora
       adressing used in diaspora:
 		#keyword
@@ -59,7 +195,7 @@ Other networks/projects
   * friendica
 
 
-What happens when a user meakes a post?
+What happens when a user makes a post?
 
 A user will upload some content like a short text or image.
 Then we have to sort this content into gxs.
@@ -115,6 +251,7 @@ Such a group of people would provide a context for message distribution.
 
 
 Security
+========
 ssl as transport
 login: name+password
 key based login would be more secure.
@@ -147,6 +284,43 @@ Milestones and tasks
 ====================
 
 Retroshare Side
+---------------
+
+- access gxs from plugins
+- edit circles
+- wishlist: private chat to gxs-id
+
 
 Plugin Side
+-----------
+
+- take plugin structure from RsWebUI, change name and description
+- p3WallService
+	- interface: rswall.h
+	- serialiser for wall posts
+	- create a identity/wall
+	- handle wall posts
+	- handle friendslists
+- main view build out of widgets
+- UI to create a new Identity/Wall
+- UI to add/list/remove node connections, where connection = pgp-id, ssl-id
+- UI to add/list/remove friends, where friend = gxs-id
+- newsfeed with different feed items
+- widget to display a single wall message
+- widget to view a wall discussion thread
+- wall view
+- send, list and view messages
+
+
+
+Interesting comments in the source
+==================================
+
+rsgixs.h
+about identities
+
+p3gxscircles.h
+p3gxscircles.cc
+info about gxs-circles
+
 
