@@ -1,15 +1,42 @@
 questions:
-- which source files should i read, where are the useful comments?
+	- which source files should i read, where are the useful comments?
+		C: hard to say. I suggest to start with RSWebUI on one side, and GXSidentity files on the RS side.
 
+C: Here's a possible definition/concept for objects:
+	* friends      => GXS ids
+	* network node => PGP+SSL id = locations
 
+C: We should start with something simple:
+	- create a single service called "p3Wall", attached to a GXS id
+	- the service will be provided by the plugin when launching RS. Therefore, in order to work, it needs an existing 
+		location/PGP combination that provides such a GXS id, or it will create the GXS id the first time it is used
+	- that GXS id can be anonymous, or attached to the current PGP key + location (e.g. to the current network node). 
+		The user should be able to choose.
 
 From the users point of view
 
 - first and most important: add friends
+	* C: two different concepts here:
+		1 - friend nodes for network communication: SSL ids in Retroshare network.
+		2 - friends as in circles of friends: GXS ids.
+
+	I think we should expose only 2 as "Friends". Communication peers (e.g. SSL ids) should be shown as "neighbor servers", 
+	or "network".
+
+	In a way, we should display the PGP+SSL friend connections as an underlying network layer that is able to route the
+	data. The real friends are the GXS identities around, that go floating in
+	that network.
+
 - list and edit contacts. There are different kinds of people: friends, friends-of-friends, other known identities
+	* C: these willbe GXS ids
+
 - prevent adding of wrong friends with fake names: need to verify friends and prevent malicious keys in the keyring
+	* this works based on PGP signatures. 
 - private chat and chatlobbies
+	* C: arg. Chat is based on SSL ids. That is contradictory. And we cannot use distant chat. I think that chat should
+		be suspended for now until we find a proper system.
 - private distant chat/messages
+	* C: => distant messages between GXS ids.
 - one to many and many-to-many communication
   it should be obvious to see which people the post can reach.
 - maybe you are fine if the content is shared network wide, but you don't want to expose your name
@@ -20,20 +47,19 @@ From the users point of view
 - some sort of group feature: a list of persons which share common interests
   want to send a message to the group members
 
-
 Other networks/projects
-facebook
-facebook has algorithms to rank content and show only the top content
+  * facebook
+		facebook has algorithms to rank content and show only the top content
 
-diaspora
-adressing used in diaspora:
-#keyword
-@username
+  * diaspora
+      adressing used in diaspora:
+		#keyword
+		@username
 
-friendica
+  * friendica
 
 
-what happens when a user meakes a post?
+What happens when a user meakes a post?
 
 A user will upload some content like a short text or image.
 Then we have to sort this content into gxs.
@@ -44,6 +70,8 @@ In tradiditional channels and forums this is obvious.
 
 Every post needs a context. A context is the thing around the post. Like a channel name or forum name.
 Maybe it is possible to have a post without context? This would be a post in nowhere.
+
+	C: I think the context is the wall, as defined above. 
 
 Retroshare: what is there
 
@@ -97,13 +125,28 @@ http://bsdly.blogspot.no/search/label/Hail%20Mary%20Cloud
 "The Hail Mary Cloud was a widely distributed, low intensity password guessing botnet that targeted Secure Shell (ssh) servers on the public Internet."
 
 - limit login to whitelisted ip ranges?
+	* that is totally possible to do in Wt (See RsWebUI)
 
 - never ever send untrusted html to the browser
   use plain text for first and rely on wt to do the filtering
+  	* C: I think that Wt does the filtering, in particular it is 
 - jpg, png, gif is safe? do we have to verify the file type before sending data to the browser?
 - what about svg?
+	* C: no svg!! Too dangerous.
 
 trouble with different passwords:
 - ssl-password: ok, this is hidden from the user
 - pgp-password
 - password for login on webpage
+	* C: that password should be a parameter of the plugin, possibly from a 
+
+
+
+
+Milestones and tasks
+====================
+
+Retroshare Side
+
+Plugin Side
+
