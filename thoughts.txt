@@ -37,6 +37,21 @@ Interesting advatage, if friends are gxs-ids: it is much easier to make friends,
 Limitation: can only have gxs-id as friend when one of my connected neighbor servers has the same gxs-id as friends to. This is not a big problem in the real world: two friends often have same friends.
 
 
+Facebook features
+==================
+Facebook has a nice documentation of its features:
+https://www.facebook.com/help/www/219094928210454/
+
+friendship is a relation for symmetric sharing
+but you can sort your friends into lists, to not share everything with all friends
+
+follow or subscribe is a feature which allows asymmetric sharing
+
+Facebook is strong with linking actions together.
+In Retroshare we don't have one global database, but many many small ones.
+If we want to make links, then we have to put data into different gxs-groups
+
+
 Wall Service
 ============
 A wall is a place for and about a user. The user and his friends can post to a wall.
@@ -46,6 +61,9 @@ When does a user subscribe to a wall to receive messages?
 If two gxs-ids are friends, then they subscribe to each others Wall.
 So friendslist has two purposes: 1. define who can receive a private Wall 2. to know which walls the system should subscribe to
 This is even cooler: the circle as friendslist will be synced between locations by gxs
+How do we detect a valid friendship?
+only if both identities have each other in a friend-circle, then a friendship is valid.
+if not, there has to be a message like "friendship denied"
 
 What about private/public wall?
 A private wall is visible to friends only.
@@ -74,6 +92,72 @@ It would be good to see a public profile without being gxs-id friends or pgp-id 
 What about passing on public messages?
 This is like a manual turtle router: if i think some public post of a friend is nice, then i put on my own wall.
 
+Mapping wall messages onto gxs
+------------------------------
+- the services defines rules for messages signing
+this defines how a message has to be signed to confirm authenticity
+rsgxsflags.h
+    // identity
+    static const uint32_t FLAG_AUTHEN_IDENTITY = 0x000000010;
+
+    // publish key
+    static const uint32_t FLAG_AUTHEN_PUBLISH = 0x000000020;
+
+    // admin key
+    static const uint32_t FLAG_AUTHEN_ADMIN = 0x00000040;
+
+    // pgp sign identity
+    static const uint32_t FLAG_AUTHEN_PGP_IDENTITY = 0x00000080;
+
+these flags are set at creation time of genexchange
+there are different rules for different privacy of groups
+
+enum PrivacyBitPos { PUBLIC_GRP_BITS, RESTRICTED_GRP_BITS, PRIVATE_GRP_BITS, GRP_OPTION_BITS } ; (rsgenexchange.h)
+
+
+- the group has visibility/access rules through circles
+rsgxsdata.h
+RsGxsGrpMetaData.mCircleId
+RsGxsGrpMetaData.mCircleType	can have this values from gxscircles.h
+#define GXS_CIRCLE_TYPE_PUBLIC            0x0001
+#define GXS_CIRCLE_TYPE_EXTERNAL          0x0002
+#define GXS_CIRCLE_TYPE_YOUREYESONLY      0x0003
+#define GXS_CIRCLE_TYPE_LOCAL		  0x0004
+
+RsGxsGrpMetaData.mGroupFlags	this defines the visibility rules
+mGroupFlags can have these bits set:
+rsgxsflags.h
+    // pub key encrypted
+    static const uint32_t FLAG_PRIVACY_PRIVATE = 0x00000001;
+
+    // publish private key needed to publish
+    static const uint32_t FLAG_PRIVACY_RESTRICTED = 0x00000002;
+
+    // anyone can publish, publish key pair not needed
+    static const uint32_t FLAG_PRIVACY_PUBLIC = 0x00000004;
+
+this is related to the PrivacyBitPos enum above. mGroupFlags defines which set of authen flags to use
+
+have to take care of different layers f gxs-metadata classes
+rsgxsifacetypes.h	for frontend
+rsgxsdata.h		for backend
+
+
+there are more flags defined in GxsGroupDialog
+why? what are they good for?
+
+what is mSignFlags in groupMeta good for? where is this used?
+
+chris:
+-------
+A simple model of an fb wall
+
+Wall ----> Group signed/hosted by author
+    Threads ----> Messages signed by author
+            Replies ----> Messages signed by author with thead parent id
+
+Another model is a static wall associated strongly to a user FB account ("RS wall") which is not a group id. And simply have the threads be groups.
+-------
 
 Private Messages
 ================
@@ -128,6 +212,8 @@ How can we make it possible to learn about new people?
 To learn about new people, a public profile is needed.
 This is important in the first-use phase.
 We need to make sure that every user has a connection to the network very fast.
+
+sharing of experiences: the like button serves this purpose: i see the same things as my friends, i like the same things as my friends
 
 
 
