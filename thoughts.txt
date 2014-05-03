@@ -97,17 +97,19 @@ Mapping wall messages onto gxs
 - the services defines rules for messages signing
 this defines how a message has to be signed to confirm authenticity
 rsgxsflags.h
-    // identity
-    static const uint32_t FLAG_AUTHEN_IDENTITY = 0x000000010;
+    static const uint8_t MSG_AUTHEN_MASK = 0x0f;
 
-    // publish key
-    static const uint32_t FLAG_AUTHEN_PUBLISH = 0x000000020;
+    static const uint8_t MSG_AUTHEN_ROOT_PUBLISH_SIGN = 0x01;
 
-    // admin key
-    static const uint32_t FLAG_AUTHEN_ADMIN = 0x00000040;
+    static const uint8_t MSG_AUTHEN_CHILD_PUBLISH_SIGN = 0x02;
 
-    // pgp sign identity
-    static const uint32_t FLAG_AUTHEN_PGP_IDENTITY = 0x00000080;
+    static const uint8_t MSG_AUTHEN_ROOT_AUTHOR_SIGN = 0x04;
+
+    static const uint8_t MSG_AUTHEN_CHILD_AUTHOR_SIGN = 0x08;
+
+root = parentId is empty
+PUBLISH = sign with group key
+AUTHOR = sign with gxs-id
 
 these flags are set at creation time of genexchange
 there are different rules for different privacy of groups
@@ -138,15 +140,15 @@ rsgxsflags.h
 
 this is related to the PrivacyBitPos enum above. mGroupFlags defines which set of authen flags to use
 
-have to take care of different layers f gxs-metadata classes
+have to take care of different layers of gxs-metadata classes
 rsgxsifacetypes.h	for frontend
 rsgxsdata.h		for backend
 
 
 there are more flags defined in GxsGroupDialog
 why? what are they good for?
-
 what is mSignFlags in groupMeta good for? where is this used?
+looks like all this is unused
 
 chris:
 -------
@@ -159,6 +161,34 @@ Wall ----> Group signed/hosted by author
 Another model is a static wall associated strongly to a user FB account ("RS wall") which is not a group id. And simply have the threads be groups.
 -------
 
+Model 1
+-------
+Wall -> groups signed by author
+  Threads -> messages signed by author
+    Replies -> messages signed by author with thread parent id
+
+make two groups per wall: one public group, and one for friends only
+then merge the results
+
+can only download whole wall at once
+so have to copy content from wall to wall to spread single pieces
+copying content is not a good idea, because then the thread is lost
+
+Model 2
+-------
+Wall -> display a selection of posts from different groups
+  Threads -> Groups signed by author
+    Replies -> messages in the group
+
+advantage: different threads can spread in different directions and different depths
+we don't need to dowload a whole wall just because of one interesting thread
+this enables to subscribe to a single thread by "like-ing" it
+
+the way back is dificult: what, if someone wants to post on a wall of a non-friend?
+make a group signed by author and add the id of the author on whose wall the post should appear
+all the friends and followers will subscribe to this group and transport the thread to the wall owner
+
+
 Private Messages
 ================
 - private chat and chatlobbies
@@ -166,6 +196,10 @@ Private Messages
 		be suspended for now until we find a proper system.
 - private distant chat/messages
 	* C: => distant messages between GXS ids.
+
+Idea: create a status service for gxs-ids
+status is a volatile value like online, offline
+status gets distributed to and by all contacts in the friendslist circle
 
 
 What do users want? What do they expect from social networks?
