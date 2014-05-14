@@ -1,3 +1,8 @@
+for fun: ricebag button
+
+todo: gxs general comment service
+
+
 questions:
 
 	- what about having one GxsMessageItem for forums and wall. A forum post and a wall post are very similar.
@@ -187,6 +192,14 @@ this enables to subscribe to a single thread by "like-ing" it
 the way back is dificult: what, if someone wants to post on a wall of a non-friend?
 make a group signed by author and add the id of the author on whose wall the post should appear
 all the friends and followers will subscribe to this group and transport the thread to the wall owner
+
+list of threads to subscribe:
+- threads from friends
+- threads from gxs-ids i follow (asymetric sharing)
+- threads where friends have posted to, or where friends have pressed the like button
+   how can we know this without subscribing to the thead and downloading it?
+   maybe we need a combination of model one and two
+   everyone has a group for its gxs-id an puts only info about other groups into it
 
 
 Private Messages
@@ -413,6 +426,13 @@ Retroshare Side
 
 Plugin Side
 -----------
+
+order of classes
+- data structure of post
+- interface for frontend
+- ui classes
+- backend
+- messages is independent and can be done if i'm stuck at other places
 
 - take plugin structure from RsWebUI, change name and description
 - p3WallService

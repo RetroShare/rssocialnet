@@ -25,8 +25,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="1"
-     inkscape:cx="327.72248"
-     inkscape:cy="799.98975"
+     inkscape:cx="361.85436"
+     inkscape:cy="857.97276"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -323,5 +323,154 @@
          x="9"
          id="tspan3867"
          sodipodi:role="line">Profile</tspan></text>
+    <text
+       sodipodi:linespacing="125%"
+       id="text3879"
+       y="502.36218"
+       x="5"
+       style="font-size:20px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       xml:space="preserve"><tspan
+         y="502.36218"
+         x="5"
+         id="tspan3881"
+         sodipodi:role="line">Profile@node</tspan></text>
+    <text
+       sodipodi:linespacing="125%"
+       id="text3883"
+       y="502.36218"
+       x="143"
+       style="font-size:20px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       xml:space="preserve"><tspan
+         y="502.36218"
+         x="143"
+         id="tspan3885"
+         sodipodi:role="line">Home</tspan></text>
+    <text
+       sodipodi:linespacing="125%"
+       id="text3887"
+       y="502.36218"
+       x="217"
+       style="font-size:20px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       xml:space="preserve"><tspan
+         y="502.36218"
+         x="217"
+         id="tspan3889"
+         sodipodi:role="line">Neighbor nodes</tspan></text>
+    <path
+       inkscape:connector-curvature="0"
+       id="path3891"
+       d="m 5,513.36218 729,-5"
+       style="fill:none;stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    <text
+       sodipodi:linespacing="125%"
+       id="text3893"
+       y="503.36218"
+       x="386"
+       style="font-size:20px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       xml:space="preserve"><tspan
+         y="503.36218"
+         x="386"
+         id="tspan3895"
+         sodipodi:role="line">Files</tspan></text>
+    <rect
+       y="5.3621826"
+       x="143"
+       height="23"
+       width="64"
+       id="rect3897"
+       style="fill:#000000;fill-opacity:0.1692308;stroke:none" />
+    <rect
+       style="fill:#000000;fill-opacity:0.1692308;stroke:none"
+       id="rect3899"
+       width="155"
+       height="23"
+       x="208"
+       y="483.36218" />
+    <text
+       xml:space="preserve"
+       style="font-size:16px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="20"
+       y="536.36218"
+       id="text3901"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan3903"
+         x="20"
+         y="536.36218">your node key, send it to your friend</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:16px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="20"
+       y="561.36218"
+       id="text3905"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan3907"
+         x="20"
+         y="561.36218">ksdiwehiackancejijailslndnoiwho</tspan><tspan
+         sodipodi:role="line"
+         x="20"
+         y="581.36218"
+         id="tspan3909">ksdiwehiackancejijailslndnoiwho</tspan><tspan
+         sodipodi:role="line"
+         x="20"
+         y="601.36218"
+         id="tspan3911">ksdiwehiackancejijailslndnoiwho</tspan><tspan
+         sodipodi:role="line"
+         x="20"
+         y="621.36218"
+         id="tspan3913">ksdiwehiackancejijailslndnoiwho</tspan><tspan
+         sodipodi:role="line"
+         x="20"
+         y="641.36218"
+         id="tspan3915">ksdiwehiackancejijailslndnoiwho</tspan><tspan
+         sodipodi:role="line"
+         x="20"
+         y="661.36218"
+         id="tspan3917">ksdiwehiackancejijailslndnoiwho</tspan><tspan
+         sodipodi:role="line"
+         x="20"
+         y="681.36218"
+         id="tspan3919">ksdiwehiackancejijailslndnoiwho</tspan></text>
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:1.79571211;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       id="rect3925"
+       width="308.75369"
+       height="131"
+       x="339.11325"
+       y="551.36218" />
+    <text
+       xml:space="preserve"
+       style="font-size:16px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="347"
+       y="535.36218"
+       id="text3927"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan3929"
+         x="347"
+         y="535.36218">paste your friends node key here</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:16px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="17"
+       y="719.36218"
+       id="text3931"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan3933"
+         x="17"
+         y="719.36218">refused connections:</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:16px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="19"
+       y="811.36218"
+       id="text3935"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan3937"
+         x="19"
+         y="811.36218">neighbor nodes:</tspan></text>
   </g>
 </svg>
