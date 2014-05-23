@@ -13,7 +13,7 @@ class RSWappFriendsPage: public Wt::WCompositeWidget
 		virtual void refresh() ;
 
 	private:
-		void showFriendDetails(const std::string& friend_id) ;
+        void showFriendDetails(const RsPeerId &friend_id) ;
 		void showCustomPopupMenu(const Wt::WModelIndex&, const Wt::WMouseEvent&) ;
 		void popupAction() ;
 		void addFriend() ;
@@ -24,6 +24,6 @@ class RSWappFriendsPage: public Wt::WCompositeWidget
 		FriendListModel *_model ;
 		Wt::WTableView *_tableView ;
 		Wt::WPopupMenu *_popupMenu ;
-		std::string _selected_friend ;
+        RsPeerId _selected_friend ;
 		Wt::WTimer *_timer ;
 };

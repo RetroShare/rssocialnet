@@ -93,10 +93,10 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 				case Wt::UserRole:
 					switch(index.column())
 					{
-						default: return Wt::WString(_downloads[index.row()].hash) ;
+                    default: return _downloads[index.row()].hash ;
 					}
 				case Wt::ToolTipRole:
-						return Wt::WString(_downloads[index.row()].hash) ;
+                return Wt::WString(_downloads[index.row()].hash.toStdString()) ;
 				default:
 					return boost::any();
 			}
@@ -153,14 +153,14 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 			std::cerr << "Updating transfers list..." << std::endl;
 			_last_time_update = now ;
 
-			std::list<std::string> hashes ;
+            std::list<RsFileHash> hashes ;
 
 			if(!mFiles->FileDownloads(hashes)) 
 				std::cerr << "(EE) " << __PRETTY_FUNCTION__ << ": can't get list of downloads." << std::endl;
 
 			_downloads.clear() ;
 
-			for(std::list<std::string>::const_iterator it(hashes.begin());it!=hashes.end();++it)
+            for(std::list<RsFileHash>::const_iterator it(hashes.begin());it!=hashes.end();++it)
 			{
 				FileInfo info ;	// needs to be here, so that lists are empty.
 
@@ -268,7 +268,7 @@ void RSWappTransfersPage::showCustomPopupMenu(const Wt::WModelIndex& item, const
 
 		// request information about the hash
 
-		std::string hash (boost::any_cast<Wt::WString>(_tableView->model()->data(item,Wt::UserRole)).toUTF8());
+        RsFileHash hash = boost::any_cast<RsFileHash>(_tableView->model()->data(item,Wt::UserRole));
 
 		_selected_hash = hash ;
 		std::cerr << "Making menu for hash " << hash << std::endl;
@@ -276,7 +276,7 @@ void RSWappTransfersPage::showCustomPopupMenu(const Wt::WModelIndex& item, const
 		FileInfo info ;
 		if(!mFiles->FileDetails(hash,RS_FILE_HINTS_DOWNLOAD,info))
 		{
-			std::cerr << "Can't get file details for hash " << hash << std::endl;
+            std::cerr << "Can't get file details for hash " << hash.toStdString() << std::endl;
 			return ;
 		}
 		_popupMenu = new Wt::WPopupMenu();
@@ -325,7 +325,7 @@ void RSWappTransfersPage::popupAction()
 
 		if(text == "Cancel")
 		{
-			if(Wt::WMessageBox::show("Cancel transfer?", "<p>Do you really want to cancel this file (hash="+_selected_hash+")</p>", Wt::Ok | Wt::No) == Wt::Ok)
+            if(Wt::WMessageBox::show("Cancel transfer?", "<p>Do you really want to cancel this file (hash="+_selected_hash.toStdString()+")</p>", Wt::Ok | Wt::No) == Wt::Ok)
 				mFiles->FileCancel(_selected_hash) ;
 		}
 		else if(text == "Pause")
@@ -356,7 +356,7 @@ void RSWappTransfersPage::downloadLink()
 	std::cerr << lstr << std::endl;
 
 	std::vector<std::string> names ;
-	std::vector<std::string> hashs ;
+    std::vector<RsFileHash> hashs ;
 	std::vector<uint64_t   > sizes ;
 
 	// parse the link. We can do better, and for now this is really basic stuff.
@@ -406,7 +406,7 @@ void RSWappTransfersPage::downloadLink()
 		current_position = s4 ;
 
 		names.push_back(name_str) ;
-		hashs.push_back(hash_str) ;
+        hashs.push_back(RsFileHash(hash_str)) ;
 		sizes.push_back(size) ;
 	}
 
@@ -419,7 +419,7 @@ void RSWappTransfersPage::downloadLink()
 
 		Wt::WString files_str = "<ul>" ;
 		for(uint32_t i=0;i<names.size();++i)
-			files_str += "<li>" + hashs[i] + ", " + Wt::WString("{1}").arg((int)(sizes[i]/1000)) + Wt::WString("{1}").arg((int)(sizes[i]%1000)) + " bytes, name: " + names[i] + "</li>" ;
+            files_str += "<li>" + hashs[i].toStdString() + ", " + Wt::WString("{1}").arg((int)(sizes[i]/1000)) + Wt::WString("{1}").arg((int)(sizes[i]%1000)) + " bytes, name: " + names[i] + "</li>" ;
 
 		files_str += "</ul>";
 
@@ -427,10 +427,10 @@ void RSWappTransfersPage::downloadLink()
 
 		if (answer == Wt::Ok)
 		{
-			std::list<std::string> srcids ;
+            std::list<RsPeerId> srcids ;
 
 			for(uint32_t i=0;i<names.size();++i)
-				mFiles->FileRequest(names[i],hashs[i],sizes[i],"",RS_FILE_REQ_ANONYMOUS_ROUTING,srcids) ;
+                mFiles->FileRequest(names[i],hashs[i],sizes[i],"",RS_FILE_REQ_ANONYMOUS_ROUTING,srcids) ;
 
 			link_area->setText("") ;
 		}

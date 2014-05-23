@@ -62,8 +62,8 @@ class FriendListModel : public Wt::WAbstractTableModel
 					{
 						case COLUMN_AVATAR: return Wt::WString("") ;
 						case COLUMN_NAME: return Wt::WString(_friends[index.row()].name) + " (" + Wt::WString(_friends[index.row()].location)+")" ;
-						case COLUMN_PGP_ID: return Wt::WString(_friends[index.row()].gpg_id) ;
-						case COLUMN_SSL_ID: return Wt::WString(_friends[index.row()].id) ;
+                    case COLUMN_PGP_ID: return Wt::WString(_friends[index.row()].gpg_id.toStdString()) ;
+                    case COLUMN_SSL_ID: return Wt::WString(_friends[index.row()].id.toStdString()) ;
 						case COLUMN_LAST_S: if(_friends[index.row()].state & RS_PEER_STATE_CONNECTED)
 									  return Wt::WString("Now") ;
 								  else
@@ -80,7 +80,8 @@ class FriendListModel : public Wt::WAbstractTableModel
 					}
 
 				case Wt::UserRole:
-					return Wt::WString(_friends[index.row()].id) ;
+                //return Wt::WString(_friends[index.row()].id.toStdString()) ;
+                return _friends[index.row()].id ;
 
 				default:
 					return boost::any();
@@ -132,12 +133,12 @@ class FriendListModel : public Wt::WAbstractTableModel
 			else
 				return _friend_avatars[row] ;
 		}
-		const std::string& getAvatarUrl(const std::string& peer_id) const
+        const std::string& getAvatarUrl(const RsPeerId& peer_id) const
 		{
 			static const std::string null_string("") ;
 
 			for(uint32_t i=0;i<_friends.size();++i)
-				if(peer_id == _friends[i].id)
+                if(peer_id == _friends[i].id)
 					return getAvatarUrl(i) ;
 
 			return null_string;
@@ -155,7 +156,7 @@ class FriendListModel : public Wt::WAbstractTableModel
 #endif
 			_last_time_update = now ;
 
-			std::list<std::string> fids ;
+            std::list<RsPeerId> fids ;
 			
 			if(!mPeers->getFriendList(fids)) 
 				std::cerr << "(EE) " << __PRETTY_FUNCTION__ << ": can't get list of friends." << std::endl;
@@ -163,7 +164,7 @@ class FriendListModel : public Wt::WAbstractTableModel
 			_friends.clear() ;
 			_friend_avatars.clear() ;
 
-			for(std::list<std::string>::const_iterator it(fids.begin());it!=fids.end();++it)
+            for(std::list<RsPeerId>::const_iterator it(fids.begin());it!=fids.end();++it)
 			{
 				_friends.push_back(RsPeerDetails()) ;
 
@@ -320,9 +321,9 @@ class AddFriendDialog: public Wt::WDialog
 
 				str += "<h2>Certificate info</h2>" ;
 				str += "<b>Name</b>   \t\t: " + new_name + "<br/>" ;
-				str += "<b>PGP id</b> \t\t: " + pd.gpg_id + "<br/>" ;
+                str += "<b>PGP id</b> \t\t: " + pd.gpg_id.toStdString() + "<br/>" ;
 				str += "<b>Location name  </b> \t: " + pd.location +" <br/>" ;
-				str += "<b>Location ID    </b> \t: " + pd.id + " <br/>" ;
+                str += "<b>Location ID    </b> \t: " + pd.id.toStdString() + " <br/>" ;
 				_ok_bnt->setEnabled(true) ;
 
 				_info_label->setText(str) ;
@@ -347,8 +348,8 @@ class AddFriendDialog: public Wt::WDialog
 		{
 			std::cerr << "making friend. " << std::endl;
 			int error ;
-			std::string ssl_id ;
-			std::string pgp_id ;
+            RsPeerId ssl_id ;
+            RsPgpId pgp_id ;
 
 			std::string cert_str = _cert_area->text().toUTF8() ;
 			std::string clean_cert ;
@@ -381,7 +382,7 @@ class AddFriendDialog: public Wt::WDialog
 				return ;
 			}
 
-			Wt::WMessageBox::show("Added friend", "This friend has been successfuly added<br/>PGP id: "+pgp_id+"<br/>Location id : " +ssl_id, Wt::Ok);
+            Wt::WMessageBox::show("Added friend", "This friend has been successfuly added<br/>PGP id: "+pgp_id.toStdString()+"<br/>Location id : " +ssl_id.toStdString(), Wt::Ok);
 			accept() ;
 		}
 
@@ -457,7 +458,8 @@ void RSWappFriendsPage::showCustomPopupMenu(const Wt::WModelIndex& item, const W
 
 		// request information about the hash
 
-		std::string friend_id(boost::any_cast<Wt::WString>(_tableView->model()->data(item,Wt::UserRole)).toUTF8());
+        //std::string friend_id(boost::any_cast<Wt::WString>(_tableView->model()->data(item,Wt::UserRole)).toUTF8());
+        RsPeerId friend_id = boost::any_cast<RsPeerId>(_tableView->model()->data(item,Wt::UserRole));
 
 		_selected_friend = friend_id ;
 #ifdef DEBUG_FRIENDSPAGE	
@@ -501,7 +503,7 @@ void RSWappFriendsPage::addFriend()
 	AddFriendDialog(mPeers).exec() ;
 }
 
-void RSWappFriendsPage::showFriendDetails(const std::string& friend_id)
+void RSWappFriendsPage::showFriendDetails(const RsPeerId& friend_id)
 {
 	RsPeerDetails info ;
 
@@ -536,10 +538,10 @@ void RSWappFriendsPage::showFriendDetails(const std::string& friend_id)
 	Wt::WString str ;
 	str += "<br/>" ;
 	str += "<b>Name</b>   \t\t: " + info.name + "<br/>" ;
-	str += "<b>PGP id</b> \t\t: " + info.gpg_id + "<br/>" ;
-	str += "<b>PGP fingerprint</b> \t: " + info.fpr + "<br/>" ;
+    str += "<b>PGP id</b> \t\t: " + info.gpg_id.toStdString() + "<br/>" ;
+    str += "<b>PGP fingerprint</b> \t: " + info.fpr.toStdString() + "<br/>" ;
 	str += "<b>Location name  </b> \t: " + info.location + "<br/>" ;
-	str += "<b>Location ID    </b> \t: " + info.id + "<br/>" ;
+    str += "<b>Location ID    </b> \t: " + info.id.toStdString() + "<br/>" ;
 
 	layout->addWidget(new Wt::WLabel(str,dialog.contents())) ;
 
@@ -573,7 +575,7 @@ void RSWappFriendsPage::popupAction()
 				std::cerr << "Can't get file details for hash " << _selected_friend << std::endl;
 				return ;
 			}
-			if(Wt::WMessageBox::show("Deny friend?", "Do you really want to deny this friend? If so, you can add it back again later.\n\nPGP id: "+info.gpg_id+"\nName : " +info.name, Wt::Yes | Wt::No) == Wt::Yes)
+            if(Wt::WMessageBox::show("Deny friend?", "Do you really want to deny this friend? If so, you can add it back again later.\n\nPGP id: "+info.gpg_id.toStdString()+"\nName : " +info.name, Wt::Yes | Wt::No) == Wt::Yes)
 				std::cerr << "Denying this friend" << std::endl;
 			else
 				std::cerr << "Keeping this friend" << std::endl;

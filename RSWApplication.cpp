@@ -4,8 +4,12 @@
 #include <Wt/WMenuItem>
 #include <Wt/WTabWidget>
 #include <Wt/WTextArea>
+#include <Wt/WBootstrapTheme>
 
 #include "RSWApplication.h"
+
+#include "RSWappTestPage.h"
+
 #include "RSWappFriendsPage.h"
 #include "RSWappTransfersPage.h"
 #include "RSWappChatLobbiesPage.h"
@@ -23,6 +27,8 @@ RSWApplication::RSWApplication(const WEnvironment& env,const RsPlugInInterfaces&
 
 	RSWappSearchFilesPage *search ;
 
+    tabW->addTab(new RSWappTestPage(container), "TestPage", Wt::WTabWidget::PreLoading);
+
 	tabW->addTab(new RSWappFriendsPage(container,interf.mPeers,interf.mMsgs), "Friends", Wt::WTabWidget::PreLoading);
 	tabW->addTab(new RSWappTransfersPage(container,interf.mFiles),"Transfers", Wt::WTabWidget::PreLoading);
 	tabW->addTab(new RSWappSharedFilesPage(container,interf.mFiles,interf.mPeers),"Shared files", Wt::WTabWidget::PreLoading);
@@ -35,7 +41,12 @@ RSWApplication::RSWApplication(const WEnvironment& env,const RsPlugInInterfaces&
 	//Wt::WMenuItem *tab = tabW->addTab(new Wt::WTextArea("You can close this tab by clicking on the close icon."), "Close");
 	//tab->setCloseable(true);
 	tabW->setStyleClass("tabwidget");
-	setCssTheme("polished");
+    //setCssTheme("polished");
+    //setCssTheme("bootstrap");
+
+    WBootstrapTheme* theme = new WBootstrapTheme();
+    theme->setVersion(WBootstrapTheme::Version3);
+    setTheme(theme);
 
 	root()->addWidget(container) ;
 }

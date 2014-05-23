@@ -82,10 +82,10 @@ class LocalSearchFilesModel: public Wt::WAbstractTableModel
 					switch(index.column())
 					{
 
-					default: return Wt::WString(_searchResults[index.row()].hash) ;
+                    default: return _searchResults[index.row()].hash ;
 					}
 				case Wt::ToolTipRole:
-						Wt::WString(_searchResults[index.row()].hash) ;
+                Wt::WString(_searchResults[index.row()].hash.toStdString()) ;
 				default:
 					return boost::any();
 			}
@@ -259,7 +259,7 @@ void RSWappSearchFilesPage::tableClicked()
 			FileInfo finfo ;
 		    rsFiles->FileDetails(dd.hash, RS_FILE_HINTS_REMOTE, finfo) ;
 
-		    std::list<std::string> srcIds;
+            std::list<RsPeerId> srcIds;
 		    for(std::list<TransferInfo>::const_iterator it(finfo.peers.begin());it!=finfo.peers.end();++it)
 		    {
 		        srcIds.push_back((*it).peerId) ;

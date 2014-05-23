@@ -23,6 +23,6 @@ class RSWappTransfersPage: public Wt::WCompositeWidget
 		Wt::WTextArea *link_area ;
 		Wt::WPopupMenu *_popupMenu ;
 		Wt::WTableView *_tableView ;
-		std::string _selected_hash ;
+        RsFileHash _selected_hash ;
 		DownloadsTransfersListModel *_download_model ;
 };
