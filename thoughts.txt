@@ -131,7 +131,7 @@ RsGxsGrpMetaData.mCircleType	can have this values from gxscircles.h
 #define GXS_CIRCLE_TYPE_YOUREYESONLY      0x0003
 #define GXS_CIRCLE_TYPE_LOCAL		  0x0004
 
-RsGxsGrpMetaData.mGroupFlags	this defines the visibility rules
+RsGxsGrpMetaData.mGroupFlags
 mGroupFlags can have these bits set:
 rsgxsflags.h
     // pub key encrypted
