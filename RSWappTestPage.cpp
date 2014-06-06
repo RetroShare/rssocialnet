@@ -1,4 +1,3 @@
-#define BOOST_SIGNALS_NO_DEPRECATION_WARNING
 #include "RSWappTestPage.h"
 
 #include <Wt/WText>

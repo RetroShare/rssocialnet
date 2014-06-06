@@ -57,14 +57,14 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 
 		virtual int rowCount(const Wt::WModelIndex& parent = Wt::WModelIndex()) const
 		{
-			std::cerr << "asked for row count. Returning " << _downloads.size() << std::endl;
+            //std::cerr << "asked for row count. Returning " << _downloads.size() << std::endl;
 
 			return _downloads.size() ;
 		}
 
 		virtual int columnCount(const Wt::WModelIndex& parent = Wt::WModelIndex()) const
 		{
-			std::cerr << "asked for column count" << std::endl;
+            //std::cerr << "asked for column count" << std::endl;
 			
 			return 5;
 		}
@@ -138,7 +138,7 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 		virtual void refresh()
 		{
 			updateTransfersList() ;
-			std::cerr << "Updating transfers model rows=" << rowCount() << ", columns=" << columnCount()  << std::endl;
+            //std::cerr << "Updating transfers model rows=" << rowCount() << ", columns=" << columnCount()  << std::endl;
 
 			dataChanged().emit(index(0,0),index(rowCount()-1,columnCount()-1)) ;
 		}
@@ -150,7 +150,7 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 			//if(now < 2+_last_time_update)
 			//	return ;
 
-			std::cerr << "Updating transfers list..." << std::endl;
+            //std::cerr << "Updating transfers list..." << std::endl;
 			_last_time_update = now ;
 
             std::list<RsFileHash> hashes ;
@@ -182,7 +182,7 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 			//			else
 			//				std::cerr << "Warning: can't get info for uploading hash " << *it << std::endl;
 
-			std::cerr << _downloads.size() << " transfers in list." << std::endl;
+            //std::cerr << _downloads.size() << " transfers in list." << std::endl;
 		}
 
 		mutable std::vector<FileInfo> _downloads ;

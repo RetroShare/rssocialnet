@@ -8,6 +8,8 @@
 #include "WebUImain.h"
 #include <gui/RsWebUIConfig.h>
 
+#include "p3wallservice.h"
+
 static void *inited = new WebUIPlugin() ;
 
 extern "C" {
@@ -45,8 +47,8 @@ QIcon *WebUIPlugin::qt_icon() const
 
 void WebUIPlugin::getPluginVersion(int& major,int& minor,int& svn_rev) const
 {
-	major = 5 ;
-	minor = 4 ;
+    major = 0 ;
+    minor = 0 ;
 	svn_rev = SVN_REVISION_NUMBER ;
 }
 
@@ -90,14 +92,41 @@ void WebUIPlugin::setInterfaces(RsPlugInInterfaces &interfaces)
 	std::cerr << "Setting plugin interfaces for WebUI plugin..." << std::endl;
 	plugin_interfaces = interfaces ;
 
+    std::cerr << "Starting p3WallService" << std::endl;
+    wall_ds = new RsDataService(interfaces.mGxsDir, "wall_db",
+                                RS_SERVICE_TYPE_WALL, NULL, "todo: encrypt db with secure password");
+    wall = new p3WallService(wall_ds, NULL, interfaces.mGxsIdService);
+    wall_ns = new RsGxsNetService(
+                RS_SERVICE_TYPE_WALL, wall_ds, interfaces.mRsNxsNetMgr,
+                wall, wall->getServiceInfo(),
+                interfaces.mGxsIdService, interfaces.mGxsCirlces, interfaces.mPgpAuxUtils,
+                true    // group auto sync
+            );
+    rsWall = wall;
+
+    // see rsinit.cc:1733
+    // why is it createThread and not wall->start()?
+    createThread(*wall);
+    createThread(*wall_ns);
+
 	std::cerr << "Starting the WebUI" << std::endl;
-	RSWebUI::start(interfaces) ;
+    RSWebUI::start(interfaces) ;
 }
 
 void WebUIPlugin::stop()
 {
+    // shutdown in reverse order
+
 	std::cerr << "Stopping the WebUI" << std::endl;
 	RSWebUI::stop();
+
+    wall_ns->join();
+    wall->join();
+
+    // wall_ns, wall_ds owned by wall (RsGenExchange)
+    // delete wall_ns;
+    delete wall;
+    // delete wall_ds;
 }
 
 void WebUIPlugin::setPlugInHandler(RsPluginHandler *pgHandler)

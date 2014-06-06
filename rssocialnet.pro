@@ -6,6 +6,8 @@ INCLUDEPATH += ../../libretroshare/src
 
 QMAKE_CXXFLAGS *= -Wall
 
+DEFINES *= BOOST_SIGNALS_NO_DEPRECATION_WARNING
+
 SOURCES = RSWApplication.cpp \
           WebUImain.cpp \
 			 RSWappFriendsPage.cpp \
@@ -16,7 +18,17 @@ SOURCES = RSWApplication.cpp \
 			 gui/RsWebUIConfig.cpp \
     RSWappSocialNetworkPage.cpp \
     RSWappTestPage.cpp \
-    p3wallservice.cc
+    p3wallservice.cc \
+    rswallitems.cc \
+    sonet/NewsfeedWidget.cpp \
+    sonet/FirstStepsWidget.cpp \
+    sonet/GxsCircleChooserWt.cpp \
+    sonet/CreatePostWidget.cpp \
+    sonet/GxsIdChooserWt.cpp \
+    sonet/WallWidget.cpp \
+    sonet/WallRootPostWidget.cpp \
+    sonet/RsGxsUpdateBroadcastWt.cpp \
+    sonet/AvatarWidget.cpp
 
 HEADERS = RSWApplication.h \
           WebUImain.h \
@@ -29,7 +41,17 @@ HEADERS = RSWApplication.h \
     RSWappSocialNetworkPage.h \
     RSWappTestPage.h \
     rswall.h \
-    p3wallservice.h
+    p3wallservice.h \
+    rswallitems.h \
+    sonet/FirstStepsWidget.h \
+    sonet/NewsfeedWidget.h \
+    sonet/GxsCircleChooserWt.h \
+    sonet/CreatePostWidget.h \
+    sonet/GxsIdChooserWt.h \
+    sonet/WallWidget.h \
+    sonet/RsGxsUpdateBroadcastWt.h \
+    sonet/WallRootPostWidget.h \
+    sonet/AvatarWidget.h
 
 FORMS += gui/RsWebUIConfig.ui
 

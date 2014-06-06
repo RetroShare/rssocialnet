@@ -1,6 +1,9 @@
 #pragma once
 
 #include <retroshare/rsplugin.h>
+#include "p3wallservice.h"
+#include <gxs/rsgxsnetservice.h>
+#include <gxs/rsdataservice.h>
 
 class PluginGUIHandler ;
 class PluginNotifier ;
@@ -27,9 +30,18 @@ class WebUIPlugin: public RsPlugin
 		virtual void setInterfaces(RsPlugInInterfaces& interfaces);
 		virtual void stop();
 
+        //virtual RsPQIService   *rs_pqi_service() 		const	{ return  ; }
+        virtual p3Service       *p3_service() 		const	{ return wall_ns; }
+        virtual p3Config       *p3_config() 		const	{ return wall_ns; }
+        virtual uint16_t        rs_service_id() 	   const	{ return RS_SERVICE_TYPE_WALL; }
+
 	private:
 		mutable RsPluginHandler *mPlugInHandler;
-		mutable RsPlugInInterfaces plugin_interfaces ;
+        mutable RsPlugInInterfaces plugin_interfaces;
+
+        mutable RsGeneralDataService *wall_ds;
+        mutable RsGxsNetService *wall_ns;
+        mutable p3WallService *wall;
 
 		//mutable ConfigPage *config_page ;
 		//mutable QIcon *mIcon;

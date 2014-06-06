@@ -9,6 +9,7 @@
 #include "RSWApplication.h"
 
 #include "RSWappTestPage.h"
+#include "RSWappSocialNetworkPage.h"
 
 #include "RSWappFriendsPage.h"
 #include "RSWappTransfersPage.h"
@@ -27,6 +28,7 @@ RSWApplication::RSWApplication(const WEnvironment& env,const RsPlugInInterfaces&
 
 	RSWappSearchFilesPage *search ;
 
+    tabW->addTab(new RSWappSocialNetworkPage(container), "SocialNetwork", Wt::WTabWidget::PreLoading);
     tabW->addTab(new RSWappTestPage(container), "TestPage", Wt::WTabWidget::PreLoading);
 
 	tabW->addTab(new RSWappFriendsPage(container,interf.mPeers,interf.mMsgs), "Friends", Wt::WTabWidget::PreLoading);
