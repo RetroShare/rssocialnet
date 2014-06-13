@@ -5,6 +5,9 @@
 
 #include <retroshare/rsidentity.h>
 
+// a dropdown bo to select a id
+// own ids only
+
 class GxsIdChooserWt: public Wt::WContainerWidget{
 public:
     GxsIdChooserWt(Wt::WContainerWidget* parent = 0);

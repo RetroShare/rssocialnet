@@ -6,6 +6,8 @@
 #include "rswall.h"
 #include "rswallitems.h"
 
+#include <typeinfo>
+
 /*
 there will be many different background tasks/processes to work on
 idea:
@@ -58,6 +60,8 @@ class ExampleProcess: public Process
 }
 */
 
+// begin old code
+/*
 class PostMsgTask{
 public:
     enum State { WAITING_GRP, WAITING_MSG, WAITING_REFERENCE, COMPLETED};
@@ -71,6 +75,8 @@ public:
     // uint32_t referenceToken; // create reference on own wall
     PostMsg pm;
 };
+*/
+// end old code
 
 /*
 processing of messages
@@ -99,6 +105,8 @@ is there a way to create a service-specific index for grps/msgs?
 for first linear search is ok, but once there are to many grps/msgs it won't work
 think about this later
 */
+
+class WallServiceTask;
 
 // have two threads: ui thread, rsgenexchange thread
 // have to be careful when they cross their ways
@@ -157,13 +165,17 @@ public:
         // (would be cool if gxs could filter by RsItem-type)
         // maybe should return a list of walls, because of public wall and private wall?
         //   ->merge results from both walls
-        virtual void requestWallGroupMetas(uint32_t &token, const RsGxsId &identity);
+
+        // TODO, don't use
+        virtual void requestWallGroupMetas(uint32_t &token, const RsGxsId &identity); // empty id to get all wall groups
         virtual void getWallGroupMetas(const uint32_t &token, std::vector<RsGroupMetaData>& grpMeta);
+
+        //
         virtual void requestWallGroups(uint32_t &token, const RsGxsId &identity);
         virtual void getWallGroups(const uint32_t &token, std::vector<WallGroup> &wgs);
 
         virtual void getPostGroup(const uint32_t &token, PostGroup &pg);
-        virtual void getPostReferenceMsg(const uint32_t &token, ReferenceMsg &refMsg);
+        virtual void getPostReferenceMsgs(const uint32_t &token, std::vector<ReferenceMsg> &refMsgs);
         virtual void getPostMsg(const uint32_t &token, PostMsg &pm);
 
         virtual void requestAvatarImage(uint32_t &token, const RsGxsId &identity);
@@ -173,6 +185,55 @@ public:
         // (just a forward to p3GxsCommentService like in p3GxsChannels)
 
     // ************ end RsWall ************
+
+    // this code is copied from p3GxsChannels
+    /* Comment service - Provide RsGxsCommentService - redirect to p3GxsCommentService */
+virtual bool getCommentData(const uint32_t &token, std::vector<RsGxsComment> &msgs)
+    {
+            return mCommentService->getGxsCommentData(token, msgs);
+    }
+
+virtual bool getRelatedComments(const uint32_t &token, std::vector<RsGxsComment> &msgs)
+    {
+        return mCommentService->getGxsRelatedComments(token, msgs);
+    }
+
+virtual bool createComment(uint32_t &token, RsGxsComment &msg)
+    {
+        return mCommentService->createGxsComment(token, msg);
+    }
+
+virtual bool createVote(uint32_t &token, RsGxsVote &msg)
+    {
+        return mCommentService->createGxsVote(token, msg);
+    }
+
+virtual bool acknowledgeComment(const uint32_t& token, std::pair<RsGxsGroupId, RsGxsMessageId>& msgId)
+    {
+        return acknowledgeMsg(token, msgId);
+    }
+
+
+virtual bool acknowledgeVote(const uint32_t& token, std::pair<RsGxsGroupId, RsGxsMessageId>& msgId)
+    {
+        if (mCommentService->acknowledgeVote(token, msgId))
+        {
+            return true;
+        }
+        return acknowledgeMsg(token, msgId);
+    }
+
+
+
+    // give tasks access to protected RsGenExchange::publishGroup()
+    void publishGroup(uint32_t &token, RsGxsGrpItem *grpItem)
+    {
+        RsGenExchange::publishGroup(token, grpItem);
+    }
+    template<class GrpType> bool getGroupDataT(const uint32_t token, std::vector<GrpType*> &grpItem)
+    {
+        return RsGenExchange::getGroupDataT(token, grpItem);
+    }
 
 private:
     // check if we want to subscribe to incoming groups
@@ -192,9 +253,42 @@ private:
     // the user probably wants to tune the filter
     virtual void _filterNews(std::vector<RsGxsNotify*>& changes);
 
+    // don't use these variables directly
+    // use the functions below, becaus they provide proper locking
+    RsMutex _mTaskMtx;
+    std::map<uint32_t, WallServiceTask*> _mTasks;
+    std::vector<uint32_t> _mTaskToDelete;
+    void _startTask(uint32_t &token, WallServiceTask* newTask);
+    void _doTasks();
+    void _markTaskForDeletion(const uint32_t& token);
+    template<class T> T* _getTask(const uint32_t& token)
+    {
+        RsStackMutex stack(_mTaskMtx);
+        // should make double check if the token is ready?
+        std::map<uint32_t, WallServiceTask*>::iterator mit = _mTasks.find(token);
+        if(mit == _mTasks.end())
+        {
+            std::cerr << "p3WallService::_getTask<" << typeid(T).name() << ">() Error: token not found in map." << std::endl;
+            return NULL;
+        }
+        WallServiceTask* p1 = mit->second;
+        T* p2 = dynamic_cast<T*>(p1);
+        if(p2 == NULL)
+        {
+            std::cerr << "p3WallService::_getTask<" << typeid(T).name() << ">() Error: task has wrong type." << std::endl;
+            return NULL;
+        }
+        // should check if the task itself says it is ready?
+        return p2;
+    }
+
+    // begin old code
+    /*
     std::list<PostMsgTask> _mPostMsgTasks;
     RsMutex _mPostTaskMtx;
     virtual void _processPostMsgTasks();
+    */
+    // end old code
 
     p3GxsCommentService *mCommentService;
 };

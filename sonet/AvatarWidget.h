@@ -32,4 +32,5 @@ public:
 private:
     Wt::WLabel* _mNameLabel;
     Wt::WImage* _mAvatarImage;
+    Wt::WRasterImage* _mImg;
 };

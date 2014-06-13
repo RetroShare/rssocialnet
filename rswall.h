@@ -118,7 +118,7 @@ class PostMsg;
 extern RsWall *rsWall;
 
 // ********** interface *************************
-class RsWall: public RsGxsIfaceHelper
+class RsWall: public RsGxsIfaceHelper, public RsGxsCommentService
 {
 public:
     RsWall(RsGxsIface *gxs)
@@ -159,7 +159,7 @@ virtual void acknowledgeCreatePost(uint32_t &token) = 0;
     virtual void getWallGroups(const uint32_t &token, std::vector<WallGroup> &wgs) = 0;
 
     virtual void getPostGroup(const uint32_t &token, PostGroup &pg) = 0;
-    virtual void getPostReferenceMsg(const uint32_t &token, ReferenceMsg &refMsg) = 0;
+    virtual void getPostReferenceMsgs(const uint32_t &token, std::vector<ReferenceMsg> &refMsgs) = 0;
     virtual void getPostMsg(const uint32_t &token, PostMsg &pm) = 0;
 
     virtual void requestAvatarImage(uint32_t &token, const RsGxsId &identity) = 0;
@@ -270,7 +270,8 @@ class PostMsg{
 public:
     RsMsgMetaData mMeta;
     // in meta:
-    // mGroupId
+    // mGroupId // when creating a new post msg, this represents the target wall id
+    //          // when reading it is the correct parent grp id as usual
     // mAuthorId (optional, but same as in PostGroup)
 
     // want to allow different content for posts:
@@ -608,7 +609,11 @@ public:
 };
 
 /*
+
 message and group changes propagation:
+
+what about group subscribe/unsubscribe events???
+is it implemented to get these?
 
 rsgenexchange calls
 virtual void notifyChanges(std::vector<RsGxsNotify*>& changes) = 0;
@@ -628,7 +633,7 @@ whichs calls genexchange
 
 next level is a class which polls gxsifacehelper, where widgets register to receive updates
 gxsupdatebroadcast
-*
+*/
 
 /*
 class RsWall: public RsGxsIfaceHelper{

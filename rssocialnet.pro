@@ -28,7 +28,12 @@ SOURCES = RSWApplication.cpp \
     sonet/WallWidget.cpp \
     sonet/WallRootPostWidget.cpp \
     sonet/RsGxsUpdateBroadcastWt.cpp \
-    sonet/AvatarWidget.cpp
+    sonet/AvatarWidget.cpp \
+    sonet/CreateWallWidget.cpp \
+    sonet/TokenQueueWt2.cpp \
+    sonet/WallChooserWidget.cpp \
+    sonet/WallTestWidget.cpp \
+    sonet/CommentContainerWidget.cpp
 
 HEADERS = RSWApplication.h \
           WebUImain.h \
@@ -51,7 +56,12 @@ HEADERS = RSWApplication.h \
     sonet/WallWidget.h \
     sonet/RsGxsUpdateBroadcastWt.h \
     sonet/WallRootPostWidget.h \
-    sonet/AvatarWidget.h
+    sonet/AvatarWidget.h \
+    sonet/CreateWallWidget.h \
+    sonet/TokenQueueWt2.h \
+    sonet/WallChooserWidget.h \
+    sonet/WallTestWidget.h \
+    sonet/CommentContainerWidget.h
 
 FORMS += gui/RsWebUIConfig.ui
 

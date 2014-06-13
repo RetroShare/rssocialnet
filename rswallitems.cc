@@ -228,7 +228,7 @@ uint32_t WallSerialiser::sizeRefMsg(ReferenceMsgItem *item){
     uint32_t size = 0;
     size += getRsPktBaseSize();
     size += item->mReferenceMsg.mReferencedGroup.serial_size();
-    size += 4; // reference type
+    size += GetTlvUInt32Size(); // reference type
     return size;
 }
 

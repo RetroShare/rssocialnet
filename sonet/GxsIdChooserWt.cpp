@@ -15,7 +15,7 @@ void GxsIdChooserWt::loadIds()
     _idCombo->clear();
     std::list<RsGxsId>::iterator it;
     for(it = _ownIds.begin(); it != _ownIds.end(); it++){
-        _idCombo->addItem(it->toStdString());
+        _idCombo->addItem("RsGxsId="+it->toStdString());
     }
 }
 

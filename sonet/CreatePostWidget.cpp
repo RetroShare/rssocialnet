@@ -13,7 +13,11 @@ CreatePostWidget::CreatePostWidget(Wt::WContainerWidget *parent):
     // can use setEmptyText instead of this
     enterDefaultText();
 
+    new Wt::WLabel("select the author of the new post", this);
     _idChooser = new GxsIdChooserWt(this);
+
+    new Wt::WLabel("select on which wall the post appears", this);
+    _wallChooser = new WallChooserWidget(this);
 
     _submitPushButton = new Wt::WPushButton("post this", this);
 
@@ -37,12 +41,21 @@ void CreatePostWidget::submitMessage()
     }else{
         PostMsg msg;
         uint32_t token;
-        RsGxsId author;
-        author = _idChooser->getSelectedId();
+
+        RsGxsId author = _idChooser->getSelectedId();
         if(author.isNull()){
             return;
         }
         msg.mMeta.mAuthorId = author;
+
+        RsGxsGroupId targetWall = _wallChooser->getSelectedWallId();
+        if(targetWall.isNull()){
+            return;
+        }
+        // this is a trick:
+        // use the group id to signal the wall the post should appear on
+        msg.mMeta.mGroupId = targetWall;
+
         // todo: circle
         msg.mPostText = text.toUTF8();
         rsWall->createPost(token, msg);

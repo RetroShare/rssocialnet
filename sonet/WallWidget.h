@@ -1,12 +1,22 @@
 #pragma once
 
-#include <Wt/WCompositeWidget>
 #include <Wt/WContainerWidget>
+#include <Wt/WTextArea>
 
-class WallWidget: public Wt::WCompositeWidget{
+#include "TokenQueueWt2.h"
+#include "rswall.h"
+#include "WallRootPostWidget.h"
+
+class WallWidget: public Wt::WContainerWidget{
 public:
     WallWidget(Wt::WContainerWidget* parent = 0);
 
+    void setWallId(const RsGxsGroupId& id);
+
 private:
+    void tokenCallback(uint32_t token, bool ok);
+    TokenQueueWt2 _TokenQueue;
+    Wt::WTextArea* _TextArea;
+    std::vector<WallRootPostWidget*> _PostWidgets;
 
 };
