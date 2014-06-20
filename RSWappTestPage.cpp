@@ -19,6 +19,8 @@
 
 #include <Wt/WColor>
 
+#include "rswall.h"
+
 // todo: decouple from retroshare-gui
 #include "../../retroshare-gui/src/util/TokenQueue.h"
 #include <retroshare/rsidentity.h>
@@ -96,7 +98,7 @@ public:
     int columnCount(const Wt::WModelIndex &parent=Wt::WModelIndex()) const
     {
         if(!parent.isValid()){
-            return 3;
+            return 4;
         }else{
             return 0;
         }
@@ -115,10 +117,59 @@ public:
             case 2:
                 return Wt::WString::fromUTF8(id.mPgpId.toStdString());
             }
-        default:
-            return boost::any();
+            break;
+        case Wt::CheckStateRole:
+            switch(index.column())
+            {
+            case 3:
+                // not sure if a gxs-id should be cerated from the grp id
+                // or if the gxs-id is somewhere in the grp info
+                bool subscribed;
+                RsGxsId identity = RsGxsId(id.mMeta.mGroupId);
+                bool ok = rsWall->isAuthorSubscribed(identity, subscribed);
+                if(ok)
+                {
+                    if(subscribed)
+                    {
+                        return true;
+                    }
+                    return false;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            break;
+        }
+        return boost::any();
+    }
+    // no effect?
+    virtual Wt::WFlags<Wt::ItemFlag> flags(const Wt::WModelIndex &index) const
+    {
+        if(index.column()==3)
+        {
+            return Wt::ItemIsSelectable | Wt::ItemIsUserCheckable;
+        }
+        else
+        {
+            return Wt::ItemIsSelectable;
         }
     }
+    virtual bool setData(const Wt::WModelIndex &index, const boost::any &value, int role)
+    {
+        std::cerr<<"model: setData()"<<std::endl;
+        const RsGxsIdGroup &id = mIds[index.row()];
+        if(index.column() == 3)
+        {
+            bool subscribe = boost::any_cast<bool>(value);
+            RsGxsId identity(id.mMeta.mGroupId);
+            rsWall->subscribeToAuthor(identity, subscribe);
+            return true;
+        }
+        return false;
+    }
+
 private:
     std::vector<RsGxsIdGroup> mIds;
     TokenQueueWt mTokenQueue;

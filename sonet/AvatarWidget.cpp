@@ -28,6 +28,9 @@ AvatarWidget::AvatarWidget(bool small, Wt::WContainerWidget *parent):
         //for testing: limt the size
         //setHeight(40);
         //setWidth(40);
+
+        //_mAvatarImage->setMinimumSize(40, 40);
+        //_mAvatarImage->setMaximumSize(40, 40);
     }else{
         //_mAvatarImage->resize(80, 80);
         //_mAvatarImage->setAttributeValue("height","80");
@@ -36,6 +39,9 @@ AvatarWidget::AvatarWidget(bool small, Wt::WContainerWidget *parent):
         // for testing: limit the size
         //setHeight(80);
         //setWidth(80);
+
+        //_mAvatarImage->setMinimumSize(40, 40);
+        //_mAvatarImage->setMaximumSize(40, 40);
     }
 }
 

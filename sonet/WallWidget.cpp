@@ -1,23 +1,31 @@
 #include "WallWidget.h"
+#include "RsGxsUpdateBroadcastWt.h"
 
 WallWidget::WallWidget(Wt::WContainerWidget *parent):
     WContainerWidget(parent), _TokenQueue(rsWall->getTokenService())
 {
     _TokenQueue.tokenReady().connect(this, &WallWidget::tokenCallback);
+    RsGxsUpdateBroadcastWt::get(rsWall)->grpsChanged().connect(this, &WallWidget::reload);
 
     _TextArea = new Wt::WTextArea(this);
 }
 
 void WallWidget::setWallId(const RsGxsGroupId &id)
 {
+    _GrpId = id;
+    reload();
+}
+
+void WallWidget::reload()
+{
     uint32_t token;
     RsTokReqOptions opts;
     opts.mReqType = GXS_REQUEST_TYPE_MSG_DATA;
     std::list<RsGxsGroupId> grpIds;
-    grpIds.push_back(id);
+    grpIds.push_back(_GrpId);
     rsWall->getTokenService()->requestMsgInfo(token, RS_TOKREQ_ANSTYPE_DATA, opts, grpIds);
     _TokenQueue.queueToken(token);
-    _TextArea->setText("PENDING grpId="+id.toStdString());
+    _TextArea->setText("PENDING grpId="+_GrpId.toStdString());
 }
 
 void WallWidget::tokenCallback(uint32_t token, bool ok)

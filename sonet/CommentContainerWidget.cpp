@@ -3,6 +3,7 @@
 #include <Wt/WBorderLayout>
 
 #include "AvatarWidget.h"
+#include "RsGxsUpdateBroadcastWt.h"
 
 CommentContainerWidget::CommentContainerWidget(RsGxsCommentService *commentService,
                                                RsGxsIfaceHelper *ifaceHelper,
@@ -13,6 +14,7 @@ CommentContainerWidget::CommentContainerWidget(RsGxsCommentService *commentServi
     _TokenQueue.tokenReady().connect(this, &CommentContainerWidget::onTokenReady);
 
     new Wt::WLabel("CommentContainerWidget: IDLE", this);
+    RsGxsUpdateBroadcastWt::get(_IfaceHelper)->msgsChanged().connect(this, &CommentContainerWidget::requestComments);
 }
 
 void CommentContainerWidget::setGrpMsgId(RsGxsGrpMsgIdPair id)

@@ -181,6 +181,9 @@ public:
         virtual void requestAvatarImage(uint32_t &token, const RsGxsId &identity);
         virtual bool getAvatarImage(const uint32_t &token, Image &image);
 
+        virtual bool isAuthorSubscribed(RsGxsId& id, bool& subscribed);
+        virtual void subscribeToAuthor(RsGxsId& id, bool subscribe);
+
         // functions for comment service
         // (just a forward to p3GxsCommentService like in p3GxsChannels)
 
@@ -230,10 +233,25 @@ virtual bool acknowledgeVote(const uint32_t& token, std::pair<RsGxsGroupId, RsGx
     {
         RsGenExchange::publishGroup(token, grpItem);
     }
+    bool getGroupData(const uint32_t &token, std::vector<RsGxsGrpItem*>& grpItem)
+    {
+        return RsGenExchange::getGroupData(token, grpItem);
+    }
     template<class GrpType> bool getGroupDataT(const uint32_t token, std::vector<GrpType*> &grpItem)
     {
         return RsGenExchange::getGroupDataT(token, grpItem);
     }
+
+    // let the subscribe task know about the interesting authors
+    // returns true if result in subscribe is valid
+    bool shouldSubscribeTo(const RsGxsId& id, bool& subscribe);
+    // called by the task to signal it is complete
+    void setAuthorsLoaded();
+private:
+    // needs mtx because this list also gets updated by the ui thread
+    RsMutex authorsMtx;
+    bool authorsLoaded;
+    std::vector<RsGxsId> subscribedAuthors;
 
 private:
     // check if we want to subscribe to incoming groups

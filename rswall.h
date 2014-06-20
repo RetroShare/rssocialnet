@@ -165,6 +165,9 @@ virtual void acknowledgeCreatePost(uint32_t &token) = 0;
     virtual void requestAvatarImage(uint32_t &token, const RsGxsId &identity) = 0;
     virtual bool getAvatarImage(const uint32_t &token, Image &image) = 0;
 
+    virtual bool isAuthorSubscribed(RsGxsId& id, bool& subscribed) = 0;
+    virtual void subscribeToAuthor(RsGxsId& id, bool subscribe) = 0;
+
     // functions for comment service
     // (just a forward to p3GxsCommentService like in p3GxsChannels)
 };

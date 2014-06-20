@@ -40,16 +40,25 @@ class RSWAppThread: public RsThread
 			std::string s6("--http-port") ;
 			std::string s7( os2.str() ) ;
 
+            // todo: disable for release
+            // tell wt where to find conigfile
+            // the configfile define sthe wt logging level
+            std::string s8("-c") ;
+            std::string s9("wt_config.xml") ;
+
 			std::cerr << "RSWEBUI: Using http address " << s5 << ", and port " << s7 << std::endl;
 
-			int argc = 7 ;
+            int argc = 9 ;
 			char *argv[] = {  strdup(s1.c_str()),
 									strdup(s2.c_str()), 
 									strdup(s3.c_str()), 
 									strdup(s4.c_str()),
 									strdup(s5.c_str()),
 									strdup(s6.c_str()),
-									strdup(s7.c_str()) } ;
+                                    strdup(s7.c_str()),
+                                    strdup(s8.c_str()),
+                                    strdup(s9.c_str())
+                           } ;
 
 			std::cerr << "RSWEBUI: In server thread. Launching..." << std::endl;
 

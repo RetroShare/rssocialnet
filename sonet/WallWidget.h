@@ -14,7 +14,9 @@ public:
     void setWallId(const RsGxsGroupId& id);
 
 private:
+    void reload();
     void tokenCallback(uint32_t token, bool ok);
+    RsGxsGroupId _GrpId;
     TokenQueueWt2 _TokenQueue;
     Wt::WTextArea* _TextArea;
     std::vector<WallRootPostWidget*> _PostWidgets;

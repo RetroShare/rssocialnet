@@ -2,6 +2,7 @@
 
 #include <Wt/WBorderLayout>
 #include <Wt/WHBoxLayout>
+#include "Wt/WBreak"
 
 #include "rswall.h"
 #include "RsGxsUpdateBroadcastWt.h"
@@ -27,8 +28,16 @@ WallRootPostWidget::WallRootPostWidget(RsGxsGroupId grpId, Wt::WContainerWidget 
     layout->addWidget(_mCenterContainer, Wt::WBorderLayout::Center);
     //layout->addWidget(_mCenterContainer);
 
+    _mIdChooser = new GxsIdChooserWt(_mCenterContainer);
+    _mWallChooser = new WallChooserWidget(_mCenterContainer);
+    Wt::WPushButton* button = new Wt::WPushButton("share this post", _mCenterContainer);
+    button->clicked().connect(this, &WallRootPostWidget::onShareButtonClicked);
+
+    new Wt::WBreak(_mCenterContainer);
     _mText = new Wt::WLabel(_mCenterContainer);
 
+    new Wt::WBreak(_mCenterContainer);
+    new Wt::WLabel("comments:", _mCenterContainer);
     _CommentContainer = new CommentContainerWidget(rsWall, rsWall, _mCenterContainer);
 
     RsGxsUpdateBroadcastWt::get(rsWall)->grpsChanged().connect(this, &WallRootPostWidget::grpsChanged);
@@ -75,4 +84,14 @@ void WallRootPostWidget::onTokenReady(uint32_t token, bool ok)
 void WallRootPostWidget::grpsChanged(const std::list<RsGxsGroupId> &grps)
 {
     //
+}
+
+void WallRootPostWidget::onShareButtonClicked()
+{
+    ReferenceMsg refMsg;
+    refMsg.mMeta.mAuthorId = _mIdChooser->getSelectedId();
+    refMsg.mMeta.mGroupId = _mWallChooser->getSelectedWallId();
+    refMsg.mReferencedGroup = _mGrpId;
+    uint32_t token;
+    rsWall->createPostReferenceMsg(token, refMsg);
 }
