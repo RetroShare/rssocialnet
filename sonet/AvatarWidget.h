@@ -30,6 +30,8 @@ public:
     AvatarWidget(bool small, Wt::WContainerWidget* parent = 0);
     void setIdentity(RsGxsId& identity);
 private:
+    void onLabelClicked();
+    RsGxsId _mId;
     Wt::WLabel* _mNameLabel;
     Wt::WImage* _mAvatarImage;
     Wt::WRasterImage* _mImg;

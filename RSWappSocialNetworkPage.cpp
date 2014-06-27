@@ -26,6 +26,7 @@ RSWappSocialNetworkPage::RSWappSocialNetworkPage(Wt::WContainerWidget *parent):
     Wt::WStackedWidget *contents = new Wt::WStackedWidget();
     _centerContainer->addWidget(contents);
     _menu = new Wt::WMenu(contents, Wt::Vertical);
+    //_menu->setInternalPathEnabled();
     _leftContainer->addWidget(_menu);
 
     _menu->addItem("First steps", new FirstStepsWidget());

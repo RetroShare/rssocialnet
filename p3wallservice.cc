@@ -1,5 +1,15 @@
 #include "p3wallservice.h"
 
+/*
+idea: cache requests
+this would reduce load if many request which return the same data
+are made in a short time
+a task has another member time_t expiresOn;
+if this member is zero the request can not be cached
+the task sets this member on completion
+and then the task will be kept for this time
+*/
+
 // ********************* helper classes **************************
 
 /*
@@ -278,13 +288,11 @@ public:
 // this task copies the grp-item type into the first 8 bits of the group status
 // it checks if grp should be subscribed and subscribes if needed
 // it then marks the grp as processed
-
-// todo: only subscribe to wall-grps
 class ProcessGrpTask: public WallServiceTask
 {
 public:
     ProcessGrpTask(RsGxsGroupId grpId):
-        mGrpId(grpId), mState(BEGIN), grpToken(0)
+        mGrpId(grpId), mState(BEGIN), grpToken(0), isPostGrp(false)
     {}
 
     enum State { BEGIN, WAITING_META, WAITING_SETBITS, WAITING_SUBSCRIBE, WAITING_PROCESSED };
@@ -292,6 +300,7 @@ public:
     State mState;
     uint32_t grpToken;
     RsGxsId authorId;
+    bool isPostGrp;
     void doWork()
     {
         switch(mState)
@@ -330,6 +339,11 @@ public:
             uint32_t grpStatusToken;
             mWallService->setGroupStatusFlags(grpStatusToken, mGrpId, status, mask);
 
+            if(dynamic_cast<PostGroupItem*>(item))
+            {
+                isPostGrp = true;
+            }
+
             std::vector<RsGxsGrpItem*>::iterator vit;
             for(vit = grpItems.begin(); vit != grpItems.end(); vit++)
             {
@@ -342,11 +356,11 @@ public:
             break;
         case WAITING_SETBITS:
         {
-            bool subscribe;
-            if(mWallService->shouldSubscribeTo(authorId, subscribe))
+            if(isPostGrp)
             {
-                if(subscribe)
+                if(mWallService->wantedGrps.find(mGrpId) != mWallService->wantedGrps.end())
                 {
+                    mWallService->wantedGrps.erase(mGrpId);
                     uint32_t token;
                     mWallService->RsGenExchange::subscribeToGroup(token, mGrpId, true);
                     mPendingTokens.push_back(token);
@@ -355,8 +369,24 @@ public:
             }
             else
             {
-                // try again later
-                mState = WAITING_SETBITS;
+                // this is a wall-grp
+                bool subscribe = false;
+                if(mWallService->shouldSubscribeTo(authorId, subscribe))
+                {
+                    if(subscribe)
+                    {
+                        uint32_t token;
+                        mWallService->RsGenExchange::subscribeToGroup(token, mGrpId, true);
+                        mPendingTokens.push_back(token);
+                    }
+                    mState = WAITING_SUBSCRIBE;
+                }
+                else
+                {
+                    // interesting authors not loaded
+                    // try again later
+                    mState = WAITING_SETBITS;
+                }
             }
 
         }
@@ -379,7 +409,98 @@ public:
     }
 };
 
-// todo: filter for wall-grps only
+class ProcessMsgTask: public WallServiceTask
+{
+public:
+    ProcessMsgTask(const RsGxsGrpMsgIdPair& id): WallServiceTask(), mState(BEGIN), mGrpMsgId(id){}
+    enum State { BEGIN, WAITING_MSG_DATA, WAITING_SUBSCRIBE };
+    State mState;
+    RsGxsGrpMsgIdPair mGrpMsgId;
+    uint32_t mMsgDataToken;
+    RsGxsGroupId mReferencedGroup;
+    uint32_t mGrpToken;
+    void doWork()
+    {
+        switch(mState)
+        {
+        case BEGIN:
+        {
+            RsTokReqOptions opts;
+            opts.mReqType = GXS_REQUEST_TYPE_MSG_DATA;
+            GxsMsgReq msgIds;
+            std::vector<RsGxsMessageId> msgIdVec;
+            msgIdVec.push_back(mGrpMsgId.second);
+            msgIds[mGrpMsgId.first] = msgIdVec;
+            mWallService->RsGenExchange::getTokenService()->requestMsgInfo(mMsgDataToken, RS_TOKREQ_ANSTYPE_DATA, opts, msgIds);
+
+            mPendingTokens.push_back(mMsgDataToken);
+            mState = WAITING_MSG_DATA;
+        }
+            break;
+        case WAITING_MSG_DATA:
+        {
+            // this is really crazy, have a vector inside a map to just get one message
+            GxsMsgDataMap msgItemMap;
+            mWallService->getMsgData(mMsgDataToken, msgItemMap);
+            GxsMsgDataMap::iterator mit;
+            RsGxsMsgItem* item = NULL;
+            for( mit = msgItemMap.begin(); mit != msgItemMap.end(); mit++)
+            {
+                const RsGxsGroupId& grpId = mit->first;
+                std::vector<RsGxsMsgItem*>& vec = mit->second;
+                std::vector<RsGxsMsgItem*>::iterator vit;
+                for(vit = vec.begin(); vit != vec.end(); vit++)
+                {
+                    if(item == NULL){
+                        item = *vit;
+                    } else {
+                        std::cerr << "ProcessMsgTask WAITING_MSG_DATA: more than one msg item in result. This should not happen." << std::endl;
+                        delete *vit;
+                    }
+                }
+            }
+            if(item == NULL)
+            {
+                std::cerr << "ProcessMsgTask WAITING_MSG_DATA: no item" << std::endl;
+                mResult = FAIL;
+                break;
+            }
+            ReferenceMsgItem* refMsg = dynamic_cast<ReferenceMsgItem*>(item);
+            if(refMsg)
+            {
+                mReferencedGroup = refMsg->mReferenceMsg.mReferencedGroup;
+                // add grp id to map
+                mWallService->wantedGrps.insert(mReferencedGroup);
+                // then try to subscribe
+                // if the subscribe fails, then this task gets deleted
+                // in this case, the grpId stays in the list of wanted grps
+                // if subscribe was successful, then we can delete the id from the list of wanted grps later
+                mWallService->RsGenExchange::subscribeToGroup(mGrpToken, mReferencedGroup, true);
+
+                mPendingTokens.push_back(mGrpToken);
+                mState = WAITING_SUBSCRIBE;
+            }
+            // don't know if have to do something with this
+            //PostMsgItem* postMsg = dynamic_cast<PostMsgItem*>(item);
+
+            // safe msg type in status bits
+            // don't know if we need to have msg type in meta?
+
+            delete item;
+        }
+            break;
+        case WAITING_SUBSCRIBE:
+        {
+            // TODO: mark msg as processed
+            // subscribe was successful, can remove grp-id from wanted list
+            mWallService->wantedGrps.erase(mReferencedGroup);
+            mResult = COMPLETE;
+        }
+            break;
+        }
+    }
+};
+
 class SearchSubscribedAuthorsTask: public WallServiceTask
 {
 public:
@@ -396,6 +517,8 @@ public:
             // requesting all grp metas
             RsTokReqOptions opts;
             opts.mReqType = GXS_REQUEST_TYPE_GROUP_META;
+            // at the moment grp meta does not support flag filtering
+            // have to filter later
             mWallService->RsGenExchange::getTokenService()->requestGroupInfo(mGrpMetaToken, RS_TOKREQ_ANSTYPE_SUMMARY, opts);
 
             mState = WAITING_METAS;
@@ -411,10 +534,14 @@ public:
             for(std::list<RsGroupMetaData>::iterator it = groupInfo.begin(); it != groupInfo.end(); it++)
             {
                 RsGroupMetaData& grpMeta = *it;
-                // check for null id is done in fn
-                // todo: check if grp is wall-grp and if grp is subscribed
+                // check for null author-id is done in fn
+                // check if grp is wall-grp and if grp is subscribed
                 // then add only authors of subscribed wall-grps
-                mWallService->subscribeToAuthor(grpMeta.mAuthorId, true);
+                if(((grpMeta.mGroupStatus>>24)==RS_PKT_SUBTYPE_WALL_WALL_GRP_ITEM)
+                        && IS_GROUP_SUBSCRIBED(grpMeta.mSubscribeFlags))
+                {
+                    mWallService->subscribeToAuthor(grpMeta.mAuthorId, true);
+                }
             }
             mWallService->setAuthorsLoaded();
             mResult = COMPLETE;
@@ -424,11 +551,10 @@ public:
     }
 };
 
-// todo: filter for wall grps only
-class SubscribeAllGrpsFromAuthorTask: public WallServiceTask
+class SubscribeAllWallGrpsFromAuthorTask: public WallServiceTask
 {
 public:
-    SubscribeAllGrpsFromAuthorTask(RsGxsId id, bool subscribe = true):
+    SubscribeAllWallGrpsFromAuthorTask(RsGxsId id, bool subscribe = true):
         mState(BEGIN), mGrpMetaToken(0), authorId(id), subscribe(subscribe)
     {}
 
@@ -457,11 +583,13 @@ public:
             std::list<RsGroupMetaData> groupInfo;
             std::vector<RsGxsGroupId> grpsToSubscribe;
             mWallService->getGroupMeta(mGrpMetaToken, groupInfo);
-            // this is a very expensive operation, because we check author of every group
+            // this is a very expensive operation, because we check every group
             for(std::list<RsGroupMetaData>::iterator it = groupInfo.begin(); it != groupInfo.end(); it++)
             {
                 RsGroupMetaData& grpMeta = *it;
-                if(grpMeta.mAuthorId == authorId)
+                if(((grpMeta.mGroupStatus>>24)==RS_PKT_SUBTYPE_WALL_WALL_GRP_ITEM)
+                        && (subscribe ^ IS_GROUP_SUBSCRIBED(grpMeta.mSubscribeFlags)) //can handle subscribe and unsubscribe
+                        && (grpMeta.mAuthorId == authorId))
                 {
                     grpsToSubscribe.push_back(grpMeta.mGroupId);
                 }
@@ -774,24 +902,23 @@ void p3WallService::subscribeToAuthor(RsGxsId &id, bool subscribe)
         std::cerr << "p3WallService::subscribeToAuthor() subscribe author-id=" << id.toStdString() << std::endl;
         //subscribe
         subscribedAuthors.push_back(id);
-        // todo:
-        // trigger search for all grps with author id and subscirbe to them
+        // trigger search for all wall-grps with author id and subscirbe to them
         // what if one subscribe task is running while the user unsubscribes from the same author?
         uint32_t token;
-        _startTask(token, new SubscribeAllGrpsFromAuthorTask(id));
-        // probably don't want to subscribe to all grps by author, but the wall-grp only
-        // then load msgs from wall-grp and subscribe the referenced post-grps in a second step
+        _startTask(token, new SubscribeAllWallGrpsFromAuthorTask(id));
     }
     if(found && (!subscribe))
     {
         std::cerr << "p3WallService::subscribeToAuthor() unsubscribe author-id=" << id.toStdString() << std::endl;
         // unsubscribe
-        // todo
-        // don't unsubscribe all grps from author, only the wall-grps
         // have to do some sort of garbage collection for unreachable post-grps
         // maybe mark all post-grps
         // then load all reference-msgs, and remove the mark from the referenced grps
         // then delete the marked post-grps
+        // not sure if garbage collection is needed because disk space is to cheap
+        subscribedAuthors.erase(std::find(subscribedAuthors.begin(), subscribedAuthors.end(),id));
+        uint32_t token;
+        _startTask(token, new SubscribeAllWallGrpsFromAuthorTask(id, false));
     }
 }
 
@@ -824,6 +951,12 @@ void p3WallService::setAuthorsLoaded()
     authorsLoaded = true;
 }
 
+bool p3WallService::areAuthorsLoaded()
+{
+    RsStackMutex stack(authorsMtx);
+    return authorsLoaded;
+}
+
 void p3WallService::_checkSubscribe(std::vector<RsGxsNotify*> &changes)
 {
     std::vector<RsGxsNotify*>::iterator vit;
@@ -838,6 +971,23 @@ void p3WallService::_checkSubscribe(std::vector<RsGxsNotify*> &changes)
             {
                 uint32_t token;
                 _startTask(token, new ProcessGrpTask(*lit));
+            }
+        }
+
+        RsGxsMsgChange* msgChange = dynamic_cast<RsGxsMsgChange*>(change);
+        if(msgChange && (change->getType() == RsGxsNotify::TYPE_RECEIVE))
+        {
+            std::map<RsGxsGroupId, std::vector<RsGxsMessageId> >::iterator mit;
+            for(mit = msgChange->msgChangeMap.begin(); mit != msgChange->msgChangeMap.end(); mit++)
+            {
+                const RsGxsGroupId& grpId = mit->first;
+                std::vector<RsGxsMessageId>& msgIdVec = mit->second;
+                std::vector<RsGxsMessageId>::iterator vit;
+                for(vit = msgIdVec.begin(); vit != msgIdVec.end(); vit++)
+                {
+                    uint32_t token;
+                    _startTask(token, new ProcessMsgTask(RsGxsGrpMsgIdPair(grpId, *vit)));
+                }
             }
         }
     }

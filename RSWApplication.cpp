@@ -4,7 +4,10 @@
 #include <Wt/WMenuItem>
 #include <Wt/WTabWidget>
 #include <Wt/WTextArea>
+
+#if WT_VERSION >= 0x03030200
 #include <Wt/WBootstrapTheme>
+#endif
 
 #include "RSWApplication.h"
 
@@ -21,15 +24,18 @@
 RSWApplication::RSWApplication(const WEnvironment& env,const RsPlugInInterfaces& interf)
    : WApplication(env)
 {
-	setTitle(Wt::WString("Retroshare Web UI. Version {1}").arg(SVN_REVISION_NUMBER));               // application title
+    setTitle(Wt::WString("Retroshare Social Network Plugin. Version {1} TODO: use git version id").arg(SVN_REVISION_NUMBER)); // application title
 
 	Wt::WContainerWidget *container = new Wt::WContainerWidget();
-	Wt::WTabWidget *tabW = new Wt::WTabWidget(container);
+    tabW = new Wt::WTabWidget(container);
+    //tabW->setInternalPathEnabled();
 
 	RSWappSearchFilesPage *search ;
 
-    tabW->addTab(new RSWappSocialNetworkPage(container), "SocialNetwork", Wt::WTabWidget::PreLoading);
+    tabW->addTab(new RSWappSocialNetworkPage(container), "SocialNetwork", Wt::WTabWidget::PreLoading)->setPathComponent("sonet");
     tabW->addTab(new RSWappTestPage(container), "TestPage", Wt::WTabWidget::PreLoading);
+    tabW->addTab(wallWidget = new WallWidget(container), "WallWidget(hidden)", Wt::WTabWidget::PreLoading);
+    tabW->setTabHidden(tabW->indexOf(wallWidget), true);
 
 	tabW->addTab(new RSWappFriendsPage(container,interf.mPeers,interf.mMsgs), "Friends", Wt::WTabWidget::PreLoading);
 	tabW->addTab(new RSWappTransfersPage(container,interf.mFiles),"Transfers", Wt::WTabWidget::PreLoading);
@@ -45,16 +51,19 @@ RSWApplication::RSWApplication(const WEnvironment& env,const RsPlugInInterfaces&
 	tabW->setStyleClass("tabwidget");
     //setCssTheme("polished");
     //setCssTheme("bootstrap");
-
+#if WT_VERSION >= 0x03030200
     WBootstrapTheme* theme = new WBootstrapTheme();
     theme->setVersion(WBootstrapTheme::Version3);
     setTheme(theme);
-
+#endif
 	root()->addWidget(container) ;
 }
 
-void RSWApplication::greet()
+// want to have this with internal paths later
+void RSWApplication::showWall(const RsGxsId &id)
 {
-    greeting_->setText("Hello there, " + nameEdit_->text());
+    wallWidget->setWallByAuthorId(id);
+    tabW->setCurrentWidget(wallWidget);
+    // hide the menu item for this tab again
+    tabW->setTabHidden(tabW->indexOf(wallWidget), true);
 }
-

@@ -2,7 +2,8 @@
 
 #include <Wt/WBorderLayout>
 #include <Wt/WHBoxLayout>
-#include "Wt/WBreak"
+#include <Wt/WBreak>
+#include <Wt/WDateTime>
 
 #include "rswall.h"
 #include "RsGxsUpdateBroadcastWt.h"
@@ -32,6 +33,12 @@ WallRootPostWidget::WallRootPostWidget(RsGxsGroupId grpId, Wt::WContainerWidget 
     _mWallChooser = new WallChooserWidget(_mCenterContainer);
     Wt::WPushButton* button = new Wt::WPushButton("share this post", _mCenterContainer);
     button->clicked().connect(this, &WallRootPostWidget::onShareButtonClicked);
+
+    new Wt::WBreak(_mCenterContainer);
+    // will look like this:
+    // user1 wrote on 1.1.2011 11:11
+    _mIdentityLabel = new IdentityLabelWidget(_mCenterContainer);
+    _mTimeLabel = new Wt::WLabel(_mCenterContainer);
 
     new Wt::WBreak(_mCenterContainer);
     _mText = new Wt::WLabel(_mCenterContainer);
@@ -70,6 +77,9 @@ void WallRootPostWidget::onTokenReady(uint32_t token, bool ok)
         PostMsg pm;
         rsWall->getPostMsg(token, pm);
         _mAvatarWidget->setIdentity(pm.mMeta.mAuthorId);
+
+        _mIdentityLabel->setIdentity(pm.mMeta.mAuthorId);
+        _mTimeLabel->setText(" wrote on " + Wt::WDateTime::fromTime_t(pm.mMeta.mPublishTs).toString());
 
         _mText->setText(Wt::WString::fromUTF8(pm.mPostText));
 

@@ -247,11 +247,16 @@ virtual bool acknowledgeVote(const uint32_t& token, std::pair<RsGxsGroupId, RsGx
     bool shouldSubscribeTo(const RsGxsId& id, bool& subscribe);
     // called by the task to signal it is complete
     void setAuthorsLoaded();
+    bool areAuthorsLoaded();
 private:
     // needs mtx because this list also gets updated by the ui thread
     RsMutex authorsMtx;
     bool authorsLoaded;
     std::vector<RsGxsId> subscribedAuthors;
+
+public:
+    // only used from the genexchange-thread
+    std::set<RsGxsGroupId> wantedGrps;
 
 private:
     // check if we want to subscribe to incoming groups

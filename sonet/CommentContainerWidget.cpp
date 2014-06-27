@@ -97,5 +97,5 @@ void CommentContainerWidget::onSubmitComment()
     comment.mMeta.mAuthorId = _IdChooser->getSelectedId();
     comment.mComment = _TextArea->text().toUTF8();
     _CommentService->createComment(token, comment);
-    requestComments();
+    //requestComments();
 }

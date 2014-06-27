@@ -4,11 +4,15 @@
 #include <Wt/WRectF>
 #include <Wt/WBreak>
 
+#include "../RSWApplication.h"
+
 AvatarWidget::AvatarWidget(bool small, Wt::WContainerWidget *parent):
     WContainerWidget(parent), _mImg(NULL)
 {
     // only for testing
     _mNameLabel = new Wt::WLabel("no id", this);
+    _mNameLabel->clicked().connect(this, &AvatarWidget::onLabelClicked);
+
     RsGxsId id;
     setIdentity(id);
 
@@ -73,5 +77,20 @@ void AvatarWidget::setIdentity(RsGxsId &identity)
     //Wt::WMemoryResource();
 
     // fill label with truncated id string
-    _mNameLabel->setText(identity.toStdString().substr(0,5));
+    _mNameLabel->setText(identity.toStdString().substr(0,5)+" (clickme)");
+
+    _mId = identity;
+}
+
+void AvatarWidget::onLabelClicked()
+{
+    RSWApplication* sonet = dynamic_cast<RSWApplication*>(Wt::WApplication::instance());
+    if(sonet)
+    {
+        sonet->showWall(_mId);
+    }
+    else
+    {
+        std::cerr << "AvatarWidget::onLabelClicked() ERROR: Application is not of Type RSWApplication." << std::endl;
+    }
 }

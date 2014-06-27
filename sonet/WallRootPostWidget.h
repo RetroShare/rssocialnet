@@ -8,6 +8,7 @@
 #include "CommentContainerWidget.h"
 #include "GxsIdChooserWt.h"
 #include "WallChooserWidget.h"
+#include "IdentityLabelWidget.h"
 
 // contains a root post in a thread and the comments below
 class WallRootPostWidget: public Wt::WContainerWidget{
@@ -24,6 +25,8 @@ private:
     AvatarWidget* _mAvatarWidget;
     GxsIdChooserWt* _mIdChooser;
     WallChooserWidget* _mWallChooser;
+    IdentityLabelWidget* _mIdentityLabel;
+    Wt::WLabel* _mTimeLabel;
     Wt::WLabel* _mText;
     Wt::WContainerWidget* _mCenterContainer;
     CommentContainerWidget* _CommentContainer;

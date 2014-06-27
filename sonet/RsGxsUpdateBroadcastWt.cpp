@@ -51,4 +51,5 @@ RsGxsUpdateBroadcastWt::RsGxsUpdateBroadcastWt(RsGxsIfaceHelper* ifaceImpl):
 {
     mTimer.setInterval(100); // in ms
     mTimer.timeout().connect(this, &RsGxsUpdateBroadcastWt::onTimer);
+    mTimer.start();
 }

@@ -33,7 +33,8 @@ SOURCES = RSWApplication.cpp \
     sonet/TokenQueueWt2.cpp \
     sonet/WallChooserWidget.cpp \
     sonet/WallTestWidget.cpp \
-    sonet/CommentContainerWidget.cpp
+    sonet/CommentContainerWidget.cpp \
+    sonet/IdentityLabelWidget.cpp
 
 HEADERS = RSWApplication.h \
           WebUImain.h \
@@ -61,7 +62,8 @@ HEADERS = RSWApplication.h \
     sonet/TokenQueueWt2.h \
     sonet/WallChooserWidget.h \
     sonet/WallTestWidget.h \
-    sonet/CommentContainerWidget.h
+    sonet/CommentContainerWidget.h \
+    sonet/IdentityLabelWidget.h
 
 FORMS += gui/RsWebUIConfig.ui
 
