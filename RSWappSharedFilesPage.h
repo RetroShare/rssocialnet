@@ -8,8 +8,8 @@ class LocalSharedFilesModel ;
 
 class RSWappSharedFilesPage: public Wt::WCompositeWidget
 {
-	public:
-		RSWappSharedFilesPage(Wt::WContainerWidget *container,RsFiles *rsfiles,RsPeers *mpeers) ;
+    public:
+        RSWappSharedFilesPage(RsFiles *rsfiles,RsPeers *mpeers, Wt::WContainerWidget *parent = 0) ;
 
 	private:
 		Wt::WContainerWidget *_impl;

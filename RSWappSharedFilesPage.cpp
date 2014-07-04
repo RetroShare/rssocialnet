@@ -470,7 +470,7 @@ class LocalSharedFilesModel: public Wt::WAbstractItemModel
 		int ageIndicator ;
 };
 
-RSWappSharedFilesPage::RSWappSharedFilesPage(Wt::WContainerWidget *parent,RsFiles *mfiles,RsPeers *mpeers)
+RSWappSharedFilesPage::RSWappSharedFilesPage(RsFiles *mfiles,RsPeers *mpeers, Wt::WContainerWidget *parent)
 	: WCompositeWidget(parent),mFiles(mfiles)
 {
 	setImplementation(_impl = new Wt::WContainerWidget()) ;

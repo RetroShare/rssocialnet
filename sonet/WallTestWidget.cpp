@@ -2,6 +2,8 @@
 
 #include <Wt/WLabel>
 
+namespace RsWall{
+
 WallTestWidget::WallTestWidget(Wt::WContainerWidget *parent):
     WContainerWidget(parent)
 {
@@ -17,3 +19,4 @@ void WallTestWidget::onWallSelectionChanged()
 {
     mWallWidget->setWallId(mWallChooserWidget->getSelectedWallId());
 }
+}//namespace RsWall

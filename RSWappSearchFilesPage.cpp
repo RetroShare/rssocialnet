@@ -164,7 +164,7 @@ class LocalSearchFilesModel: public Wt::WAbstractTableModel
 		mutable RsMutex _mtx ;
 };
 
-RSWappSearchFilesPage::RSWappSearchFilesPage(Wt::WContainerWidget *parent,RsFiles *mfiles)
+RSWappSearchFilesPage::RSWappSearchFilesPage(RsFiles *mfiles, Wt::WContainerWidget *parent)
 	: WCompositeWidget(parent),mFiles(mfiles)
 {
 	setImplementation(_impl = new Wt::WContainerWidget()) ;

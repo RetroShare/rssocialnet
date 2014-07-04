@@ -192,7 +192,7 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 		RsFiles *mFiles ;
 };
 
-RSWappTransfersPage::RSWappTransfersPage(Wt::WContainerWidget *parent,RsFiles *mfiles)
+RSWappTransfersPage::RSWappTransfersPage(RsFiles *mfiles, Wt::WContainerWidget *parent)
 	: WCompositeWidget(parent),mFiles(mfiles)
 {
 	setImplementation(_impl = new Wt::WContainerWidget()) ;

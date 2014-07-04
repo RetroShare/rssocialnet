@@ -21,69 +21,40 @@
 
 #include "rswall.h"
 
-// todo: decouple from retroshare-gui
-#include "../../retroshare-gui/src/util/TokenQueue.h"
+#include "sonet/FirstStepsWidget.h"
+#include "sonet/NewsfeedWidget.h"
+#include "sonet/CreateWallWidget.h"
+#include "sonet/WallChooserWidget.h"
+#include "sonet/WallTestWidget.h"
+#include "sonet/AvatarWidget.h"
+
 #include <retroshare/rsidentity.h>
+#include "RSWApplication.h"
 
-#include <Wt/WTimer>
-// todo: check if gxstokenqueue(from libretroshare) should be used instead of TokenQueue which is a ui class
-class TokenQueueWt: public Wt::WObject, public TokenQueueBase{
+class IdentityModel: public Wt::WAbstractTableModel{
 public:
-    TokenQueueWt(RsTokenService *service, TokenResponse *resp):
-        WObject(), TokenQueueBase(service, resp), mTimer(){
-        mTimer.timeout().connect(this, &TokenQueueWt::onTimer);
-        mTimer.setSingleShot(true);
-    }
-    void onTimer(){
-        pollRequests();
-    }
-
-protected:
-    virtual void doPoll(float dt){
-        mTimer.setInterval(dt*1000);
-        mTimer.start();
-    }
-private:
-    Wt::WTimer mTimer;
-};
-
-const uint32_t IDENTITY_MODEL_TOKENTYPE_LIST_IDS = 0;
-
-class IdentityModel: public Wt::WAbstractTableModel, public TokenResponse{
-public:
-    IdentityModel(): WAbstractTableModel(), mTokenQueue(rsIdentity->getTokenService(), this)
+    IdentityModel(): WAbstractTableModel(), mTokenQueue(RSWApplication::ifaces().mIdentity->getTokenService())
     {
         update();
+        mTokenQueue.tokenReady().connect(this, &IdentityModel::tokenReady);
     }
 
     void update()
     {
-        mTokenQueue.cancelActiveRequestTokens(IDENTITY_MODEL_TOKENTYPE_LIST_IDS);
-
         RsTokReqOptions opts;
         opts.mReqType = GXS_REQUEST_TYPE_GROUP_DATA;
 
         uint32_t token;
+        RSWApplication::ifaces().mIdentity->getTokenService()->requestGroupInfo(token, RS_TOKREQ_ANSTYPE_DATA, opts);
 
-        mTokenQueue.requestGroupInfo(token, RS_TOKREQ_ANSTYPE_DATA, opts, IDENTITY_MODEL_TOKENTYPE_LIST_IDS);
+        mTokenQueue.queueToken(token);
     }
-    virtual void loadRequest(const TokenQueueBase *queue, const TokenRequest &req)
+    virtual void tokenReady(uint32_t token, bool /*ok*/)
     {
-        std::cerr << "IdentityModel::loadRequest() UserType: " << req.mUserType << std::endl;
-
-        switch(req.mUserType)
-        {
-            case IDENTITY_MODEL_TOKENTYPE_LIST_IDS:
-                // tell views about data change in model
-                reset();
-                mIds.clear();
-                rsIdentity->getGroupData(req.mToken, mIds);
-                break;
-            default:
-                std::cerr << "IdentityModel::loadRequest() ERROR unknown UserType";
-                std::cerr << std::endl;
-                break;
-        }
+        std::cerr << "IdentityModel::tokenReady()" << std::endl;
+        reset();
+        mIds.clear();
+        RSWApplication::ifaces().mIdentity->getGroupData(token, mIds);
     }
 
     int rowCount(const Wt::WModelIndex &parent=Wt::WModelIndex()) const
@@ -126,7 +97,7 @@ public:
                 // or if the gxs-id is somewhere in the grp info
                 bool subscribed;
                 RsGxsId identity = RsGxsId(id.mMeta.mGroupId);
-                bool ok = rsWall->isAuthorSubscribed(identity, subscribed);
+                bool ok = RsWall::rsWall->isAuthorSubscribed(identity, subscribed);
                 if(ok)
                 {
                     if(subscribed)
@@ -164,7 +135,7 @@ public:
         {
             bool subscribe = boost::any_cast<bool>(value);
             RsGxsId identity(id.mMeta.mGroupId);
-            rsWall->subscribeToAuthor(identity, subscribe);
+            RsWall::rsWall->subscribeToAuthor(identity, subscribe);
             return true;
         }
         return false;
@@ -172,7 +143,7 @@ public:
 
 private:
     std::vector<RsGxsIdGroup> mIds;
-    TokenQueueWt mTokenQueue;
+    RsWall::TokenQueueWt2 mTokenQueue;
 };
 
 class FeedDelegate: public Wt::WItemDelegate{
@@ -271,7 +242,8 @@ private:
 RSWappTestPage::RSWappTestPage(Wt::WContainerWidget *parent):
     WCompositeWidget(parent)
 {
-    tokenQueue = new TokenQueueWt(rsIdentity->getTokenService(), this);
+    tokenQueue = new RsWall::TokenQueueWt2(RSWApplication::ifaces().mIdentity->getTokenService());
+    tokenQueue->tokenReady().connect(this, &RSWappTestPage::tokenReady);
     // allow automatic destruction
     Wt::WObject::addChild(tokenQueue);
 
@@ -324,11 +296,14 @@ RSWappTestPage::RSWappTestPage(Wt::WContainerWidget *parent):
     idContainer->addWidget(tableViewIdentities);
 
     // Add menu items using the default lazy loading policy.
-    menu->addItem("feed", w1);
-    menu->addItem("tableView", tableView);
-    menu->addItem("eins", new Wt::WText("eins"));
-    menu->addItem("zwei", new Wt::WText("zwei"));
-    menu->addItem("IdentityView", idContainer);
+    //menu->addItem("feed", w1);
+    //menu->addItem("tableView", tableView);
+    //menu->addItem("IdentityView", idContainer);
+
+    menu->addItem("CreateWallWidget", new RsWall::CreateWallWidget());
+    menu->addItem("WallChooserWidget", new RsWall::WallChooserWidget());
+    menu->addItem("WallTestWidget", new RsWall::WallTestWidget());
+    menu->addItem("AvatarWidget", new RsWall::AvatarWidgetWt(false));
 }
 
 void RSWappTestPage::showNewIdDialog()
@@ -360,14 +335,14 @@ void RSWappTestPage::newIdDialogDone(Wt::WDialog::DialogCode code)
         params.isPgpLinked = false;
 
         uint32_t token = 0;
-        rsIdentity->createIdentity(token, params);
+        RSWApplication::ifaces().mIdentity->createIdentity(token, params);
         // queue callback when id was created, to updates views then
-        tokenQueue->queueRequest(token, 0, 0, 0);
+        tokenQueue->queueToken(token);
 
     }
     delete newIdDialog;
 }
 
-void RSWappTestPage::loadRequest(const TokenQueueBase *queue, const TokenRequest &req){
+void RSWappTestPage::tokenReady(uint32_t /*token*/, bool /*ok*/){
     idModel->update();
 }

@@ -2,6 +2,11 @@
 
 #include "rswall.h"
 
+#include "SonetUtil.h"
+#include "RSWApplication.h"
+
+namespace RsWall{
+
 GxsIdChooserWt::GxsIdChooserWt(Wt::WContainerWidget *parent):
     WContainerWidget(parent)
 {
@@ -18,28 +23,21 @@ void GxsIdChooserWt::loadIds()
 {
     bool ok = true;
     _ownIds.clear();
-    ok &= rsIdentity->getOwnIds(_ownIds);
+    RSWApplication::ifaces().mIdentity->getOwnIds(_ownIds);
     _idCombo->clear();
     std::vector<RsIdentityDetails> details;
     std::list<RsGxsId>::iterator lit;
     for(lit = _ownIds.begin(); lit != _ownIds.end(); lit++)
     {
         RsIdentityDetails detail;
-        ok &= rsIdentity->getIdDetails(*lit, detail);
+        ok &= RSWApplication::ifaces().mIdentity->getIdDetails(*lit, detail);
         if(ok) { details.push_back(detail); }
     }
     if(ok)
     {
         std::vector<RsIdentityDetails>::iterator it;
         for(it = details.begin(); it != details.end(); it++){
-            const RsIdentityDetails& detail = *it;
-            std::string anon;
-            if(detail.mPgpLinked){
-                anon = "[pgp]";
-            } else {
-                anon = "[anon]";
-            }
-            _idCombo->addItem(detail.mNickname + "[" + detail.mId.toStdString().substr(0, 5) + "]" + anon);
+            _idCombo->addItem(SonetUtil::formatGxsId(*it));
         }
     }
     else
@@ -62,3 +60,4 @@ RsGxsId GxsIdChooserWt::getSelectedId()
         return RsGxsId();
     }
 }
+}//namespace RsWall

@@ -4,6 +4,8 @@
 #include <serialiser/rsbaseserial.h>
 #include <limits>
 
+namespace RsWall{
+
 uint32_t serialiseByteVectorSize(const std::vector<uint8_t> &vec){
     // can do nothing about overflow here
     // because the returnvalue is just a integer, even in the upper layers
@@ -47,8 +49,9 @@ bool deserialiseByteVector(void* data, uint32_t size, uint32_t* offset, std::vec
     bool ok = true;
     ok &= getRawUInt32(data, size, offset, &vecsize);
     if(ok && (vecsize > 0)){
-        vec.reserve(vecsize);
+        vec.resize(vecsize);
         memcpy(&vec[0], &((uint8_t*)data)[*offset], vecsize);
+        *offset += vecsize;
     }else{
         vec.clear();
     }
@@ -301,3 +304,5 @@ PostMsgItem *WallSerialiser::deserialisePostMsg(void *data, uint32_t *size){
         return NULL;
     }
 }
+
+}//namespace RsWall

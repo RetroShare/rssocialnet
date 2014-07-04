@@ -3,22 +3,40 @@
 #include <Wt/WRasterImage>
 #include <Wt/WRectF>
 #include <Wt/WBreak>
+#include <Wt/WMemoryResource>
 
 #include "../RSWApplication.h"
+#include "rswall.h"
+#include "RsGxsUpdateBroadcastWt.h"
 
-AvatarWidget::AvatarWidget(bool small, Wt::WContainerWidget *parent):
-    WContainerWidget(parent), _mImg(NULL)
+namespace RsWall{
+
+AvatarWidgetWt::AvatarWidgetWt(bool small, Wt::WContainerWidget *parent):
+    WContainerWidget(parent), _mImg(NULL), _mTokenQueue(rsWall->getTokenService())
 {
-    // only for testing
-    _mNameLabel = new Wt::WLabel("no id", this);
-    _mNameLabel->clicked().connect(this, &AvatarWidget::onLabelClicked);
+    _mTokenQueue.tokenReady().connect(this, &AvatarWidgetWt::onTokenReady);
+    RsGxsUpdateBroadcastWt::get(rsWall)->grpsChanged().connect(this, &AvatarWidgetWt::onGrpsChanged);
+
+    _mIdentityLabel = new IdentityLabelWidget(this);
+    _mIdentityLabel->clicked().connect(this, &AvatarWidgetWt::onLabelClicked);
+
+    new Wt::WBreak(this);
+    _mAvatarImage = new Wt::WImage(this);
+    _mAvatarImageRessource = new Wt::WMemoryResource(this);
+    _mAvatarImage->clicked().connect(this, &AvatarWidgetWt::onLabelClicked);
+
+    new Wt::WBreak(this);
+    Wt::WLabel* moretext = new Wt::WLabel("more text on mouse over", this);
+    //moretext->setHiddenKeepsGeometry(true);
+    moretext->hide();
+    _mIdentityLabel->mouseWentOver().connect(moretext, &Wt::WLabel::show);
+    _mIdentityLabel->mouseWentOut().connect(moretext, &Wt::WLabel::hide);
+
+    _mAvatarImage->mouseWentOver().connect(moretext, &Wt::WLabel::show);
+    _mAvatarImage->mouseWentOut().connect(moretext, &Wt::WLabel::hide);
 
     RsGxsId id;
     setIdentity(id);
-
-    new Wt::WBreak(this);
-
-    _mAvatarImage = new Wt::WImage(this);
     if(small){
         // resize has impact on the sourounding widgets
         // have to find another way to define size of this
@@ -49,7 +67,7 @@ AvatarWidget::AvatarWidget(bool small, Wt::WContainerWidget *parent):
     }
 }
 
-void AvatarWidget::setIdentity(RsGxsId &identity)
+void AvatarWidgetWt::setIdentity(RsGxsId &identity)
 {
     // create image from id for testing
 
@@ -68,29 +86,53 @@ void AvatarWidget::setIdentity(RsGxsId &identity)
 
     // get identity info from rsindetities
     //   repeat this step if the info is not cached yet
+    //     this is now outsourced to IdentityLabelWidget
 
     // get image from wallservice and display it
     //   do it the same way rsidentities does it?
     //   or use the token system?
+    //     use token system, because these functions are already there atm
+    uint32_t token;
+    rsWall->requestWallGroups(token, identity);
+    _mTokenQueue.queueToken(token);
 
-    // load image from memory
-    //Wt::WMemoryResource();
-
-    // fill label with truncated id string
-    _mNameLabel->setText(identity.toStdString().substr(0,5)+" (clickme)");
-
+    _mIdentityLabel->setIdentity(identity);
     _mId = identity;
 }
 
-void AvatarWidget::onLabelClicked()
+void AvatarWidgetWt::onLabelClicked()
 {
-    RSWApplication* sonet = dynamic_cast<RSWApplication*>(Wt::WApplication::instance());
-    if(sonet)
+    RSWApplication::instance()->showWall(_mId);
+}
+
+void AvatarWidgetWt::onTokenReady(uint32_t token, bool ok)
+{
+    if(ok)
     {
-        sonet->showWall(_mId);
+        // load image from memory
+        std::vector<WallGroup> grps;
+        rsWall->getWallGroups(token, grps);
+        // TODO: handle multiple wall-grps
+        if(grps.empty()){ std::cerr << "PROBLEM in AvatarWidgetWt::onTokenReady(): no wall-grps for author" << std::endl; return;}
+
+        WallGroup& grp = grps[0];
+        _mAvatarImageRessource->setData(grp.mAvatarImage.mData);
+        _mAvatarImage->setImageLink(Wt::WLink(_mAvatarImageRessource));
     }
     else
     {
-        std::cerr << "AvatarWidget::onLabelClicked() ERROR: Application is not of Type RSWApplication." << std::endl;
+        std::cerr << "token FAILED in AvatarImageWt::onTokenReady()" << std::cerr;
     }
 }
+
+void AvatarWidgetWt::onGrpsChanged(const std::list<RsGxsGroupId>& /*grpIds*/)
+{
+    // optimisation: remember from which grp the avatar image came and only update if this grp changed
+    if(!_mId.isNull())
+    {
+        uint32_t token;
+        rsWall->requestWallGroups(token, _mId);
+        _mTokenQueue.queueToken(token);
+    }
+}
+}//namespace RsWall

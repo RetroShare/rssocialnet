@@ -394,7 +394,7 @@ class AddFriendDialog: public Wt::WDialog
 		RsPeers *mPeers ;
 };
 
-RSWappFriendsPage::RSWappFriendsPage(Wt::WContainerWidget *parent,RsPeers *mpeers,RsMsgs *mmsgs)
+RSWappFriendsPage::RSWappFriendsPage(RsPeers *mpeers, RsMsgs *mmsgs, Wt::WContainerWidget *parent)
 	: WCompositeWidget(parent),mPeers(mpeers)
 {
 	setImplementation(_impl = new Wt::WContainerWidget()) ;

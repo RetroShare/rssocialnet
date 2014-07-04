@@ -5,6 +5,8 @@
 
 #include "rswall.h"
 
+namespace RsWall{
+
 CreatePostWidget::CreatePostWidget(Wt::WContainerWidget *parent):
     WContainerWidget(parent)
 {
@@ -67,3 +69,4 @@ void CreatePostWidget::enterDefaultText()
     _defaultText = true;
     _messageTextArea->setText("say something");
 }
+}//namespace RsWall

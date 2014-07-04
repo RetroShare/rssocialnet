@@ -8,7 +8,7 @@ class DownloadsTransfersListModel ;
 class RSWappTransfersPage: public Wt::WCompositeWidget
 {
 	public:
-		RSWappTransfersPage(Wt::WContainerWidget *container,RsFiles *rsfiles) ;
+        RSWappTransfersPage(RsFiles *rsfiles, Wt::WContainerWidget *parent = 0) ;
 
 		void downloadLink() ;
 		void showCustomPopupMenu(const Wt::WModelIndex&, const Wt::WMouseEvent&) ;

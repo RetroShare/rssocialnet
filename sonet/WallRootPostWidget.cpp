@@ -8,6 +8,7 @@
 #include "rswall.h"
 #include "RsGxsUpdateBroadcastWt.h"
 
+namespace RsWall{
 
 WallRootPostWidget::WallRootPostWidget(RsGxsGroupId grpId, Wt::WContainerWidget *parent):
     WContainerWidget(parent), _mTokenQueue(rsWall->getTokenService()),_mGrpId(grpId)
@@ -16,7 +17,7 @@ WallRootPostWidget::WallRootPostWidget(RsGxsGroupId grpId, Wt::WContainerWidget 
     //Wt::WHBoxLayout *layout = new Wt::WHBoxLayout();
     this->setLayout(layout);
 
-    _mAvatarWidget = new AvatarWidget(false);
+    _mAvatarWidget = new AvatarWidgetWt(false);
     layout->addWidget(_mAvatarWidget, Wt::WBorderLayout::West);
     //layout->addWidget(_mAvatarWidget);
 
@@ -31,8 +32,12 @@ WallRootPostWidget::WallRootPostWidget(RsGxsGroupId grpId, Wt::WContainerWidget 
 
     _mIdChooser = new GxsIdChooserWt(_mCenterContainer);
     _mWallChooser = new WallChooserWidget(_mCenterContainer);
-    Wt::WPushButton* button = new Wt::WPushButton("share this post", _mCenterContainer);
+    Wt::WPushButton* button = new Wt::WPushButton("share this post (with selected author-id on selected wall)", _mCenterContainer);
     button->clicked().connect(this, &WallRootPostWidget::onShareButtonClicked);
+
+    new Wt::WBreak(_mCenterContainer);
+    new Wt::WLabel("the new share button:", _mCenterContainer);
+    _mShareButton = new ShareButton(_mCenterContainer);
 
     new Wt::WBreak(_mCenterContainer);
     // will look like this:
@@ -56,6 +61,8 @@ WallRootPostWidget::WallRootPostWidget(RsGxsGroupId grpId, Wt::WContainerWidget 
 
 void WallRootPostWidget::setGroupId(RsGxsGroupId &grpId)
 {
+    _mShareButton->setGrpId(grpId);
+
     _mGrpId = grpId;
     // request stuff
     uint32_t token;
@@ -105,3 +112,4 @@ void WallRootPostWidget::onShareButtonClicked()
     uint32_t token;
     rsWall->createPostReferenceMsg(token, refMsg);
 }
+}//namespace RsWall

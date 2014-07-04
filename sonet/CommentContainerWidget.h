@@ -11,6 +11,7 @@
 
 #include "GxsIdChooserWt.h"
 
+namespace RsWall{
 // generic widget to show existing comments and to create a new one
 // it uses the RsGxsCommentService
 // todo: handle events, display only the last x comments
@@ -34,3 +35,5 @@ private:
     GxsIdChooserWt* _IdChooser;
     Wt::WPushButton* _SubmitButton;
 };
+
+} // namespace RsWall

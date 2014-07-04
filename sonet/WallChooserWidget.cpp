@@ -3,6 +3,8 @@
 #include "rswall.h"
 #include "RsGxsUpdateBroadcastWt.h"
 
+namespace RsWall{
+
 WallChooserWidget::WallChooserWidget(Wt::WContainerWidget *parent):
     WContainerWidget(parent), _TokenQueue(rsWall->getTokenService())
 {
@@ -66,3 +68,4 @@ void WallChooserWidget::onSelectionChanged(int)
 {
     _SelectionChangedSignal.emit();
 }
+}//namespace RsWall

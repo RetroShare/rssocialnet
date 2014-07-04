@@ -7,6 +7,9 @@
 #include "GxsIdChooserWt.h"
 #include "WallChooserWidget.h"
 
+namespace RsWall{
+// TODO: maybe remove this widget
+
 // this widget allos to create a new RootWallPost
 // it shows a TextArea, controls to select the audience and a submit button
 class CreatePostWidget: public Wt::WContainerWidget{
@@ -24,3 +27,5 @@ private:
     WallChooserWidget* _wallChooser;
     Wt::WPushButton* _submitPushButton;
 };
+
+} // namespace RsWall

@@ -27,6 +27,23 @@ static const uint8_t GXS_REQUEST_V2_STATUS_DONE;        the client received the 
 //   the token has to be checked if the requested data is available
 //   another function returns the data
 
+// ideas for event multiplexing
+// problem: one class genereates events, other classes want to receive these
+// - gxs has a very simple event notification system: only one instance of a class polls gxs to receive events
+//   gxs clears the list of events on every call
+// - Qt/Wt Signals and Slots, they automatically destroy connections if sender or receiver is destroyed
+// - event listeners register at the event creator with a unique name or their address
+//     - clients can then poll the event generator, the event generator keeps a list who received what
+//     - or the event generator calls the event receiver from its own thread
+// - new idea: the event generator tags every event with a number
+//   the clients then ask the server for events since the last number
+//   the server keeps a list of the events of the last x minutes, clients then have to poll every <x minutes
+// criterias:
+// - speed, how fast does the event reach its destination?
+// - does it work over http or rs-ssh-rpc? what about disconnects of client and server?
+// - can clients fail to unregister? what does then happen?
+// - for local usage: what about threading? need some mutexes?
+
 // big question:
 // a fb page is ver similar to a rs-channel
 // would be nice to display channel msgs in the webui
@@ -105,15 +122,28 @@ distant chat
 chatlobbies
 
 */
+namespace RsWall{
+
 // todo
 class NewsfeedEntry;
 
 class RsWall;
-class Image;
+// there is a potential name collison with WRasterImage on Ubuntu 14
+// so can't call it Image, have to call it WallImage
+class WallImage;
 class WallGroup;
 class PostGroup;
 class ReferenceMsg;
 class PostMsg;
+
+class PostReferenceParams
+{
+public:
+    RsGxsGroupId mReferencedGroupId;
+    RsGxsId mAuthor;
+    RsGxsId mTargetWallOwner;
+    RsGxsCircleId mCircle;
+};
 
 extern RsWall *rsWall;
 
@@ -141,10 +171,14 @@ public:
     // who fills in the cirlce id?
     //   probably the service, because he has time and knowledge, and can cache things
     virtual void createPost(uint32_t &token, const PostMsg &msg) = 0;
-virtual void acknowledgeCreatePost(uint32_t &token) = 0;
+    virtual void acknowledgeCreatePost(uint32_t &token) = 0;
+    // new function, note: the service will fill in params.mReferencedGroupId
+    virtual void createPost(uint32_t& token, const PostReferenceParams& params, const std::string& postText) = 0;
 
     // this handles sharing on own or friends wall, and like
     virtual void createPostReferenceMsg(uint32_t &token, const ReferenceMsg &refMsg) = 0;
+    // new function to share when author, author of target wall and circle is known
+    virtual void createPostReferenceMsg(uint32_t &token, const PostReferenceParams& params) = 0;
 
     // use this if you only know the identity of the wall owner
     // use request in gxsifacehelper if you want to list all known walls
@@ -163,7 +197,7 @@ virtual void acknowledgeCreatePost(uint32_t &token) = 0;
     virtual void getPostMsg(const uint32_t &token, PostMsg &pm) = 0;
 
     virtual void requestAvatarImage(uint32_t &token, const RsGxsId &identity) = 0;
-    virtual bool getAvatarImage(const uint32_t &token, Image &image) = 0;
+    virtual bool getAvatarImage(const uint32_t &token, WallImage &image) = 0;
 
     virtual bool isAuthorSubscribed(RsGxsId& id, bool& subscribed) = 0;
     virtual void subscribeToAuthor(RsGxsId& id, bool subscribe) = 0;
@@ -225,7 +259,7 @@ private:
 
 // RsGxsImage is to complicated
 // this class is much simpler, because the memory managment is hidden in a std::vector
-class Image{
+class WallImage{
 public:
     std::vector<uint8_t> mData;
 };
@@ -237,8 +271,8 @@ public:
     // mAuthorId (required)
     // mCirlceId (optional)
     std::string mProfileText;
-    Image mAvatarImage;
-    Image mWallImage;
+    WallImage mAvatarImage;
+    WallImage mWallImage;
 };
 class PostGroup{
 public:
@@ -665,3 +699,4 @@ public:
     // likes of friends
 };
 */
+} // namespace RsWall

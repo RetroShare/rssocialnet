@@ -5,6 +5,7 @@
 #include "WallChooserWidget.h"
 #include "WallWidget.h"
 
+namespace RsWall{
 class WallTestWidget: public Wt::WContainerWidget
 {
 public:
@@ -15,3 +16,4 @@ private:
     WallChooserWidget* mWallChooserWidget;
     WallWidget* mWallWidget;
 };
+}//namespace RsWall

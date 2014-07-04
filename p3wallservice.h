@@ -3,10 +3,22 @@
 #include <gxs/rsgenexchange.h>
 #include <gxs/gxstokenqueue.h>
 #include <services/p3gxscommon.h>
+//#include <retroshare/rsidentity.h>
 #include "rswall.h"
 #include "rswallitems.h"
 
 #include <typeinfo>
+
+/*
+idea to handle target-wall and target-circle:
+- user selects target wall and target circle
+- p3wallservice finds the right wall group  or creates one
+
+let the user tell us what he wants, like
+"share this content with these friends"
+then let p3WallService figure out howto do this
+the user should not have to worry about gxs-groups. never ever.
+*/
 
 /*
 there will be many different background tasks/processes to work on
@@ -106,13 +118,18 @@ for first linear search is ok, but once there are to many grps/msgs it won't wor
 think about this later
 */
 
+class RsIdentity;
+
+namespace RsWall{
+
 class WallServiceTask;
+
 
 // have two threads: ui thread, rsgenexchange thread
 // have to be careful when they cross their ways
 class p3WallService: public RsWall, public RsGenExchange, public GxsTokenQueue{
 public:
-    p3WallService(RsGeneralDataService* gds, RsNetworkExchangeService* nes, RsGixs* gixs);
+    p3WallService(RsGeneralDataService* gds, RsNetworkExchangeService* nes, RsGixs* gixs, RsIdentity* identity);
     virtual ~p3WallService();
 
     // from RsGenExchange
@@ -153,10 +170,14 @@ public:
         // who fills in the cirlce id?
         //   probably the service, because he has time and knowledge, and can cache things
         virtual void createPost(uint32_t &token, const PostMsg &msg);
-    virtual void acknowledgeCreatePost(uint32_t &token);
+        virtual void acknowledgeCreatePost(uint32_t &token);
+        // new function, note: the service will fill in params.mReferencedGroupId
+        virtual void createPost(uint32_t& token, const PostReferenceParams& params, const std::string& postText);
 
         // this handles sharing on own or friends wall, and like
         virtual void createPostReferenceMsg(uint32_t &token, const ReferenceMsg &refMsg);
+        // new function to share when author, author of target wall and circle is known
+        virtual void createPostReferenceMsg(uint32_t &token, const PostReferenceParams& params);
 
         // use this if you only know the identity of the wall owner
         // use request in gxsifacehelper if you want to list all known walls
@@ -165,8 +186,6 @@ public:
         // (would be cool if gxs could filter by RsItem-type)
         // maybe should return a list of walls, because of public wall and private wall?
         //   ->merge results from both walls
-
-        // TODO, don't use
         virtual void requestWallGroupMetas(uint32_t &token, const RsGxsId &identity); // empty id to get all wall groups
         virtual void getWallGroupMetas(const uint32_t &token, std::vector<RsGroupMetaData>& grpMeta);
 
@@ -179,7 +198,7 @@ public:
         virtual void getPostMsg(const uint32_t &token, PostMsg &pm);
 
         virtual void requestAvatarImage(uint32_t &token, const RsGxsId &identity);
-        virtual bool getAvatarImage(const uint32_t &token, Image &image);
+        virtual bool getAvatarImage(const uint32_t &token, WallImage &image);
 
         virtual bool isAuthorSubscribed(RsGxsId& id, bool& subscribed);
         virtual void subscribeToAuthor(RsGxsId& id, bool subscribe);
@@ -314,4 +333,9 @@ private:
     // end old code
 
     p3GxsCommentService *mCommentService;
+    RsIdentity*     mRsIdentity;
+public:
+    RsIdentity* getRsIdentity(){ return mRsIdentity; }
 };
+
+} // namespace RsWall

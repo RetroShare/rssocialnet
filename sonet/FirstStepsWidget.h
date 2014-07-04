@@ -12,8 +12,9 @@ user has to do two things:
 1) create a new gxs-id/wall
 2) add neighbor nodes
 */
+namespace RsWall{
 class FirstStepsWidget: public Wt::WCompositeWidget{
 public:
     FirstStepsWidget(Wt::WContainerWidget* parent = 0);
 };
-
+}//namespace RsWall

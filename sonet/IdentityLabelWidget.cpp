@@ -1,5 +1,9 @@
 #include "IdentityLabelWidget.h"
 
+#include "RSWApplication.h"
+
+namespace RsWall{
+
 IdentityLabelWidget::IdentityLabelWidget(Wt::WContainerWidget *parent):
     WLabel(parent)
 {
@@ -18,7 +22,7 @@ void IdentityLabelWidget::setIdentity(const RsGxsId &id)
 void IdentityLabelWidget::tryLoadIdentity()
 {
     RsIdentityDetails details;
-    if(rsIdentity->getIdDetails(mIdentity, details))
+    if(RSWApplication::ifaces().mIdentity->getIdDetails(mIdentity, details))
     {
         setText(details.mNickname);
     }
@@ -28,3 +32,4 @@ void IdentityLabelWidget::tryLoadIdentity()
         mTimer.start();
     }
 }
+}//namespace RsWall

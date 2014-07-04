@@ -2,22 +2,20 @@
 
 #include <Wt/WCompositeWidget>
 #include <Wt/WDialog>
-
-// have to include WTableView before TokenQueue.h, else compiler throws errors
 #include <Wt/WTableView>
-#include "../../retroshare-gui/src/util/TokenQueue.h"
 
-class TokenQueueWt;
+#include "sonet/TokenQueueWt2.h"
+
 class IdentityModel;
 
-class RSWappTestPage : public Wt::WCompositeWidget, public TokenResponse
+class RSWappTestPage : public Wt::WCompositeWidget
 {
 public:
-    RSWappTestPage(Wt::WContainerWidget* parent);
+    RSWappTestPage(Wt::WContainerWidget* parent = 0);
     void showNewIdDialog();
     void newIdDialogDone(Wt::WDialog::DialogCode code);
 
-    virtual void loadRequest(const TokenQueueBase *queue, const TokenRequest &req);
+    virtual void tokenReady(uint32_t token, bool ok);
 private:
     Wt::WContainerWidget *_impl;
 
@@ -25,5 +23,5 @@ private:
 
     Wt::WDialog *newIdDialog;
     Wt::WLineEdit *newIdDialogLineEdit;
-    TokenQueueWt *tokenQueue;
+    RsWall::TokenQueueWt2 *tokenQueue;
 };

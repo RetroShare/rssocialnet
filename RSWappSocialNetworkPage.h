@@ -8,7 +8,7 @@
 class RSWappSocialNetworkPage : public Wt::WCompositeWidget
 {
 public:
-    RSWappSocialNetworkPage(Wt::WContainerWidget* parent);
+    RSWappSocialNetworkPage(Wt::WContainerWidget* parent = 0);
 private:
     Wt::WContainerWidget* _pageContainer;
     Wt::WBorderLayout* _pageLayout;

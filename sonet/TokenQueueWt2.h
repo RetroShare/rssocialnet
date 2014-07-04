@@ -12,6 +12,7 @@
 // the tokens are checked for their status
 // if the token status is complete or fail, then the callback is invoked
 
+namespace RsWall{
 // could optimize this class to let the timer only run when there are tokens
 class TokenQueueWt2: public Wt::WObject
 {
@@ -31,3 +32,4 @@ private:
     RsTokenService* mTokenService;
     Wt::WTimer mTimer;
 };
+}//namespace RsWall

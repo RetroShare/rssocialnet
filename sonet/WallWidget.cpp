@@ -3,13 +3,20 @@
 
 #include <Wt/WBreak>
 #include <Wt/WTimer>
+#include <Wt/WFileUpload>
 
 #include <retroshare/rsidentity.h>
+#include "RSWApplication.h"
+
+namespace RsWall{
 
 WallWidget::WallWidget(Wt::WContainerWidget *parent):
     WContainerWidget(parent), _TokenQueue(rsWall->getTokenService()),
-    _WallGroupToken(0), _PostMsgToken(0), isEditing(false), subscribed(false)
+    isEditing(false), subscribed(false), _WallGroupToken(0), _PostMsgToken(0)
 {
+    _AvatarWidget = new AvatarWidgetWt(false, this);
+
+    // the container contains the wall posts
     _ProfileContainer = new Wt::WContainerWidget(this);
     _ProfileEdit = new Wt::WTextArea(this);
     _ProfileEdit->hide();
@@ -19,6 +26,19 @@ WallWidget::WallWidget(Wt::WContainerWidget *parent):
     _TextArea = new Wt::WTextArea(this);
     _SubscribeButton = new Wt::WPushButton("PENDING", this);
     _SubscribeButton->clicked().connect(this, &WallWidget::onSubscribeClicked);
+
+    _EditAvatarButton = new Wt::WPushButton("edit avatar image", this);
+    _EditAvatarButton->hide();
+    _AvatarFileUpload = new Wt::WFileUpload(this);
+    _AvatarFileUpload->hide();
+    _UploadAvatarButton = new Wt::WPushButton("upload avatar image", this);
+    _UploadAvatarButton->hide();
+    _EditAvatarButton->clicked().connect(_EditAvatarButton, &Wt::WPushButton::hide);
+    _EditAvatarButton->clicked().connect(_AvatarFileUpload, &Wt::WFileUpload::show);
+    _EditAvatarButton->clicked().connect(_UploadAvatarButton, &Wt::WPushButton::show);
+    _UploadAvatarButton->clicked().connect(_AvatarFileUpload, &Wt::WFileUpload::upload);
+    _UploadAvatarButton->clicked().connect(_UploadAvatarButton, &Wt::WPushButton::disable);
+    _AvatarFileUpload->uploaded().connect(this, &WallWidget::onAvatarImageUploaded);
 
     _TokenQueue.tokenReady().connect(this, &WallWidget::tokenCallback);
     RsGxsUpdateBroadcastWt::get(rsWall)->grpsChanged().connect(this, &WallWidget::loadProfile);
@@ -41,6 +61,7 @@ void WallWidget::loadProfile()
     // TODO: remove this check when we can always use setWallByAuthorId
     if(!_AuthorId.isNull())
     {
+        _AvatarWidget->setIdentity(_AuthorId);
         _TextArea->setText("setWallByAuthorId(\""+_AuthorId.toStdString()+"\")\nrequest WallGroups for author PENDING");
         rsWall->requestWallGroups(_WallGroupToken, _AuthorId);
         _TokenQueue.queueToken(_WallGroupToken);
@@ -68,22 +89,18 @@ void WallWidget::reload()
 void WallWidget::checkIfOwnWall()
 {
     std::list<RsGxsId> ids;
-    if(rsIdentity->getOwnIds(ids))
-    {
-        if(std::find(ids.begin(), ids.end(), _AuthorId) != ids.end()){
-            _EditButton->setText("edit profile text");
-            _EditButton->show();
-        } else {
-            _EditButton->hide();
-        }
+    RSWApplication::ifaces().mIdentity->getOwnIds(ids);
+    if(std::find(ids.begin(), ids.end(), _AuthorId) != ids.end()){
+        _EditButton->setText("edit profile");
+        _EditButton->show();
+
+        _EditAvatarButton->show();
+
+    } else {
+        _EditButton->hide();
+
+        _EditAvatarButton->hide();
     }
-    // code below will never be executed, because the fn getOwnIds always returns true
-    /*
-    else
-    {
-        // ids not cached, try later
-        Wt::WTimer::singleShot(100, this, &WallWidget::checkIfOwnWall);
-    }*/
 }
 
 void WallWidget::checkIfSubscribed()
@@ -113,7 +130,7 @@ void WallWidget::displaySubscribeStatus()
     }
     else
     {
-        _SubscribeButton->setText("subscribe to this author");
+        _SubscribeButton->setText("subscribe to this author to download the posts on this wall");
     }
 }
 
@@ -125,7 +142,7 @@ void WallWidget::onEditClicked()
         uint32_t token;
         rsWall->updateWallGroup(token, _Grp);
         _ProfileEdit->hide();
-        _EditButton->setText("edit profile text");
+        _EditButton->setText("edit profile");
         isEditing = false;
     }
     else
@@ -155,7 +172,7 @@ void WallWidget::tokenCallback(uint32_t token, bool ok)
                 Wt::WLabel* profileText = new Wt::WLabel(_ProfileContainer);
 
                 // use first group only
-                // TODO: maybe should the backend merge all grps
+                // TODO: maybe the backend should merge all grps
                 WallGroup& wg = wgs.front();
                 _Grp = wg;
                 _GrpId = wg.mMeta.mGroupId;
@@ -203,3 +220,29 @@ void WallWidget::tokenCallback(uint32_t token, bool ok)
         _TextArea->setText("FAIL");
     }
 }
+
+void WallWidget::onAvatarImageUploaded()
+{
+    std::string tmpFileName = _AvatarFileUpload->spoolFileName();
+
+    std::ifstream file(tmpFileName.c_str(), std::ios_base::binary);
+    file.seekg(0, std::ios_base::end);
+    uint32_t size = file.tellg();
+    file.seekg(0, std::ios_base::beg);
+
+    std::vector<uint8_t> buf;
+    buf.resize(size);
+    file.read((char*)&buf[0],buf.size());
+    file.close();
+
+    _Grp.mAvatarImage.mData.swap(buf);
+
+    uint32_t token;
+    rsWall->updateWallGroup(token, _Grp);
+
+    _EditAvatarButton->show();
+    _AvatarFileUpload->hide();
+    _UploadAvatarButton->hide();
+    _UploadAvatarButton->enable();
+}
+}//namespace RsWall

@@ -8,7 +8,7 @@ class FriendListModel ;
 class RSWappFriendsPage: public Wt::WCompositeWidget
 {
 	public:
-		RSWappFriendsPage(Wt::WContainerWidget *container,RsPeers *rspeers,RsMsgs *rsmsgs) ;
+        RSWappFriendsPage(RsPeers *rspeers, RsMsgs *rsmsgs, Wt::WContainerWidget *parent = 0) ;
 
 		virtual void refresh() ;
 

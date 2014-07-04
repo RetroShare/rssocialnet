@@ -34,7 +34,13 @@ SOURCES = RSWApplication.cpp \
     sonet/WallChooserWidget.cpp \
     sonet/WallTestWidget.cpp \
     sonet/CommentContainerWidget.cpp \
-    sonet/IdentityLabelWidget.cpp
+    sonet/IdentityLabelWidget.cpp \
+    sonet/IdentityPopupMenu.cpp \
+    sonet/SonetUtil.cpp \
+    sonet/ShareButton.cpp \
+    sonet/AvatarGroupWidget.cpp \
+    sonet/CreatePostWidget2.cpp \
+    sonet/wtsafetimer.cpp
 
 HEADERS = RSWApplication.h \
           WebUImain.h \
@@ -63,7 +69,13 @@ HEADERS = RSWApplication.h \
     sonet/WallChooserWidget.h \
     sonet/WallTestWidget.h \
     sonet/CommentContainerWidget.h \
-    sonet/IdentityLabelWidget.h
+    sonet/IdentityLabelWidget.h \
+    sonet/IdentityPopupMenu.h \
+    sonet/SonetUtil.h \
+    sonet/ShareButton.h \
+    sonet/AvatarGroupWidget.h \
+    sonet/CreatePostWidget2.h \
+    sonet/wtsafetimer.h
 
 FORMS += gui/RsWebUIConfig.ui
 
@@ -83,7 +95,7 @@ linux-* {
 #################################### Windows #####################################
 
 win32 {
-        WT_DIR = ../../../wt-3.3.2
+        WT_DIR = ../../../wt-3.3.3
         BOOST_DIR = ../../../boost-build
         BOOST_NAME = mgw44-mt-1_54
 

@@ -2,6 +2,8 @@
 
 #include "rswall.h"
 
+namespace RsWall{
+
 CreateWallWidget::CreateWallWidget(Wt::WContainerWidget *parent):
     WContainerWidget(parent), _mTokenQueue(rsWall->getTokenService())
 {
@@ -49,3 +51,4 @@ void CreateWallWidget::tokenCallback(uint32_t token, bool ok)
         _profileText->setText("FAIL");
     }
 }
+}//namespace RsWall

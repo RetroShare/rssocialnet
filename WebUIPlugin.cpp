@@ -94,15 +94,15 @@ void WebUIPlugin::setInterfaces(RsPlugInInterfaces &interfaces)
 
     std::cerr << "Starting p3WallService" << std::endl;
     wall_ds = new RsDataService(interfaces.mGxsDir, "wall_db",
-                                RS_SERVICE_TYPE_WALL, NULL, "todo: encrypt db with secure password");
-    wall = new p3WallService(wall_ds, NULL, interfaces.mGxsIdService);
+                                RsWall::RS_SERVICE_TYPE_WALL, NULL, "todo: encrypt db with secure password");
+    wall = new RsWall::p3WallService(wall_ds, NULL, interfaces.mGxsIdService, interfaces.mIdentity);
     wall_ns = new RsGxsNetService(
-                RS_SERVICE_TYPE_WALL, wall_ds, interfaces.mRsNxsNetMgr,
+                RsWall::RS_SERVICE_TYPE_WALL, wall_ds, interfaces.mRsNxsNetMgr,
                 wall, wall->getServiceInfo(),
                 interfaces.mGxsIdService, interfaces.mGxsCirlces, interfaces.mPgpAuxUtils,
                 true    // group auto sync
             );
-    rsWall = wall;
+    RsWall::rsWall = wall;
 
     // see rsinit.cc:1733
     // why is it createThread and not wall->start()?

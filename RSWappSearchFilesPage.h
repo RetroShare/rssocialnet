@@ -10,7 +10,7 @@ class LocalSearchFilesModel ;
 class RSWappSearchFilesPage: public Wt::WCompositeWidget, public NotifyClient
 {
 	public:
-		RSWappSearchFilesPage(Wt::WContainerWidget *container,RsFiles *rsfiles) ;
+        RSWappSearchFilesPage(RsFiles *rsfiles, Wt::WContainerWidget *parent = 0) ;
 
 		virtual void refresh() ;
 		virtual void notifyTurtleSearchResult(uint32_t search_id,const std::list<TurtleFileInfo>& files) ;

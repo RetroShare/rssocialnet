@@ -7,7 +7,9 @@
 #include "rswall.h"
 #include "WallRootPostWidget.h"
 #include "IdentityLabelWidget.h"
+#include "AvatarWidget.h"
 
+namespace RsWall{
 class WallWidget: public Wt::WContainerWidget{
 public:
     WallWidget(Wt::WContainerWidget* parent = 0);
@@ -31,6 +33,7 @@ private:
     RsGxsId _AuthorId;
     RsGxsGroupId _GrpId;
     TokenQueueWt2 _TokenQueue;
+    AvatarWidgetWt* _AvatarWidget;
     Wt::WContainerWidget* _ProfileContainer;
     Wt::WTextArea* _ProfileEdit;
     Wt::WPushButton* _EditButton;
@@ -43,4 +46,10 @@ private:
     std::vector<WallRootPostWidget*> _PostWidgets;
     uint32_t _WallGroupToken;
     uint32_t _PostMsgToken;
+
+    void onAvatarImageUploaded();
+    Wt::WPushButton* _EditAvatarButton;
+    Wt::WFileUpload* _AvatarFileUpload;
+    Wt::WPushButton* _UploadAvatarButton;
 };
+}//namespace RsWall

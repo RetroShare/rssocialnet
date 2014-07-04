@@ -3,12 +3,7 @@
 #include <serialiser/rsgxscommentitems.h>
 #include "rswall.h"
 
-// TODO
-class WallGroup;
-class PostGroup;
-class ReferenceMsg;
-class PostMsg;
-
+namespace RsWall{
 // temporary id for testing
 const uint16_t RS_SERVICE_TYPE_WALL = 0xf000;
 
@@ -87,3 +82,4 @@ private:
     bool serialisePostMsg(PostMsgItem *item, void *data, uint32_t *size);
     PostMsgItem *deserialisePostMsg(void *data, uint32_t *size);
 };
+}//namespace RsWall

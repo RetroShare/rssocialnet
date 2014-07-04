@@ -29,10 +29,6 @@ RSWappSocialNetworkPage::RSWappSocialNetworkPage(Wt::WContainerWidget *parent):
     //_menu->setInternalPathEnabled();
     _leftContainer->addWidget(_menu);
 
-    _menu->addItem("First steps", new FirstStepsWidget());
-    _menu->addItem("Newsfeed", new NewsfeedWidget());
-    _menu->addItem("CreateWallWidget", new CreateWallWidget());
-    _menu->addItem("WallChooserWidget", new WallChooserWidget());
-    _menu->addItem("WallTestWidget", new WallTestWidget());
-    _menu->addItem("AvatarWidget", new AvatarWidget(false));
+    _menu->addItem("First steps", new class RsWall::FirstStepsWidget());
+    _menu->addItem("Newsfeed", new RsWall::NewsfeedWidget());
 }

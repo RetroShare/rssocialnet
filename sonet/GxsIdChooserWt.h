@@ -8,7 +8,7 @@
 
 // a dropdown bo to select a id
 // own ids only
-
+namespace RsWall{
 class GxsIdChooserWt: public Wt::WContainerWidget{
 public:
     GxsIdChooserWt(Wt::WContainerWidget* parent = 0);
@@ -21,3 +21,4 @@ private:
     Wt::WComboBox* _idCombo;
     std::list<RsGxsId> _ownIds;
 };
+}//namespace RsWall

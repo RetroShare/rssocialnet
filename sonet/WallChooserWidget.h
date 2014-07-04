@@ -8,6 +8,7 @@
 
 #include "TokenQueueWt2.h"
 
+namespace RsWall{
 class WallChooserWidget: public Wt::WContainerWidget
 {
 public:
@@ -24,3 +25,4 @@ private:
     Wt::WComboBox* _WallCombo;
     std::vector<std::pair<RsGxsId, RsGxsGroupId> > _DataVec;
 };
+}//namespace RsWall

@@ -40,35 +40,27 @@ class RSWAppThread: public RsThread
 			std::string s6("--http-port") ;
 			std::string s7( os2.str() ) ;
 
-            // todo: disable for release
-            // tell wt where to find conigfile
-            // the configfile define sthe wt logging level
-            std::string s8("-c") ;
-            std::string s9("wt_config.xml") ;
-
 			std::cerr << "RSWEBUI: Using http address " << s5 << ", and port " << s7 << std::endl;
 
-            int argc = 9 ;
+            int argc = 7 ;
 			char *argv[] = {  strdup(s1.c_str()),
 									strdup(s2.c_str()), 
 									strdup(s3.c_str()), 
 									strdup(s4.c_str()),
 									strdup(s5.c_str()),
 									strdup(s6.c_str()),
-                                    strdup(s7.c_str()),
-                                    strdup(s8.c_str()),
-                                    strdup(s9.c_str())
+                                    strdup(s7.c_str())
                            } ;
 
 			std::cerr << "RSWEBUI: In server thread. Launching..." << std::endl;
 
-			WServer server(argv[0]);
+            Wt::WServer server(argv[0]);
 
 			// WTHTTP_CONFIGURATION is e.g. "/etc/wt/wthttpd"
 			server.setServerConfiguration(argc, argv, WTHTTP_CONFIGURATION);
 
 			// add a single entry point, at the default location (as determined by the server configuration's deploy-path)
-			server.addEntryPoint(Wt::Application, createApplication, std::string(), std::string("images/webicon.png"));
+            server.addEntryPoint(Wt::Application, createApplication, std::string(), std::string("sonet-ressources/logo_64.png"));
 
 			if(!server.start()) 
 			{
@@ -92,7 +84,7 @@ class RSWAppThread: public RsThread
 			join() ;
 			stop() ;
 		}
-		static WApplication *createApplication(const WEnvironment& env)
+        static Wt::WApplication *createApplication(const Wt::WEnvironment& env)
 		{
 			bool b ;
 			RSWebUI::IPRange r = RSWebUI::IPRange::make_range(env.clientAddress(),b) ;

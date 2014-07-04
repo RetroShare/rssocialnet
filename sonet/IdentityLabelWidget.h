@@ -5,6 +5,7 @@
 
 #include "retroshare/rsidentity.h"
 
+namespace RsWall{
 class IdentityLabelWidget: public Wt::WLabel
 {
 public:
@@ -15,3 +16,4 @@ private:
     RsGxsId mIdentity;
     Wt::WTimer mTimer;
 };
+}//namespace RsWall

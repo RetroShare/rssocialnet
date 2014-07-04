@@ -9,7 +9,9 @@
 #include "GxsIdChooserWt.h"
 #include "WallChooserWidget.h"
 #include "IdentityLabelWidget.h"
+#include "ShareButton.h"
 
+namespace RsWall{
 // contains a root post in a thread and the comments below
 class WallRootPostWidget: public Wt::WContainerWidget{
 public:
@@ -22,12 +24,14 @@ private:
     void onShareButtonClicked();
     TokenQueueWt2 _mTokenQueue;
     RsGxsGroupId _mGrpId;
-    AvatarWidget* _mAvatarWidget;
+    AvatarWidgetWt* _mAvatarWidget;
     GxsIdChooserWt* _mIdChooser;
     WallChooserWidget* _mWallChooser;
+    ShareButton* _mShareButton;
     IdentityLabelWidget* _mIdentityLabel;
     Wt::WLabel* _mTimeLabel;
     Wt::WLabel* _mText;
     Wt::WContainerWidget* _mCenterContainer;
     CommentContainerWidget* _CommentContainer;
 };
+}//namespace RsWall

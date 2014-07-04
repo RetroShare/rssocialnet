@@ -2,6 +2,8 @@
 
 #include <map>
 
+namespace RsWall{
+
 std::map<RsGxsIfaceHelper*, RsGxsUpdateBroadcastWt*> updateBroadcastMap;
 
 RsGxsUpdateBroadcastWt* RsGxsUpdateBroadcastWt::get(RsGxsIfaceHelper *ifaceImpl)
@@ -47,9 +49,19 @@ void RsGxsUpdateBroadcastWt::onTimer()
 
 RsGxsUpdateBroadcastWt::RsGxsUpdateBroadcastWt(RsGxsIfaceHelper* ifaceImpl):
     WObject(),// maybe have a parent here to have automated cleanup?
-    mIfaceImpl(ifaceImpl), mTimer(this)
+    mIfaceImpl(ifaceImpl), mSafeTimer(new WtSafeTimer(500))/*, mTimer(this)*/
 {
-    mTimer.setInterval(100); // in ms
+    /*mTimer.setInterval(500); // in ms
     mTimer.timeout().connect(this, &RsGxsUpdateBroadcastWt::onTimer);
-    mTimer.start();
+    mTimer.start();*/
+    // timer is by default continously
+    //mTimer.setSingleShot(false);
+    mSafeTimer->timeout().connect(this, &RsGxsUpdateBroadcastWt::onTimer);
 }
+
+RsGxsUpdateBroadcastWt::~RsGxsUpdateBroadcastWt()
+{
+    boost::checked_delete(mSafeTimer);
+}
+
+}//namespace RsWall

@@ -1,5 +1,7 @@
 #include "p3wallservice.h"
 
+#include <retroshare/rsidentity.h>
+#include <algorithm>
 /*
 idea: cache requests
 this would reduce load if many request which return the same data
@@ -21,6 +23,7 @@ rules for task handling
 - if any of the pending tokens failed, the task is considered failed an will get deleted
 - the task has to set mResult to FAIL or COMPLETE if all work is done
 */
+namespace RsWall{
 class WallServiceTask
 {
 public:
@@ -54,7 +57,7 @@ class PostMsgTask: public WallServiceTask
 public:
     PostMsgTask(const PostMsg &pm):
         WallServiceTask(), mState(BEGIN),
-        mGroupToken(0), mMsgToken(0), mPostMsg(pm)
+        mGroupToken(0), mMsgToken(0), mPostMsg(pm), mReferenceMsgToken(0)
     {}
 
     enum State { BEGIN, WAITING_GRP, WAITING_MSG, WAITING_REFERENCE, COMPLETED};
@@ -74,6 +77,8 @@ public:
         {
             // create the group where the post gets stored
             PostGroupItem* grpItem = new PostGroupItem();
+            // have to fill in grp-type here
+            grpItem->meta.mGroupStatus = (RS_PKT_SUBTYPE_WALL_POST_GRP_ITEM<<24);
             grpItem->meta.mAuthorId = mPostMsg.mMeta.mAuthorId;
             mWallService->publishGroup(mGroupToken, grpItem);
 
@@ -107,6 +112,83 @@ public:
             refMsg.mMeta.mGroupId = mPostMsg.mMeta.mGroupId;
             refMsg.mReferencedGroup = mPostGrpId;
             mWallService->createPostReferenceMsg(mReferenceMsgToken, refMsg);
+
+            mState = WAITING_REFERENCE;
+            mPendingTokens.push_back(mReferenceMsgToken);
+        }
+            break;
+        case WAITING_REFERENCE:
+            mState = COMPLETED;
+            mResult = COMPLETE;
+            break;
+        case COMPLETED:
+            break;
+        }
+    }
+};
+
+// this is a 1:1 copy of PostMsgTask
+// except one detail: the target wall is determined by a PostReferenceParams object
+//   this task uses ReferenceMsgTask2 to create the reference-msg
+// not good to have two classes with the same code
+// maybe can remove older class later
+class PostMsgTask2: public WallServiceTask
+{
+public:
+    PostMsgTask2(const PostReferenceParams& params, const std::string& postText):
+        WallServiceTask(), mPostReferenceParams(params), mPostText(postText), mState(BEGIN),
+        mGroupToken(0), mMsgToken(0), mReferenceMsgToken(0)
+    {}
+
+    enum State { BEGIN, WAITING_GRP, WAITING_MSG, WAITING_REFERENCE, COMPLETED};
+    State mState;
+    PostReferenceParams mPostReferenceParams;
+    std::string mPostText;
+    // these are own tokens we got from the core
+    uint32_t mGroupToken;// create group
+    uint32_t mMsgToken;// create msg in group
+    uint32_t mReferenceMsgToken; // create reference on own wall
+    RsGxsGroupId mPostGrpId;
+
+    virtual void doWork()
+    {
+        std::cerr << "PostMsgTask::doWork() token=" << mPublicToken << std::endl;
+        switch(mState){
+        case BEGIN:
+        {
+            // create the group where the post gets stored
+            PostGroupItem* grpItem = new PostGroupItem();
+            // ahve to fill in grp-type
+            grpItem->meta.mGroupStatus = (RS_PKT_SUBTYPE_WALL_POST_GRP_ITEM<<24);
+            grpItem->meta.mAuthorId = mPostReferenceParams.mAuthor;
+            mWallService->publishGroup(mGroupToken, grpItem);
+
+            mState = WAITING_GRP;
+            mPendingTokens.push_back(mGroupToken);
+        }
+            break;
+        case WAITING_GRP:
+        {
+            // create the msg in the new group
+            mWallService->acknowledgeTokenGrp(mGroupToken, mPostGrpId);
+            PostMsgItem* msgItem = new PostMsgItem();
+            msgItem->mPostMsg.mPostText = mPostText;
+            msgItem->meta.mAuthorId = mPostReferenceParams.mAuthor;
+            msgItem->meta.mGroupId = mPostGrpId;
+            mWallService->publishMsg(mMsgToken, msgItem);
+
+            mState = WAITING_MSG;
+            mPendingTokens.push_back(mMsgToken);
+        }
+            break;
+        case WAITING_MSG:
+        {
+            // ackn msg token to get msg id (is the msg-id needed? i think not)
+
+            // create reference on target wall group
+            // can outsource the job of creating a reference msg to ReferenceMsgTask
+            mPostReferenceParams.mReferencedGroupId = mPostGrpId;
+            mWallService->createPostReferenceMsg(mReferenceMsgToken, mPostReferenceParams);
 
             mState = WAITING_REFERENCE;
             mPendingTokens.push_back(mReferenceMsgToken);
@@ -158,6 +240,105 @@ public:
     }
 };
 
+// this task takes a PostreferenceParams object to find the desired wall
+// this task can create wall-grps if target wall author is self
+class ReferenceMsgTask2: public WallServiceTask
+{
+public:
+    ReferenceMsgTask2(const PostReferenceParams& params):
+        WallServiceTask(), mState(BEGIN), mParams(params)
+    {}
+    enum State { BEGIN, WAITING_METAS, WAITING_CREATEWALL, CREATE_REF_MSG, WAITING_MSG };
+    State mState;
+    PostReferenceParams mParams;
+    uint32_t mGrpMetasToken;
+    RsGxsGroupId mTargetWallGrpId;
+    uint32_t mWallGrpToken;
+    uint32_t mRefMsgToken;
+    void doWork()
+    {
+        switch(mState)
+        {
+        case BEGIN:
+        {
+            // get wall grps for this this target wall owner
+            mWallService->requestWallGroupMetas(mGrpMetasToken, mParams.mTargetWallOwner);
+            mState = WAITING_METAS;
+            mPendingTokens.push_back(mGrpMetasToken);
+        }
+            break;
+        case WAITING_METAS:
+        {
+            std::vector<RsGroupMetaData> grpMetas;
+            mWallService->getWallGroupMetas(mGrpMetasToken, grpMetas);
+            // search a wall-grp with the right circle settings
+            for(std::vector<RsGroupMetaData>::iterator vit = grpMetas.begin(); vit != grpMetas.end(); vit++)
+            {
+                if(vit->mCircleId == mParams.mCircle)
+                {
+                    mTargetWallGrpId = vit->mGroupId;
+                }
+            }
+            if(mTargetWallGrpId.isNull())
+            {
+                // check if this is our own wall
+                // then create it
+                // if this is not our wall, then sharing fails
+                // have to think about creating wall groups for others
+                std::list<RsGxsId> ownIds;
+                mWallService->getRsIdentity()->getOwnIds(ownIds);
+                if(std::find(ownIds.begin(), ownIds.end(), mParams.mTargetWallOwner) != ownIds.end())
+                {
+                    // this is our own wall, we can create a group for it
+                    WallGroup grp;
+                    grp.mMeta.mAuthorId = mParams.mTargetWallOwner;
+                    mWallService->createWallGroup(mWallGrpToken, grp);
+                    mState = WAITING_CREATEWALL;
+                    mPendingTokens.push_back(mWallGrpToken);
+                }
+                else
+                {
+                    std::cerr << "FAIL in ReferenceMsgTask2::doWork mState = WAITING_METAS: can't find a wall-grp, can't make a wall-grp for others" << std::endl;
+                    mResult = FAIL;
+                }
+            }
+            else
+            {
+                // skip createwall
+                mState = CREATE_REF_MSG;
+            }
+        }
+            break;
+        case WAITING_CREATEWALL:
+        {
+            mWallService->acknowledgeTokenGrp(mWallGrpToken, mTargetWallGrpId);
+            mState = CREATE_REF_MSG;
+        }
+            break;
+        // same as old createRefMsgTask
+        case CREATE_REF_MSG:
+        {
+            ReferenceMsgItem* item = new ReferenceMsgItem();
+            item->meta.mAuthorId = mParams.mAuthor;
+            item->meta.mGroupId = mTargetWallGrpId;
+            item->mReferenceMsg.mReferencedGroup = mParams.mReferencedGroupId;
+            mWallService->publishMsg(mRefMsgToken, item);
+
+            mState = WAITING_MSG;
+            mPendingTokens.push_back(mRefMsgToken);
+        }
+            break;
+        case WAITING_MSG:
+        {
+            // could acknwledge msg to get the id
+            //   maybe later
+            mResult = COMPLETE;
+        }
+            break;
+        }
+    }
+};
+
 class SearchWallGroupMetasTask: public WallServiceTask
 {
 public:
@@ -186,28 +367,24 @@ public:
             break;
         case WAITING_METAS:
         {
-            // TODO TODO TODO TODO
-            // obviously meta can't tell us if this is a wall-grp
-            // gxs will return all grp-ids
-            // so this task is only good for filtering by author at the moment
-            // have to see if will use group flags to signal type or how to solve this
-            // reading all group datas is not a good idea, because there is one file per group data to read
-            // so use flags
-            // or have own index map<type, list<id> > stored somewhere
             std::list<RsGroupMetaData> groupInfo;
             mWallService->getGroupMeta(mGrpMetaToken, groupInfo);
             // filter metas where author-id == wanted-id
             for(std::list<RsGroupMetaData>::iterator it = groupInfo.begin(); it != groupInfo.end(); it++)
             {
                 RsGroupMetaData& grpMeta = *it;
-                // allow all metas if identity is not set
-                if(mIdentity.isNull())
+                // check if this is a wall-grp
+                if((grpMeta.mGroupStatus>>24)==RS_PKT_SUBTYPE_WALL_WALL_GRP_ITEM)
                 {
-                    mResultData.push_back(*it);
-                }
-                else if(grpMeta.mAuthorId == mIdentity)
-                {
-                    mResultData.push_back(*it);
+                    // allow all metas if identity is not set
+                    if(mIdentity.isNull())
+                    {
+                        mResultData.push_back(*it);
+                    }
+                    else if(grpMeta.mAuthorId == mIdentity)
+                    {
+                        mResultData.push_back(*it);
+                    }
                 }
             }
             mResult = COMPLETE;
@@ -454,7 +631,8 @@ public:
                     if(item == NULL){
                         item = *vit;
                     } else {
-                        std::cerr << "ProcessMsgTask WAITING_MSG_DATA: more than one msg item in result. This should not happen." << std::endl;
+                        std::cerr << "ProcessMsgTask WAITING_MSG_DATA: more than one msg item in result. "
+                                     "This should not happen." << std::endl;
                         delete *vit;
                     }
                 }
@@ -618,7 +796,7 @@ RsWall *rsWall = NULL;
 
 const uint32_t WALL_MSG_STORE_PERIOD = 30*24*60*60; // in seconds
 
-p3WallService::p3WallService(RsGeneralDataService *gds, RsNetworkExchangeService *nes, RsGixs *gixs):
+p3WallService::p3WallService(RsGeneralDataService *gds, RsNetworkExchangeService *nes, RsGixs *gixs, RsIdentity* identity):
     RsWall(this),
     // RS_SERVICE_TYPE_WALL looks redundant, because the serialiser already knows this
     RsGenExchange(gds, nes, new WallSerialiser(),
@@ -628,7 +806,8 @@ p3WallService::p3WallService(RsGeneralDataService *gds, RsNetworkExchangeService
     authorsMtx("p3WallService authorsMtx"),
     authorsLoaded(false),
     _mTaskMtx("p3WallService _mTaskMtx"),
-    mCommentService(new p3GxsCommentService(this, RS_SERVICE_TYPE_WALL))
+    mCommentService(new p3GxsCommentService(this, RS_SERVICE_TYPE_WALL)),
+    mRsIdentity(identity)
 {
     // load the ids of authors we are subscribed to
     uint32_t token;
@@ -715,6 +894,13 @@ void p3WallService::createWallGroup(uint32_t &token, const WallGroup &grp)
     WallGroupItem* grpItem = new WallGroupItem();
     grpItem->mWallGroup = grp;
     grpItem->meta = grp.mMeta;
+    // we don't get notified when a new group gets created
+    // so the new group will not be handle by the processgGrp task
+    // have to fill in the message type here
+    // and then have to make sure this is done everywhere. not a very elegant solution
+    // would be good to have ids not starting with 0, so the 0 is a sign for type not set
+    // maybe can extend gxs with a type-system? so gxs handles the typing for us
+    grpItem->meta.mGroupStatus = (RS_PKT_SUBTYPE_WALL_WALL_GRP_ITEM<<24);
     RsGenExchange::publishGroup(token, grpItem);
 }
 
@@ -762,9 +948,19 @@ void p3WallService::acknowledgeCreatePost(uint32_t &token)
     //   the ui will leran about the new grp/msg from notification
 }
 
+void p3WallService::createPost(uint32_t &token, const PostReferenceParams &params, const std::string &postText)
+{
+    _startTask(token, new PostMsgTask2(params, postText));
+}
+
 void p3WallService::createPostReferenceMsg(uint32_t &token, const ReferenceMsg &refMsg)
 {
     _startTask(token, new ReferenceMsgTask(refMsg));
+}
+
+void p3WallService::createPostReferenceMsg(uint32_t &token, const PostReferenceParams &params)
+{
+    _startTask(token, new ReferenceMsgTask2(params));
 }
 
 void p3WallService::requestWallGroupMetas(uint32_t &token, const RsGxsId &identity)
@@ -865,7 +1061,7 @@ void p3WallService::requestAvatarImage(uint32_t &token, const RsGxsId &identity)
     // todo
 }
 
-bool p3WallService::getAvatarImage(const uint32_t &token, Image &image)
+bool p3WallService::getAvatarImage(const uint32_t &token, WallImage &image)
 {
     // maybe want to cache the avatar image, because:
     // - it will be requested often (if post many posts of the same author appear)
@@ -1011,7 +1207,8 @@ void p3WallService::_startTask(uint32_t &token, WallServiceTask *newTask)
         RsStackMutex stack(_mTaskMtx);
         if(_mTasks.find(token) != _mTasks.end())
         {
-            std::cerr << "p3WallService::_startTask() FATAL ERROR: the same token is alread stored in the map. This should never ever happen." << std::endl;
+            std::cerr << "p3WallService::_startTask() FATAL ERROR: the same token is alread stored in the map."
+                         " This should never ever happen." << std::endl;
             delete newTask;
             return;
         }
@@ -1219,3 +1416,5 @@ void p3WallService::_processPostMsgTasks()
 }
 */
 //  end old code
+
+}//namespace RsWall

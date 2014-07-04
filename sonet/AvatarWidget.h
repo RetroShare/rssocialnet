@@ -6,33 +6,47 @@
 
 #include <retroshare/rsgxsifacetypes.h>
 
+#include "IdentityLabelWidget.h"
+#include "TokenQueueWt2.h"
+
 /*
   what is this good for?
   - display the avatar image itself
   - (show the name)
   - show if this id is anon or pgp-signed
 
-  what a about the id?
+  what about the id?
   - only the id is unique, but have two ids: RsGxsId and pgp-id
   - these ids are just ugly
   - maybe maintain a whitelist of "friendly nodes"
 
   - maybe display some action buttons and more info when the user moves the mouse over the avatar image
      - want to hide things to have a clean user interface
-     - if the mouse area is large enaugh, the user will find out quickly that some info is hidden
+     - if the mouse area is large enough, the user will find out quickly that some info is hidden
 
   have to listen for changed avatar images?
   - maybe later
 */
-class AvatarWidget: public Wt::WContainerWidget
+namespace RsWall{
+// this class is called AvatarWidgetWt to avoid a name collision with AvatarWidget from rs-gui
+// a name collision leads to a runtime crash on linux
+class AvatarWidgetWt: public Wt::WContainerWidget
 {
 public:
-    AvatarWidget(bool small, Wt::WContainerWidget* parent = 0);
+    AvatarWidgetWt(bool small, Wt::WContainerWidget* parent = 0);
     void setIdentity(RsGxsId& identity);
 private:
     void onLabelClicked();
     RsGxsId _mId;
-    Wt::WLabel* _mNameLabel;
+    IdentityLabelWidget* _mIdentityLabel;
     Wt::WImage* _mAvatarImage;
-    Wt::WRasterImage* _mImg;
+    Wt::WMemoryResource* _mAvatarImageRessource;
+    Wt::WRasterImage* _mImg; // TODO: remove?
+
+    TokenQueueWt2 _mTokenQueue;
+    void onTokenReady(uint32_t token, bool ok);
+
+    void onGrpsChanged(const std::list<RsGxsGroupId>& grpIds);
 };
+
+} // namespace RsWall

@@ -7,6 +7,7 @@
 #include "GxsIdChooserWt.h"
 #include "TokenQueueWt2.h"
 
+namespace RsWall{
 // experimental widget to create a new wall
 // it shows a box to select an identity and a TextArea for the profile text
 class CreateWallWidget: public Wt::WContainerWidget
@@ -21,3 +22,4 @@ private:
     GxsIdChooserWt* _idChooser;
     Wt::WPushButton* _submitPushButton;
 };
+}//namespace RsWall

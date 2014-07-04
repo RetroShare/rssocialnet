@@ -6,6 +6,14 @@
 #include <retroshare/rsgxsifacehelper.h>
 #include <list>
 
+// having troubles with the timer stopping
+// testing the advice from http://redmine.webtoolkit.eu/boards/2/topics/2181
+// it reccomends to use this safe timer implementation
+#include "wtsafetimer.h"
+// result: did not work, even this timer stops working
+// maybe havt ot replace all usages of Wt::WTimer with WtSafeTimer?
+//  or there is a problem somwhere else
+
 // many widgets are only interested in changes from a certain grp or msg type
 // but only p3WallService knows the type
 // should the service make id lists by type?
@@ -28,6 +36,7 @@
   ubc->.grpsChanged().connect(this, &YourClass::yourMethod);
 
   */
+namespace RsWall{
 class RsGxsUpdateBroadcastWt: public Wt::WObject
 {
 public:
@@ -42,6 +51,7 @@ public:
 
 private:
     RsGxsUpdateBroadcastWt(RsGxsIfaceHelper* ifaceImpl);
+    ~RsGxsUpdateBroadcastWt();
 
     void onTimer();
 
@@ -49,5 +59,7 @@ private:
     Wt::Signal<GxsMsgIdResult> _mMsgsChangedSignal;
 
     RsGxsIfaceHelper* mIfaceImpl;
-    Wt::WTimer mTimer;
+    //Wt::WTimer mTimer;
+    WtSafeTimer* mSafeTimer;
 };
+}//namespace RsWall

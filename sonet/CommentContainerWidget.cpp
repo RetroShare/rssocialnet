@@ -5,6 +5,8 @@
 #include "AvatarWidget.h"
 #include "RsGxsUpdateBroadcastWt.h"
 
+namespace RsWall{
+
 CommentContainerWidget::CommentContainerWidget(RsGxsCommentService *commentService,
                                                RsGxsIfaceHelper *ifaceHelper,
                                                Wt::WContainerWidget *parent):
@@ -23,7 +25,7 @@ void CommentContainerWidget::setGrpMsgId(RsGxsGrpMsgIdPair id)
     requestComments();
 }
 
-void CommentContainerWidget:: requestComments()
+void CommentContainerWidget::requestComments()
 {
     // msgrelated request disabled until i understand it
     // probably the msg items stored don't have the right ids set
@@ -51,7 +53,7 @@ void CommentContainerWidget:: requestComments()
     _TokenQueue.queueToken(token);
 
     clear();
-    new Wt::WLabel("PEDING", this);
+    new Wt::WLabel("PENDING", this);
 }
 
 void CommentContainerWidget::onTokenReady(uint32_t token, bool ok)
@@ -68,7 +70,7 @@ void CommentContainerWidget::onTokenReady(uint32_t token, bool ok)
             Wt::WContainerWidget* outerContainer = new Wt::WContainerWidget(this);
             Wt::WBorderLayout *layout = new Wt::WBorderLayout();
             outerContainer->setLayout(layout);
-            AvatarWidget* avatar = new AvatarWidget(true);
+            AvatarWidgetWt* avatar = new AvatarWidgetWt(true);
             avatar->setIdentity(comment.mMeta.mAuthorId);
             layout->addWidget(avatar, Wt::WBorderLayout::West);
             Wt::WLabel* text = new Wt::WLabel(Wt::WString::fromUTF8(comment.mComment));
@@ -99,3 +101,4 @@ void CommentContainerWidget::onSubmitComment()
     _CommentService->createComment(token, comment);
     //requestComments();
 }
+}//namespace RsWall
