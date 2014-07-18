@@ -8,6 +8,7 @@
 #include "sonet/WallChooserWidget.h"
 #include "sonet/WallTestWidget.h"
 #include "sonet/AvatarWidget.h"
+#include "sonet/WallWidget.h"
 
 RSWappSocialNetworkPage::RSWappSocialNetworkPage(Wt::WContainerWidget *parent):
     WCompositeWidget(parent)
@@ -31,4 +32,19 @@ RSWappSocialNetworkPage::RSWappSocialNetworkPage(Wt::WContainerWidget *parent):
 
     _menu->addItem("First steps", new class RsWall::FirstStepsWidget());
     _menu->addItem("Newsfeed", new RsWall::NewsfeedWidget());
+    _menu->addItem("Own wall", _ownWallWidget = new RsWall::WallWidget());
+
+    _generalWallWidget = new RsWall::WallWidget();
+    _menu->contentsStack()->addWidget(_generalWallWidget);
+}
+
+void RSWappSocialNetworkPage::showWall(const RsGxsId &authorId)
+{
+    _generalWallWidget->setWallByAuthorId(authorId);
+    _menu->contentsStack()->setCurrentWidget(_generalWallWidget);
+}
+
+void RSWappSocialNetworkPage::setOwnId(const RsGxsId &authorId)
+{
+    _ownWallWidget->setWallByAuthorId(authorId);
 }

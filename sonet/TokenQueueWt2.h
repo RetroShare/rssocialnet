@@ -1,9 +1,24 @@
 #pragma once
 
-#include <Wt/WTimer>
 #include <Wt/WSignal>
 #include <retroshare/rsgxsiface.h>
 
+/**
+  TokenQueueWt2 checks tokens for their state.
+  When the state is COMPLETE or FAILED, then a callback function is invoked.
+
+  usage:
+
+    // init
+    TokenQueueWt2* tokenQueue = new TokenQueueWt2(gxs_service.getTokenService());
+    tokenQueue->tokenReady().connect(this, &MyClass::onTokenReady();
+
+    // now queue a token
+    uint32_t token;
+    gxs_service.getTokenService().requestSomething(token, params);
+    tokenQueue->queueToken(token);
+
+*/
 // the idea for this class is roughly stolen from TokenQueue and GxsTokenQueue
 // but this class has a different callback:
 //   the handling function gets called with the token and the tokenstatus as parameters
@@ -30,6 +45,5 @@ private:
     std::list<uint32_t> mTokens;
     Wt::Signal<uint32_t, bool> _mTokenSignal;
     RsTokenService* mTokenService;
-    Wt::WTimer mTimer;
 };
 }//namespace RsWall

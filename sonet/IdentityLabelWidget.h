@@ -1,11 +1,10 @@
 #pragma once
 
 #include "Wt/WLabel"
-#include <Wt/WTimer>
-
 #include "retroshare/rsidentity.h"
 
 namespace RsWall{
+// this widget shows the name of a given gxs-id
 class IdentityLabelWidget: public Wt::WLabel
 {
 public:
@@ -14,6 +13,5 @@ public:
 private:
     void tryLoadIdentity();
     RsGxsId mIdentity;
-    Wt::WTimer mTimer;
 };
 }//namespace RsWall

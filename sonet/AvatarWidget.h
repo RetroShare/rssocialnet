@@ -39,9 +39,9 @@ private:
     void onLabelClicked();
     RsGxsId _mId;
     IdentityLabelWidget* _mIdentityLabel;
+    uint32_t _mImageSize;
     Wt::WImage* _mAvatarImage;
-    Wt::WMemoryResource* _mAvatarImageRessource;
-    Wt::WRasterImage* _mImg; // TODO: remove?
+    boost::shared_ptr<Wt::WMemoryResource> _mAvatarImageRessource;
 
     TokenQueueWt2 _mTokenQueue;
     void onTokenReady(uint32_t token, bool ok);

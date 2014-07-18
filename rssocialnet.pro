@@ -40,7 +40,12 @@ SOURCES = RSWApplication.cpp \
     sonet/ShareButton.cpp \
     sonet/AvatarGroupWidget.cpp \
     sonet/CreatePostWidget2.cpp \
-    sonet/wtsafetimer.cpp
+    sonet/ReferenceWidget.cpp \
+    WebUITimer.cpp \
+    util/jpge.cpp \
+    util/jpgd.cpp \
+    util/imageresize.cpp \
+    util/lodepng.cpp
 
 HEADERS = RSWApplication.h \
           WebUImain.h \
@@ -75,7 +80,12 @@ HEADERS = RSWApplication.h \
     sonet/ShareButton.h \
     sonet/AvatarGroupWidget.h \
     sonet/CreatePostWidget2.h \
-    sonet/wtsafetimer.h
+    sonet/ReferenceWidget.h \
+    WebUITimer.h \
+    util/jpge.h \
+    util/jpgd.h \
+    util/imageresize.h \
+    util/lodepng.h
 
 FORMS += gui/RsWebUIConfig.ui
 
@@ -95,6 +105,9 @@ linux-* {
 #################################### Windows #####################################
 
 win32 {
+		SQLITE_DIR = ../../../sqlcipher-2.2.0
+		INCLUDEPATH += $${SQLITE_DIR}
+
         WT_DIR = ../../../wt-3.3.3
         BOOST_DIR = ../../../boost-build
         BOOST_NAME = mgw44-mt-1_54

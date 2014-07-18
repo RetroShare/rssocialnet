@@ -2,7 +2,11 @@
 #include <Wt/WMenuItem>
 #include <Wt/WTabWidget>
 #include <Wt/WTextArea>
+#include <Wt/WBreak>
 
+#if WT_VERSION < 0x03030000
+#error rssocialnet needs at least Wt version 3.3.0 because of Wt::WNavigationBar
+#endif
 #include <Wt/WNavigationBar>
 #include <Wt/WStackedWidget>
 
@@ -12,21 +16,29 @@
 
 #include "RSWApplication.h"
 
-#include "RSWappTestPage.h"
-#include "RSWappSocialNetworkPage.h"
-
 #include "RSWappFriendsPage.h"
 #include "RSWappTransfersPage.h"
 #include "RSWappChatLobbiesPage.h"
 #include "RSWappConfigPage.h"
-#include "RSWappSearchFilesPage.h"
 #include "RSWappSharedFilesPage.h"
+#include "RSWappSearchFilesPage.h"
+
+#include "RSWappTestPage.h"
+#include "RSWappSocialNetworkPage.h"
 
 #include "sonet/SonetUtil.h"
+#include "sonet/RsGxsUpdateBroadcastWt.h"
+#include "sonet/WallWidget.h"
+#include "sonet/IdentityPopupMenu.h"
 
-RSWApplication::RSWApplication(const Wt::WEnvironment& env,const RsPlugInInterfaces& interf)
-    : WApplication(env), pluginInterfaces(interf)
+const int RSWAPPLICATION_RESSOURCE_CLEANUP_PERIOD = 10*60; // in seconds
+
+RSWApplication::RSWApplication(const Wt::WEnvironment& env,const RsPlugInInterfaces& interf, WebUITimer* timer)
+    : WApplication(env), pluginInterfaces(interf), webUITimer(timer),
+      nextRessourceCleanup(time(NULL)+RSWAPPLICATION_RESSOURCE_CLEANUP_PERIOD)
 {
+    enableUpdates(true);// required for server side events (WebUITimer)
+
     setTitle(Wt::WString("Retroshare Social Network Plugin. Version {1} TODO: use git version id").arg(SVN_REVISION_NUMBER)); // application title
 
 	Wt::WContainerWidget *container = new Wt::WContainerWidget();
@@ -34,12 +46,11 @@ RSWApplication::RSWApplication(const Wt::WEnvironment& env,const RsPlugInInterfa
     Wt::WNavigationBar *navigation = new Wt::WNavigationBar(container);
 
     stackW = new Wt::WStackedWidget(container);
-    // the docs say: the menu can be styled using CSS to make it horizontal
-    //   todo: find out how to do this
     Wt::WMenu* menu = new Wt::WMenu(stackW);
+    menu->addStyleClass("navbar-nav");// bootstrap class to make the menu horizontal
     navigation->addMenu(menu);
 
-    menu->addItem("SocialNetwork", new RSWappSocialNetworkPage());
+    menu->addItem("SocialNetwork", socialNetworkPage = new RSWappSocialNetworkPage());
     menu->addItem("TestPage", new RSWappTestPage());
     menu->addItem("Friends", new RSWappFriendsPage(interf.mPeers, interf.mMsgs));
     menu->addItem("Transfers", new RSWappTransfersPage(interf.mFiles));
@@ -58,6 +69,7 @@ RSWApplication::RSWApplication(const Wt::WEnvironment& env,const RsPlugInInterfa
     idMenu->identitySelectionChanged().connect(this, &RSWApplication::onIdSelectionChanged);
 
     Wt::WMenu* idRootMenu = new Wt::WMenu();
+    idRootMenu->addStyleClass("navbar-nav navbar-right");// bootstrap class to make the menu horizontal
     navigation->addMenu(idRootMenu, Wt::AlignRight);
 
     currentIdentity = idMenu->getCurrentIdentity();
@@ -95,7 +107,10 @@ RSWApplication::RSWApplication(const Wt::WEnvironment& env,const RsPlugInInterfa
 #if WT_VERSION >= 0x03030200
     Wt::WBootstrapTheme* theme = new Wt::WBootstrapTheme();
     theme->setVersion(Wt::WBootstrapTheme::Version3);
+    theme->setResponsive(true);
     setTheme(theme);
+    // this gives a bit color to the buttons
+    useStyleSheet("resources/themes/bootstrap/3/bootstrap-theme.min.css");
 #endif
 	root()->addWidget(container) ;
 }
@@ -103,6 +118,7 @@ RSWApplication::RSWApplication(const Wt::WEnvironment& env,const RsPlugInInterfa
 RSWApplication::~RSWApplication()
 {
     pluginInterfaces.mNotify->unregisterNotifyClient(searchFilesPage);
+    RsWall::RsGxsUpdateBroadcastWt::unregisterApplication();
 }
 
 RSWApplication* RSWApplication::instance()
@@ -120,16 +136,71 @@ RsPlugInInterfaces RSWApplication::ifaces()
     return RSWApplication::instance()->pluginInterfaces;
 }
 
+WebUITimer* RSWApplication::getTimer()
+{
+    return RSWApplication::instance()->webUITimer;
+}
+
 // want to have this with internal paths later
 void RSWApplication::showWall(const RsGxsId &id)
 {
-    wallWidget->setWallByAuthorId(id);
-    stackW->setCurrentWidget(wallWidget);
+    // forward to social network page
+    socialNetworkPage->showWall(id);
+
+    // when using navigation bar and wallWidget in the stack
+    //wallWidget->setWallByAuthorId(id);
+    //stackW->setCurrentWidget(wallWidget);
+
+
+    // when using the tab widget
 
     //tabW->setCurrentWidget(wallWidget);
 
     // hide the menu item for this tab again
     //tabW->setTabHidden(tabW->indexOf(wallWidget), true);
+}
+
+boost::shared_ptr<Wt::WMemoryResource> RSWApplication::getCachedRessource(const std::string &key)
+{
+    std::map<std::string, boost::shared_ptr<Wt::WMemoryResource> >::iterator mit;
+    mit = ressourceCache.find(key);
+    if(mit == ressourceCache.end())
+    {
+        std::cerr << "RSWApplication::getCachedRessource() was not cached key=" << key << std::endl;
+        return boost::shared_ptr<Wt::WMemoryResource>();
+    }
+    std::cerr << "RSWApplication::getCachedRessource() was cached key=" << key << std::endl;
+    return mit->second;
+}
+
+void RSWApplication::cacheRessource(const std::string &key, boost::shared_ptr<Wt::WMemoryResource> ressource)
+{
+    if( ressource.get() != NULL)
+    {
+        std::cerr << "RSWApplication::cacheRessource() cached key=" << key << std::endl;
+        ressourceCache[key] = ressource;
+    }
+
+    if(time(NULL) > nextRessourceCleanup)
+    {
+        // clean up old entries
+        std::vector<std::map<std::string, boost::shared_ptr<Wt::WMemoryResource> >::iterator > toDelete;
+        std::map<std::string, boost::shared_ptr<Wt::WMemoryResource> >::iterator mit;
+        for(mit = ressourceCache.begin(); mit != ressourceCache.end(); mit++)
+        {
+            if(mit->second.unique())
+            {
+                std::cerr << "RSWApplication::cacheRessource() cleaning key=" << mit->first << std::endl;
+                toDelete.push_back(mit);
+            }
+        }
+        std::vector<std::map<std::string, boost::shared_ptr<Wt::WMemoryResource> >::iterator >::iterator vit;
+        for(vit = toDelete.begin(); vit != toDelete.end(); vit++)
+        {
+            ressourceCache.erase(*vit);
+        }
+        nextRessourceCleanup = time(NULL) + RSWAPPLICATION_RESSOURCE_CLEANUP_PERIOD;
+    }
 }
 
 void RSWApplication::onIdSelectionChanged(RsIdentityDetails details)
@@ -142,5 +213,6 @@ void RSWApplication::onIdSelectionChanged(RsIdentityDetails details)
     else
     {
         idRootMenuItem->setText("your are " + SonetUtil::formatGxsId(currentIdentity));
+        socialNetworkPage->setOwnId(details.mId);
     }
 }

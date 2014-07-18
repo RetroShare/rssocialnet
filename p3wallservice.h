@@ -153,6 +153,10 @@ public:
     // *********** begin RsWall ***********
     // wall iface here
     // ********** interface *************************
+
+        // poll this to find out what is happening
+        virtual void getCurrentActivities(std::vector<Activity> &activities);
+
         // important: newsfeed handling
         // the ui has to ask if the newsfeed has new entries
         //   what is NewsfeedEntry? probably a pair (RsGxsGroupId,RsGxsMsgId)
@@ -222,6 +226,14 @@ virtual bool getRelatedComments(const uint32_t &token, std::vector<RsGxsComment>
 
 virtual bool createComment(uint32_t &token, RsGxsComment &msg)
     {
+        PostReferenceParams params;
+        params.mReferencedGroupId = msg.mMeta.mGroupId;
+        params.mAuthor = msg.mMeta.mAuthorId;
+        params.mTargetWallOwner = msg.mMeta.mAuthorId;
+        //params.mCircle    // how to do this?
+        params.mType = ReferenceMsg::REFTYPE_COMMENT;
+        uint32_t dummyToken;
+        createPostReferenceMsg(token, params);
         return mCommentService->createGxsComment(token, msg);
     }
 
@@ -250,6 +262,14 @@ virtual bool acknowledgeVote(const uint32_t& token, std::pair<RsGxsGroupId, RsGx
     // give tasks access to protected RsGenExchange::publishGroup()
     void publishGroup(uint32_t &token, RsGxsGrpItem *grpItem)
     {
+        // we don't get notified when a new group gets created
+        // so the new group will not be handle by the processgGrp task
+        // have to fill in the message type here
+        // and then have to make sure this is done everywhere. not a very elegant solution
+        // would be good to have ids not starting with 0, so the 0 is a sign for type not set
+        // maybe can extend gxs with a type-system? so gxs handles the typing for us
+        //  important: only use this fn to publish a group
+        grpItem->meta.mGroupStatus = (grpItem->PacketSubType()<<24);
         RsGenExchange::publishGroup(token, grpItem);
     }
     bool getGroupData(const uint32_t &token, std::vector<RsGxsGrpItem*>& grpItem)
@@ -280,11 +300,20 @@ public:
 private:
     // check if we want to subscribe to incoming groups
     // detect interesting group-ids in messages
-    virtual void _checkSubscribe(std::vector<RsGxsNotify*>& changes);
+    virtual void _checkSubscribeGrpChange(const RsGxsGroupId& grpId, RsGxsNotify::NotifyType changeType);
+    virtual void _checkSubscribeMsgChange(const RsGxsGrpMsgIdPair& grpMsgId, RsGxsNotify::NotifyType changeType);
 
     // set to collect wanted groups
     std::set<RsGxsGroupId> _mGroupsToSubscribe;
 
+    // chck if new grps or msgs should be added to the list of activities
+    virtual void _filterActivitiesGrpChange(const RsGxsGroupId& grpId, RsGxsNotify::NotifyType changeType);
+    virtual void _filterActivitiesMsgChange(const RsGxsGrpMsgIdPair& grpMsgId, RsGxsNotify::NotifyType changeType);
+public:// public because the tasks need access
+    RsMutex mActivitiesMutex;
+    std::vector<Activity> mActivities;
+
+private:
     // collect info about incoming groups and messages
     // generate newsfeed entries from it
     // first this will just record interesting things by by timestamp
@@ -300,6 +329,7 @@ private:
     RsMutex _mTaskMtx;
     std::map<uint32_t, WallServiceTask*> _mTasks;
     std::vector<uint32_t> _mTaskToDelete;
+    void _startTask(WallServiceTask* newTask);
     void _startTask(uint32_t &token, WallServiceTask* newTask);
     void _doTasks();
     void _markTaskForDeletion(const uint32_t& token);
@@ -323,14 +353,6 @@ private:
         // should check if the task itself says it is ready?
         return p2;
     }
-
-    // begin old code
-    /*
-    std::list<PostMsgTask> _mPostMsgTasks;
-    RsMutex _mPostTaskMtx;
-    virtual void _processPostMsgTasks();
-    */
-    // end old code
 
     p3GxsCommentService *mCommentService;
     RsIdentity*     mRsIdentity;

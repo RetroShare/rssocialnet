@@ -17,7 +17,22 @@ static const uint8_t GXS_REQUEST_V2_STATUS_DONE;        the client received the 
 
 */
 
-// ways of getting data
+// idea: have different types of grps and msgs
+// maybe have own id types for differen grp and msgs types?
+
+// the interface of RsWall is a mess
+// some things have to be requested using ifacehelper, others directly from RsWall
+// maybe remove ifacehelper to have one clean set of functions
+
+// bootstrapping, how to learn about new people and new content?
+// this is very very important.
+// - display a list of friends-of-friends, possible because of circles with friends
+// - maybe let people attach tags to their wall so we can check who is interesting/who not
+//   at least tags would allow something like this: this person also likes ...
+// - publish notification about likes and comments on own wall
+//   the newsfeed then displays "friend x commented on"
+
+// ways of getting data"
 // - blocking function gets data and returns it immediately
 // - non blocking function returns data if available, else it returns false
 //   call the function again to get data
@@ -43,6 +58,26 @@ static const uint8_t GXS_REQUEST_V2_STATUS_DONE;        the client received the 
 // - does it work over http or rs-ssh-rpc? what about disconnects of client and server?
 // - can clients fail to unregister? what does then happen?
 // - for local usage: what about threading? need some mutexes?
+// - dependance on external libraries like Qt or boost
+// - push or pull? client calls server or server calls client with callback
+//
+// idea for polled event multiplexing
+// - the provider keeps a list of the events of the last 10mins
+// - every event has a number
+// - clients poll faster than every 10mins for events and include the number of the last event
+//   the provider then returns all events since the this number or all events if the number is zero
+
+// thoughts about syncing a list of items with a list in the backend
+// this is always the same problem: the backend has a list of something
+// like friendslist, chatmessages, files, forum posts
+// the ui needs the get updated whenever the backend list changes
+// maybe there are different guis like qt-gui, rswebui, qml-gui
+// data items can also be in a tree structure for forum posts and files
+// it is highly desired that the gui only loads as much items from the list as there is space on the sreen
+// ideas for the solution:
+// - every item has a number or id
+// - can then use the id/number of a item to taverse the list by asking for previous/next
+// - can then ask for changes in range first-last
 
 // big question:
 // a fb page is ver similar to a rs-channel
@@ -139,10 +174,27 @@ class PostMsg;
 class PostReferenceParams
 {
 public:
+    PostReferenceParams(): mType(0){}
+
     RsGxsGroupId mReferencedGroupId;
     RsGxsId mAuthor;
     RsGxsId mTargetWallOwner;
     RsGxsCircleId mCircle;
+    uint32_t mType;
+};
+
+// to show how others interact with content
+// later want to display other activities like "added a friend", "published a photo album"
+class Activity
+{
+public:
+    // who did what?
+    std::vector<RsGxsId> mShared;
+    std::vector<RsGxsId> mCommented;
+    //std::vector<RsGxsId> mLiked;
+
+    // id of a post group
+    RsGxsGroupId mReferencedGroup;
 };
 
 extern RsWall *rsWall;
@@ -153,6 +205,9 @@ class RsWall: public RsGxsIfaceHelper, public RsGxsCommentService
 public:
     RsWall(RsGxsIface *gxs)
     :RsGxsIfaceHelper(gxs)  { return; }
+
+    // poll this to find out what is happening
+    virtual void getCurrentActivities(std::vector<Activity> &activities) = 0;
 
     // important: newsfeed handling
     // the ui has to ask if the newsfeed has new entries
@@ -297,6 +352,8 @@ public:
     // - like post
     // - share wall
     // - like wall
+    static const uint32_t REFTYPE_SHARE = 0;
+    static const uint32_t REFTYPE_COMMENT = 1;
     uint32_t mType;
 
     // idea:

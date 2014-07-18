@@ -2,11 +2,12 @@
 #include "RsGxsUpdateBroadcastWt.h"
 
 #include <Wt/WBreak>
-#include <Wt/WTimer>
 #include <Wt/WFileUpload>
+#include <fstream>
 
 #include <retroshare/rsidentity.h>
 #include "RSWApplication.h"
+#include "util/imageresize.h"
 
 namespace RsWall{
 
@@ -24,6 +25,8 @@ WallWidget::WallWidget(Wt::WContainerWidget *parent):
     _EditButton->hide();
     _EditButton->clicked().connect(this, &WallWidget::onEditClicked);
     _TextArea = new Wt::WTextArea(this);
+    // textarea is only useful for debugging, so hide for normal users
+    _TextArea->hide();
     _SubscribeButton = new Wt::WPushButton("PENDING", this);
     _SubscribeButton->clicked().connect(this, &WallWidget::onSubscribeClicked);
 
@@ -95,11 +98,13 @@ void WallWidget::checkIfOwnWall()
         _EditButton->show();
 
         _EditAvatarButton->show();
+        _SubscribeButton->hide();
 
     } else {
         _EditButton->hide();
 
         _EditAvatarButton->hide();
+        _SubscribeButton->show();
     }
 }
 
@@ -201,6 +206,12 @@ void WallWidget::tokenCallback(uint32_t token, bool ok)
             }
             _TextArea->setText(text);
 
+            for(std::vector<ReferenceWidget*>::iterator vit2 = _ReferenceWidgets.begin(); vit2 != _ReferenceWidgets.end(); vit2++)
+            {
+                delete *vit2;
+            }
+            _ReferenceWidgets.clear();
+
             for(std::vector<WallRootPostWidget*>::iterator vit2 = _PostWidgets.begin(); vit2 != _PostWidgets.end(); vit2++)
             {
                 delete *vit2;
@@ -210,6 +221,11 @@ void WallWidget::tokenCallback(uint32_t token, bool ok)
             for(vit = refMsgs.begin(); vit != refMsgs.end(); vit++)
             {
                 ReferenceMsg& msg = *vit;
+
+                ReferenceWidget* refWidget = new ReferenceWidget(this);
+                refWidget->setReferenceMsg(msg);
+                _ReferenceWidgets.push_back(refWidget);
+
                 WallRootPostWidget* widget = new WallRootPostWidget(msg.mReferencedGroup, this);
                 _PostWidgets.push_back(widget);
             }
@@ -235,7 +251,7 @@ void WallWidget::onAvatarImageUploaded()
     file.read((char*)&buf[0],buf.size());
     file.close();
 
-    _Grp.mAvatarImage.mData.swap(buf);
+    ImageUtil::limitImageSize(buf, _Grp.mAvatarImage.mData, 500, 500);
 
     uint32_t token;
     rsWall->updateWallGroup(token, _Grp);

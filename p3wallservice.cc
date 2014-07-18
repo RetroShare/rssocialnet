@@ -57,7 +57,7 @@ class PostMsgTask: public WallServiceTask
 public:
     PostMsgTask(const PostMsg &pm):
         WallServiceTask(), mState(BEGIN),
-        mGroupToken(0), mMsgToken(0), mPostMsg(pm), mReferenceMsgToken(0)
+        mGroupToken(0), mMsgToken(0), mReferenceMsgToken(0), mPostMsg(pm)
     {}
 
     enum State { BEGIN, WAITING_GRP, WAITING_MSG, WAITING_REFERENCE, COMPLETED};
@@ -77,8 +77,6 @@ public:
         {
             // create the group where the post gets stored
             PostGroupItem* grpItem = new PostGroupItem();
-            // have to fill in grp-type here
-            grpItem->meta.mGroupStatus = (RS_PKT_SUBTYPE_WALL_POST_GRP_ITEM<<24);
             grpItem->meta.mAuthorId = mPostMsg.mMeta.mAuthorId;
             mWallService->publishGroup(mGroupToken, grpItem);
 
@@ -136,7 +134,7 @@ class PostMsgTask2: public WallServiceTask
 {
 public:
     PostMsgTask2(const PostReferenceParams& params, const std::string& postText):
-        WallServiceTask(), mPostReferenceParams(params), mPostText(postText), mState(BEGIN),
+        WallServiceTask(), mState(BEGIN), mPostReferenceParams(params), mPostText(postText),
         mGroupToken(0), mMsgToken(0), mReferenceMsgToken(0)
     {}
 
@@ -158,8 +156,6 @@ public:
         {
             // create the group where the post gets stored
             PostGroupItem* grpItem = new PostGroupItem();
-            // ahve to fill in grp-type
-            grpItem->meta.mGroupStatus = (RS_PKT_SUBTYPE_WALL_POST_GRP_ITEM<<24);
             grpItem->meta.mAuthorId = mPostReferenceParams.mAuthor;
             mWallService->publishGroup(mGroupToken, grpItem);
 
@@ -322,6 +318,7 @@ public:
             item->meta.mAuthorId = mParams.mAuthor;
             item->meta.mGroupId = mTargetWallGrpId;
             item->mReferenceMsg.mReferencedGroup = mParams.mReferencedGroupId;
+            item->mReferenceMsg.mType = mParams.mType;
             mWallService->publishMsg(mRefMsgToken, item);
 
             mState = WAITING_MSG;
@@ -679,6 +676,188 @@ public:
     }
 };
 
+// room for optimisation:
+// request new groups only once an then pass the data to different tasks
+// currently the subscribe check and this filter task request grp and msg data on their own
+class FilterActivitiesGrpChangeTask: public WallServiceTask
+{
+public:
+    FilterActivitiesGrpChangeTask(const RsGxsGroupId& grpId):
+        WallServiceTask(), mState(BEGIN), mGrpId(grpId), mGrpDataToken(0) {}
+    enum State { BEGIN, WAITING_DATA };
+    State mState;
+    RsGxsGroupId mGrpId;
+    uint32_t mGrpDataToken;
+    void doWork()
+    {
+        switch(mState)
+        {
+        case BEGIN:
+        {
+            RsTokReqOptions opts;
+            opts.mReqType = GXS_REQUEST_TYPE_GROUP_DATA;
+            std::list<RsGxsGroupId> groupIds;
+            groupIds.push_back(mGrpId);
+            mWallService->RsGenExchange::getTokenService()->requestGroupInfo(mGrpDataToken, RS_TOKREQ_ANSTYPE_DATA, opts, groupIds);
+            mPendingTokens.push_back(mGrpDataToken);
+            mState = WAITING_DATA;
+        }
+            break;
+        case WAITING_DATA:
+        {
+            std::vector<RsGxsGrpItem*> grpItems;
+            mWallService->getGroupData(mGrpDataToken, grpItems);
+            std::vector<RsGxsGrpItem*>::iterator vit;
+            for(vit = grpItems.begin(); vit != grpItems.end(); vit++)
+            {
+                RsGxsGrpItem* item = *vit;
+                WallGroupItem* wgItem = dynamic_cast<WallGroupItem*>(item);
+                if(wgItem)
+                {
+                    // do nothing with a wall group
+                    // maybe display a notice if thes wall group is from a new author?
+                    // like: "new wall found"
+                }
+                PostGroupItem* pgItem = dynamic_cast<PostGroupItem*>(item);
+                if(pgItem)
+                {
+                    // do nothing with a post group
+                    // then this Task is completely useless?
+                    // currently yes
+                    // maybe i find something to do later
+                }
+                delete item;
+            }
+            mResult = COMPLETE;
+        }
+            break;
+        }
+    }
+};
+
+class FilterActivitiesMsgChangeTask: public WallServiceTask
+{
+public:
+    FilterActivitiesMsgChangeTask(const RsGxsGrpMsgIdPair& grpMsgId):
+        WallServiceTask(), mState(BEGIN), mGrpMsgId(grpMsgId), mMsgDataToken(0) {}
+    enum State { BEGIN, WAITING_DATA };
+    State mState;
+    RsGxsGrpMsgIdPair mGrpMsgId;
+    uint32_t mMsgDataToken;
+    void doWork()
+    {
+        switch(mState)
+        {
+        case BEGIN:
+        {
+            RsTokReqOptions opts;
+            opts.mReqType = GXS_REQUEST_TYPE_MSG_DATA;
+            GxsMsgReq msgIds;
+            std::vector<RsGxsMessageId> msgIdVec;
+            msgIdVec.push_back(mGrpMsgId.second);
+            msgIds[mGrpMsgId.first] = msgIdVec;
+            mWallService->RsGenExchange::getTokenService()->requestMsgInfo(mMsgDataToken, RS_TOKREQ_ANSTYPE_DATA, opts, msgIds);
+
+            mPendingTokens.push_back(mMsgDataToken);
+            mState = WAITING_DATA;
+        }
+            break;
+        case WAITING_DATA:
+        {
+            GxsMsgDataMap msgItemMap;
+            mWallService->getMsgData(mMsgDataToken, msgItemMap);
+            GxsMsgDataMap::iterator mit;
+            for(mit = msgItemMap.begin(); mit != msgItemMap.end(); mit++)
+            {
+                const RsGxsGroupId& grpId = mit->first;
+                std::vector<RsGxsMsgItem*>& vec = mit->second;
+                std::vector<RsGxsMsgItem*>::iterator vit;
+                for(vit = vec.begin(); vit != vec.end(); vit++)
+                {
+                    RsGxsMsgItem* item = *vit;
+                    PostMsgItem* pmItem =dynamic_cast<PostMsgItem*>(item);
+                    if(pmItem)
+                    {
+                        // what could we do here?
+                    }
+                    ReferenceMsgItem* rmItem = dynamic_cast<ReferenceMsgItem*>(item);
+                    if(rmItem)
+                    {
+                        Activity* activity = NULL;
+                        // don't have to lock the activities mutex for read access in the genexchange thread,
+                        // because only the rsgenexchange thread can change the activities
+                        // check if an activity for this root post exists
+                        for(std::vector<Activity>::iterator vit = mWallService->mActivities.begin();
+                            vit != mWallService->mActivities.end(); vit++)
+                        {
+                            if(vit->mReferencedGroup == rmItem->mReferenceMsg.mReferencedGroup)
+                            {
+                                activity = &(*vit);
+                            }
+                        }
+                        // if not create one
+                        if(activity == NULL)
+                        {
+                            // *************** BEGIN ACTIVITIES LOCKED ************************
+                            // WRITE access to activities has to happen in locked state
+                            RsStackMutex stack(mWallService->mActivitiesMutex);
+                            mWallService->mActivities.push_back(Activity());
+                            activity =&mWallService->mActivities.back();
+                            activity->mReferencedGroup = rmItem->mReferenceMsg.mReferencedGroup;
+                            // *************** END ACTIVITIES LOCKED **************************
+                        }
+                        if(rmItem->mReferenceMsg.mType == ReferenceMsg::REFTYPE_SHARE)
+                        {
+                            // check if this author shared it already
+                            // (can happen if someone shares the same root post for different circles)
+                            bool found = false;
+                            std::vector<RsGxsId>::iterator vit;
+                            for(vit = activity->mShared.begin(); vit != activity->mShared.end(); vit++)
+                            {
+                                if(*vit == rmItem->meta.mAuthorId)
+                                {
+                                    found = true;
+                                }
+                            }
+                            if(!found)
+                            {
+                                // *************** BEGIN ACTIVITIES LOCKED ************************
+                                RsStackMutex stack(mWallService->mActivitiesMutex);
+                                activity->mShared.push_back(rmItem->meta.mAuthorId);
+                                // *************** END ACTIVITIES LOCKED **************************
+                            }
+                        }
+                        else if(rmItem->mReferenceMsg.mType == ReferenceMsg::REFTYPE_COMMENT)
+                        {
+                            // same for reftype comment
+                            bool found = false;
+                            std::vector<RsGxsId>::iterator vit;
+                            for(vit = activity->mCommented.begin(); vit != activity->mCommented.end(); vit++)
+                            {
+                                if(*vit == rmItem->meta.mAuthorId)
+                                {
+                                    found = true;
+                                }
+                            }
+                            if(!found)
+                            {
+                                // *************** BEGIN ACTIVITIES LOCKED ************************
+                                RsStackMutex stack(mWallService->mActivitiesMutex);
+                                activity->mCommented.push_back(rmItem->meta.mAuthorId);
+                                // *************** END ACTIVITIES LOCKED **************************
+                            }
+                        }
+                    }
+                    delete item;
+                }
+            }
+            mResult = COMPLETE;
+        }
+            break;
+        }
+    }
+};
+
 class SearchSubscribedAuthorsTask: public WallServiceTask
 {
 public:
@@ -805,6 +984,7 @@ p3WallService::p3WallService(RsGeneralDataService *gds, RsNetworkExchangeService
     /*_mPostTaskMtx("p3WallService _mPostTaskMtx"),*/
     authorsMtx("p3WallService authorsMtx"),
     authorsLoaded(false),
+    mActivitiesMutex("p3WallServiceActivitiesMutex"),
     _mTaskMtx("p3WallService _mTaskMtx"),
     mCommentService(new p3GxsCommentService(this, RS_SERVICE_TYPE_WALL)),
     mRsIdentity(identity)
@@ -858,7 +1038,42 @@ uint32_t p3WallService::wallAuthPolicy()
 void p3WallService::notifyChanges(std::vector<RsGxsNotify*> &changes)
 {
     // process new grps/msgs
-    _checkSubscribe(changes);
+    // split the changes down to single grpIds and grpMsgId pairs
+    // this makes the processing much easier
+    std::vector<RsGxsNotify*>::iterator vit;
+    for(vit = changes.begin(); vit != changes.end(); vit++)
+    {
+        RsGxsNotify* change = *vit;
+
+        RsGxsGroupChange* grpChange = dynamic_cast<RsGxsGroupChange*>(change);
+        if(grpChange)
+        {
+            for(std::list<RsGxsGroupId>::iterator lit = grpChange->mGrpIdList.begin(); lit != grpChange->mGrpIdList.end(); lit++)
+            {
+                _checkSubscribeGrpChange(*lit, change->getType());
+                _filterActivitiesGrpChange(*lit, change->getType());
+            }
+        }
+
+        RsGxsMsgChange* msgChange = dynamic_cast<RsGxsMsgChange*>(change);
+        if(msgChange)
+        {
+            std::map<RsGxsGroupId, std::vector<RsGxsMessageId> >::iterator mit;
+            for(mit = msgChange->msgChangeMap.begin(); mit != msgChange->msgChangeMap.end(); mit++)
+            {
+                const RsGxsGroupId& grpId = mit->first;
+                std::vector<RsGxsMessageId>& msgIdVec = mit->second;
+                std::vector<RsGxsMessageId>::iterator vit;
+                for(vit = msgIdVec.begin(); vit != msgIdVec.end(); vit++)
+                {
+                    _checkSubscribeMsgChange(RsGxsGrpMsgIdPair(grpId, *vit), change->getType());
+                    _filterActivitiesMsgChange(RsGxsGrpMsgIdPair(grpId, *vit), change->getType());
+                }
+            }
+        }
+    }
+
+
     _filterNews(changes);
     // forward the changes
     RsGxsIfaceHelper::receiveChanges(changes);
@@ -884,6 +1099,12 @@ void p3WallService::handleResponse(uint32_t token, uint32_t req_type)
     // hand over data to the ui by updating token status
 }
 
+void p3WallService::getCurrentActivities(std::vector<Activity>& activities)
+{
+    RsStackMutex stack(mActivitiesMutex);
+    activities = mActivities;
+}
+
 void p3WallService::getNewNewsfeedEntries(std::list<NewsfeedEntry> &feeds)
 {
     // tuwas
@@ -894,14 +1115,7 @@ void p3WallService::createWallGroup(uint32_t &token, const WallGroup &grp)
     WallGroupItem* grpItem = new WallGroupItem();
     grpItem->mWallGroup = grp;
     grpItem->meta = grp.mMeta;
-    // we don't get notified when a new group gets created
-    // so the new group will not be handle by the processgGrp task
-    // have to fill in the message type here
-    // and then have to make sure this is done everywhere. not a very elegant solution
-    // would be good to have ids not starting with 0, so the 0 is a sign for type not set
-    // maybe can extend gxs with a type-system? so gxs handles the typing for us
-    grpItem->meta.mGroupStatus = (RS_PKT_SUBTYPE_WALL_WALL_GRP_ITEM<<24);
-    RsGenExchange::publishGroup(token, grpItem);
+    publishGroup(token, grpItem);
 }
 
 void p3WallService::updateWallGroup(uint32_t &token, const WallGroup &grp)
@@ -1153,45 +1367,44 @@ bool p3WallService::areAuthorsLoaded()
     return authorsLoaded;
 }
 
-void p3WallService::_checkSubscribe(std::vector<RsGxsNotify*> &changes)
+void p3WallService::_checkSubscribeGrpChange(const RsGxsGroupId& grpId, RsGxsNotify::NotifyType changeType)
 {
-    std::vector<RsGxsNotify*>::iterator vit;
-    for(vit = changes.begin(); vit != changes.end(); vit++)
+    if(changeType == RsGxsNotify::TYPE_RECEIVE)
     {
-        RsGxsNotify* change = *vit;
-
-        RsGxsGroupChange* grpChange = dynamic_cast<RsGxsGroupChange*>(change);
-        if(grpChange && (change->getType() == RsGxsNotify::TYPE_RECEIVE))
-        {
-            for(std::list<RsGxsGroupId>::iterator lit = grpChange->mGrpIdList.begin(); lit != grpChange->mGrpIdList.end(); lit++)
-            {
-                uint32_t token;
-                _startTask(token, new ProcessGrpTask(*lit));
-            }
-        }
-
-        RsGxsMsgChange* msgChange = dynamic_cast<RsGxsMsgChange*>(change);
-        if(msgChange && (change->getType() == RsGxsNotify::TYPE_RECEIVE))
-        {
-            std::map<RsGxsGroupId, std::vector<RsGxsMessageId> >::iterator mit;
-            for(mit = msgChange->msgChangeMap.begin(); mit != msgChange->msgChangeMap.end(); mit++)
-            {
-                const RsGxsGroupId& grpId = mit->first;
-                std::vector<RsGxsMessageId>& msgIdVec = mit->second;
-                std::vector<RsGxsMessageId>::iterator vit;
-                for(vit = msgIdVec.begin(); vit != msgIdVec.end(); vit++)
-                {
-                    uint32_t token;
-                    _startTask(token, new ProcessMsgTask(RsGxsGrpMsgIdPair(grpId, *vit)));
-                }
-            }
-        }
+        _startTask(new ProcessGrpTask(grpId));
     }
+}
+
+void p3WallService::_checkSubscribeMsgChange(const RsGxsGrpMsgIdPair &grpMsgId, RsGxsNotify::NotifyType changeType)
+{
+    if(changeType == RsGxsNotify::TYPE_RECEIVE)
+    {
+        _startTask(new ProcessMsgTask(grpMsgId));
+    }
+}
+
+// current activity collection system is very simple:
+// - read msgs
+// - make a list to keep track who interacted whith which post
+void p3WallService::_filterActivitiesGrpChange(const RsGxsGroupId& grpId, RsGxsNotify::NotifyType changeType)
+{
+    _startTask(new FilterActivitiesGrpChangeTask(grpId));
+}
+
+void p3WallService::_filterActivitiesMsgChange(const RsGxsGrpMsgIdPair &grpMsgId, RsGxsNotify::NotifyType changeType)
+{
+    _startTask(new FilterActivitiesMsgChangeTask(grpMsgId));
 }
 
 void p3WallService::_filterNews(std::vector<RsGxsNotify*> &changes)
 {
     //
+}
+
+void p3WallService::_startTask(WallServiceTask *newTask)
+{
+    uint32_t token;
+    _startTask(token, newTask);
 }
 
 void p3WallService::_startTask(uint32_t &token, WallServiceTask *newTask)
@@ -1222,7 +1435,7 @@ void p3WallService::_doTasks()
     //   this allows the tasks to call all functions of p3WallService except _doTasks()
     // example: the tasks can use public functions to create new tasks
 
-    // copy all runing tasks into a vector to allow working outside the mutex lock
+    // copy all running tasks into a vector to allow working outside the mutex lock
     std::vector<WallServiceTask*> tasks;
     {
         RsStackMutex stack(_mTaskMtx);
@@ -1341,80 +1554,5 @@ void p3WallService::_markTaskForDeletion(const uint32_t &token)
     RsStackMutex stack(_mTaskMtx);
     _mTaskToDelete.push_back(token);
 }
-
-//begin  old code
-/*
-void p3WallService::_processPostMsgTasks()
-{
-    // create all the necessary grps/msgs for a post
-    // - creation of PostGroup was already requested by createPost()
-    // - create PostMsg
-    // - create reference on wall
-
-    // currently there is no timeout. so things could go wrong in a way where the user can not create posts anymore
-    RsStackMutex stack(_mPostTaskMtx);
-    bool removeTask = false;
-    if(!_mPostMsgTasks.empty()){
-        // currently a fifo queue: only start a new task if the previous is done
-        // process the first task in the queue
-        PostMsgTask& task = _mPostMsgTasks.front();
-        std::cerr << "p3WallService::processPostMsgTasks() token=" << task.publicToken << std::endl;
-        switch(task.state){
-        case PostMsgTask::WAITING_GRP:
-        {
-            uint32_t tokenStatus = RsGenExchange::getTokenService()->requestStatus(task.groupToken);
-            std::cerr << "p3WallService::processPostMsgTasks() token=" << task.publicToken << " case PostMsgTask::WAITING_GRP: tokenStatus=" << tokenStatus << std::endl;
-
-            // tokenStatus will always be failed or complete at the end
-            if(tokenStatus == RsTokenService::GXS_REQUEST_V2_STATUS_FAILED){
-                updatePublicRequestStatus(task.publicToken, RsTokenService::GXS_REQUEST_V2_STATUS_FAILED);
-                removeTask = true;
-                std::cerr << "p3WallService::processPostMsgTasks() token=" << task.publicToken << " create grp failed" << std::endl;
-            }
-            if(tokenStatus == RsTokenService::GXS_REQUEST_V2_STATUS_COMPLETE){
-                RsGxsGroupId groupId;
-                acknowledgeTokenGrp(task.groupToken, groupId);
-                task.pm.mMeta.mGroupId = groupId;
-                PostMsgItem* msgItem = new PostMsgItem();
-                msgItem->mPostMsg = task.pm;
-                msgItem->meta = task.pm.mMeta;
-                publishMsg(task.msgToken, msgItem);
-                task.state = PostMsgTask::WAITING_MSG;
-                std::cerr << "p3WallService::processPostMsgTasks() token=" << task.publicToken << " create grp ok" << std::endl;
-            }
-        }
-            break;
-        case PostMsgTask::WAITING_MSG:
-        {
-            uint32_t tokenStatus = RsGenExchange::getTokenService()->requestStatus(task.msgToken);
-            if(tokenStatus == RsTokenService::GXS_REQUEST_V2_STATUS_FAILED){
-                updatePublicRequestStatus(task.publicToken, RsTokenService::GXS_REQUEST_V2_STATUS_FAILED);
-                removeTask = true;
-                std::cerr << "p3WallService::processPostMsgTasks() token=" << task.publicToken << " create msg failed" << std::endl;
-            }
-            if(tokenStatus == RsTokenService::GXS_REQUEST_V2_STATUS_COMPLETE){
-                updatePublicRequestStatus(task.publicToken, RsTokenService::GXS_REQUEST_V2_STATUS_COMPLETE);
-                removeTask = true;
-                std::cerr << "p3WallService::processPostMsgTasks() token=" << task.publicToken << " create msg ok" << std::endl;
-                // todo: create reference on own wall
-            }
-        }
-            break;
-        case PostMsgTask::WAITING_REFERENCE:
-            break;
-        case PostMsgTask::COMPLETED:
-            // nothing to do
-            // when to remove task from list?
-            // maybe move to another list where tasks time out if they don't get acknowledged
-            break;
-        }
-    }
-
-    if(removeTask){
-        _mPostMsgTasks.pop_front();
-    }
-}
-*/
-//  end old code
 
 }//namespace RsWall

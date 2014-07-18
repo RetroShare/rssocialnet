@@ -5,14 +5,17 @@
 #include <Wt/WBreak>
 #include <Wt/WMemoryResource>
 
+#include <boost/lexical_cast.hpp>
+
 #include "../RSWApplication.h"
 #include "rswall.h"
 #include "RsGxsUpdateBroadcastWt.h"
+#include "util/imageresize.h"
 
 namespace RsWall{
 
 AvatarWidgetWt::AvatarWidgetWt(bool small, Wt::WContainerWidget *parent):
-    WContainerWidget(parent), _mImg(NULL), _mTokenQueue(rsWall->getTokenService())
+    WContainerWidget(parent), _mTokenQueue(rsWall->getTokenService())
 {
     _mTokenQueue.tokenReady().connect(this, &AvatarWidgetWt::onTokenReady);
     RsGxsUpdateBroadcastWt::get(rsWall)->grpsChanged().connect(this, &AvatarWidgetWt::onGrpsChanged);
@@ -22,22 +25,25 @@ AvatarWidgetWt::AvatarWidgetWt(bool small, Wt::WContainerWidget *parent):
 
     new Wt::WBreak(this);
     _mAvatarImage = new Wt::WImage(this);
-    _mAvatarImageRessource = new Wt::WMemoryResource(this);
     _mAvatarImage->clicked().connect(this, &AvatarWidgetWt::onLabelClicked);
 
     new Wt::WBreak(this);
     Wt::WLabel* moretext = new Wt::WLabel("more text on mouse over", this);
     //moretext->setHiddenKeepsGeometry(true);
     moretext->hide();
+    /*
     _mIdentityLabel->mouseWentOver().connect(moretext, &Wt::WLabel::show);
     _mIdentityLabel->mouseWentOut().connect(moretext, &Wt::WLabel::hide);
 
     _mAvatarImage->mouseWentOver().connect(moretext, &Wt::WLabel::show);
     _mAvatarImage->mouseWentOut().connect(moretext, &Wt::WLabel::hide);
+    */
 
     RsGxsId id;
-    setIdentity(id);
+    //setIdentity(id);
     if(small){
+        _mImageSize = 40;
+
         // resize has impact on the sourounding widgets
         // have to find another way to define size of this
         //_mAvatarImage->resize(40, 40);
@@ -54,6 +60,8 @@ AvatarWidgetWt::AvatarWidgetWt(bool small, Wt::WContainerWidget *parent):
         //_mAvatarImage->setMinimumSize(40, 40);
         //_mAvatarImage->setMaximumSize(40, 40);
     }else{
+        _mImageSize = 80;
+
         //_mAvatarImage->resize(80, 80);
         //_mAvatarImage->setAttributeValue("height","80");
         //_mAvatarImage->setAttributeValue("width","80");
@@ -116,8 +124,56 @@ void AvatarWidgetWt::onTokenReady(uint32_t token, bool ok)
         if(grps.empty()){ std::cerr << "PROBLEM in AvatarWidgetWt::onTokenReady(): no wall-grps for author" << std::endl; return;}
 
         WallGroup& grp = grps[0];
-        _mAvatarImageRessource->setData(grp.mAvatarImage.mData);
-        _mAvatarImage->setImageLink(Wt::WLink(_mAvatarImageRessource));
+
+        boost::shared_ptr<Wt::WMemoryResource> resPtr;
+        if(grp.mAvatarImage.mData.empty())
+        {
+            // load default image
+            std::string key = "AvatarImage,defaultImage,size=" + boost::lexical_cast<std::string>(_mImageSize);
+            resPtr = RSWApplication::instance()->getCachedRessource(key);
+            if(resPtr.get() == NULL)
+            {
+                std::ifstream file("sonet-ressources/personal128_noalpha.png", std::ios_base::binary);
+                if(file.good())
+                {
+                    file.seekg(0, std::ios_base::end);
+                    uint32_t size = file.tellg();
+                    file.seekg(0, std::ios_base::beg);
+
+                    std::vector<uint8_t> buf;
+                    buf.resize(size);
+                    file.read((char*)&buf[0],buf.size());
+                    file.close();
+
+                    std::vector<uint8_t> buf2;
+                    ImageUtil::limitImageSize(buf, buf2, _mImageSize, _mImageSize);
+
+                    resPtr.reset(new Wt::WMemoryResource());
+                    resPtr->setData(buf2);
+                    RSWApplication::instance()->cacheRessource(key, resPtr);
+                }
+            }
+        }
+        else
+        {
+            // have to cache avatar images,
+            // because ImageUtil::limitImageSize is way to slow
+            std::string key = "AvatarImage,grpId=" + grp.mMeta.mGroupId.toStdString()
+                    + ",size=" + boost::lexical_cast<std::string>(_mImageSize)
+                    + ",timestamp=" + boost::lexical_cast<std::string>(grp.mMeta.mPublishTs);
+            resPtr = RSWApplication::instance()->getCachedRessource(key);
+            if(resPtr.get() == NULL)
+            {
+                std::vector<uint8_t> buf;
+                ImageUtil::limitImageSize(grp.mAvatarImage.mData, buf, _mImageSize, _mImageSize);
+                resPtr.reset(new Wt::WMemoryResource());
+                resPtr->setData(buf);
+                RSWApplication::instance()->cacheRessource(key, resPtr);
+            }
+        }
+        // get a copy of the shared ptr, to prevent the ressource from getting deleted
+        _mAvatarImageRessource = resPtr;
+        _mAvatarImage->setImageLink(Wt::WLink(resPtr.get()));
     }
     else
     {

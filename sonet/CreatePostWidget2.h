@@ -8,7 +8,7 @@
 
 namespace RsWall{
 // this widget allows to create a new RootWallPost
-// it shows a TextArea, controls to select the audience and a submit button
+// it shows a TextArea and controls to select the audience and a submit button
 class CreatePostWidget2: public Wt::WContainerWidget{
 public:
     CreatePostWidget2(Wt::WContainerWidget* parent = 0);

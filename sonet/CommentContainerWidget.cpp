@@ -4,6 +4,7 @@
 
 #include "AvatarWidget.h"
 #include "RsGxsUpdateBroadcastWt.h"
+#include "RSWApplication.h"
 
 namespace RsWall{
 
@@ -79,7 +80,7 @@ void CommentContainerWidget::onTokenReady(uint32_t token, bool ok)
         // note: the widgets the pointers where pointing to where deleted by clear()
         _TextArea = new Wt::WTextArea(this);
         _TextArea->setEmptyText("your comment");
-        _IdChooser = new GxsIdChooserWt(this);
+        //_IdChooser = new GxsIdChooserWt(this);
         _SubmitButton = new Wt::WPushButton("submit", this);
         _SubmitButton->clicked().connect(this, &CommentContainerWidget::onSubmitComment);
     }
@@ -96,7 +97,8 @@ void CommentContainerWidget::onSubmitComment()
     uint32_t token;
     RsGxsComment comment;
     comment.mMeta.mGroupId = _GrpMsgId.first;
-    comment.mMeta.mAuthorId = _IdChooser->getSelectedId();
+    //comment.mMeta.mAuthorId = _IdChooser->getSelectedId();
+    comment.mMeta.mAuthorId = RSWApplication::instance()->getCurrentIdentity().mId;
     comment.mComment = _TextArea->text().toUTF8();
     _CommentService->createComment(token, comment);
     //requestComments();

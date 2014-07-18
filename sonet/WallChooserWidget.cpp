@@ -10,12 +10,13 @@ WallChooserWidget::WallChooserWidget(Wt::WContainerWidget *parent):
 {
     _WallCombo = new Wt::WComboBox(this);
     _WallCombo->activated().connect(this, &WallChooserWidget::onSelectionChanged);
-    requestWallIds();
 
     // always have to connect manually
     // would not have to do this if this class was derived from tokenqueuewt1
     _TokenQueue.tokenReady().connect(this, &WallChooserWidget::tokenCallback);
     RsGxsUpdateBroadcastWt::get(rsWall)->grpsChanged().connect(this, &WallChooserWidget::requestWallIds);
+
+    requestWallIds();
 }
 
 RsGxsGroupId WallChooserWidget::getSelectedWallId()

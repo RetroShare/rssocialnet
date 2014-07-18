@@ -1,6 +1,5 @@
 #include "IdentityPopupMenu.h"
 
-#include <Wt/WTimer>
 #include <Wt/WText>
 #include <Wt/WLineEdit>
 #include <Wt/WBreak>
@@ -9,6 +8,8 @@
 #include "RsGxsUpdateBroadcastWt.h"
 #include "SonetUtil.h"
 #include "RSWApplication.h"
+
+#include "WebUITimer.h"
 
 /*
 problem: how to keep the list of identities updated when the user creates a new one?
@@ -24,17 +25,19 @@ IdentityPopupMenu::IdentityPopupMenu():
 {
     // this does not work
     // don't know if own mistake or rsidentities does not forward events
-    //RsGxsUpdateBroadcastWt::get(rsIdentity)->grpsChanged().connect(this, &IdentityPopupMenu::updateIdentities);
+    RsGxsUpdateBroadcastWt::get(RSWApplication::ifaces().mIdentity)->grpsChanged().connect(this, &IdentityPopupMenu::updateIdentities);
+    // rsidentity should forward events
+    // maybe the own ids are not cached immediately?
 
-    // this should work to refresh when cerating a new id
-    tokenQueue.tokenReady().connect(this, &IdentityPopupMenu::onTokenReady);
+    // this should work to refresh when creating a new id
+    //tokenQueue.tokenReady().connect(this, &IdentityPopupMenu::onTokenReady);
 
     itemSelected().connect(this, &IdentityPopupMenu::onSelectionChanged);
 
     // delay the loading of the ids
     // this allows other to construct this widget and connect to the signal
     // before we load the identities
-    Wt::WTimer::singleShot(100, this, &IdentityPopupMenu::updateIdentities);
+    WebUITimer::singleShotNextTick(this, &IdentityPopupMenu::updateIdentities);
 }
 
 RsIdentityDetails IdentityPopupMenu::getCurrentIdentity()
@@ -83,7 +86,7 @@ void IdentityPopupMenu::updateIdentities()
     else
     {
         // id details not cached, try later
-        Wt::WTimer::singleShot(500, this, &IdentityPopupMenu::updateIdentities);
+        WebUITimer::singleShotNextTick(this, &IdentityPopupMenu::updateIdentities);
     }
 }
 

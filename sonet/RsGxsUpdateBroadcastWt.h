@@ -2,17 +2,9 @@
 
 #include <Wt/WObject>
 #include <Wt/WSignal>
-#include <Wt/WTimer>
-#include <retroshare/rsgxsifacehelper.h>
 #include <list>
-
-// having troubles with the timer stopping
-// testing the advice from http://redmine.webtoolkit.eu/boards/2/topics/2181
-// it reccomends to use this safe timer implementation
-#include "wtsafetimer.h"
-// result: did not work, even this timer stops working
-// maybe havt ot replace all usages of Wt::WTimer with WtSafeTimer?
-//  or there is a problem somwhere else
+#include <retroshare/rsgxsifacehelper.h>
+#include <util/rsthreads.h>
 
 // many widgets are only interested in changes from a certain grp or msg type
 // but only p3WallService knows the type
@@ -33,33 +25,75 @@
   // get a RsGxsUpdateBroadcastWt object for the service
   RsGxsUpdateBroadcastWt* ubc = RsGxsUpdateBroadcast::get(gxs_service);
   // connect to signals
-  ubc->.grpsChanged().connect(this, &YourClass::yourMethod);
+  ubc->grpsChanged().connect(this, &YourClass::yourMethod);
+
+  // in the application destructor
+  RsGxsUpdateBroadcastWt::unregisterApplication();
+
+  // in another thread:
+  RsGxsUpdateBroadcastWt::tick();
+
+  What RsGxsUpdateBroadcastWidgetWt does and why this is so complicated
+  - get events from different event sources (RsGxsIfaceHelpers)
+  - distribute events to different listeners in different Wt::WApplications
+  - the listeners can be in different threads (because different applications can have different threads)
+
+  the static functions maintain one RsGxsUpdateBroadcastWt object per event source
+  the object itself maintains one Wt::Signal per Wt::WApplication instance
 
   */
 namespace RsWall{
-class RsGxsUpdateBroadcastWt: public Wt::WObject
+
+typedef Wt::Signal<std::list<RsGxsGroupId> >    GrpsChangedSignal;
+typedef Wt::Signal<GxsMsgIdResult>              MsgsChangedSignal;
+
+class RsGxsUpdateBroadcastWt/*: public Wt::WObject*/
 {
 public:
     /**
       get a RsGxsUpdateBroadcast object for the given RsGxsIfaceHelper
+      call this from an application thread where Wt::WApplication::instance() is valid
     */
     static RsGxsUpdateBroadcastWt* get(RsGxsIfaceHelper* ifaceImpl);
+
+    /**
+      check for updates
+      call this from another thread
+    */
+    static void tick();
+    /**
+      unregister an applictaion
+      call this in the application destructor
+      note: this function doesn't take an argument,
+            because the application is determined by Wt::WApplication::instance()
+    */
+    static void unregisterApplication();
+
+    // only call cleanup at the end, when all applications are destroyed
     static void cleanup();
 
-    Wt::Signal<std::list<RsGxsGroupId> >& grpsChanged(){ return _mGrpsChangedSignal; }
-    Wt::Signal<GxsMsgIdResult>& msgsChanged(){ return _mMsgsChangedSignal; }
+    // old
+    //Wt::Signal<std::list<RsGxsGroupId> >& grpsChanged(){ return _mGrpsChangedSignal; }
+    //Wt::Signal<GxsMsgIdResult>& msgsChanged(){ return _mMsgsChangedSignal; }
+    GrpsChangedSignal& grpsChanged();
+    MsgsChangedSignal& msgsChanged();
 
 private:
     RsGxsUpdateBroadcastWt(RsGxsIfaceHelper* ifaceImpl);
-    ~RsGxsUpdateBroadcastWt();
 
-    void onTimer();
+    // old
+    //void onTimer();
+    void _tick();
+    void _unregisterApplication();
 
-    Wt::Signal<std::list<RsGxsGroupId> > _mGrpsChangedSignal;
-    Wt::Signal<GxsMsgIdResult> _mMsgsChangedSignal;
+    // old
+    //Wt::Signal<std::list<RsGxsGroupId> > _mGrpsChangedSignal;
+    //Wt::Signal<GxsMsgIdResult> _mMsgsChangedSignal;
+
+    RsMutex _mMtx;
+    std::map<Wt::WApplication*, GrpsChangedSignal* >_mGrpsChangedSignals;
+    std::map<Wt::WApplication*, MsgsChangedSignal* >_mMsgsChangedSignals;
 
     RsGxsIfaceHelper* mIfaceImpl;
-    //Wt::WTimer mTimer;
-    WtSafeTimer* mSafeTimer;
 };
 }//namespace RsWall

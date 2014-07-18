@@ -9,6 +9,7 @@
 #include "TokenQueueWt2.h"
 
 namespace RsWall{
+// a popup menu to show a list of own identities
 class IdentityPopupMenu: public Wt::WPopupMenu
 {
 public:

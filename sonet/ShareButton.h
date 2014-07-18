@@ -3,6 +3,8 @@
 #include <Wt/WSplitButton>
 #include <Wt/WSignal>
 
+#include <sonet/TokenQueueWt2.h>
+
 #include <retroshare/rsgxsifacetypes.h>
 
 // this button can be used in auto-mode
@@ -25,6 +27,8 @@ public:
 private:
     void onShareClicked();
     void onDropdownClicked();
+    void onTokenReady(uint32_t token, bool ok);
+    TokenQueueWt2 tokenQueue;
     RsGxsGroupId grpId;
     Wt::Signal<RsGxsId, RsGxsCircleId > shareClickedSignal;
 };

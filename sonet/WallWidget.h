@@ -8,8 +8,11 @@
 #include "WallRootPostWidget.h"
 #include "IdentityLabelWidget.h"
 #include "AvatarWidget.h"
+#include "ReferenceWidget.h"
 
 namespace RsWall{
+// shows all posts on a wall for a given author-id
+// old behavior: show a wall for a given wall-grp-id
 class WallWidget: public Wt::WContainerWidget{
 public:
     WallWidget(Wt::WContainerWidget* parent = 0);
@@ -44,6 +47,7 @@ private:
     Wt::WPushButton* _SubscribeButton;
     bool subscribed;
     std::vector<WallRootPostWidget*> _PostWidgets;
+    std::vector<ReferenceWidget*> _ReferenceWidgets;
     uint32_t _WallGroupToken;
     uint32_t _PostMsgToken;
 

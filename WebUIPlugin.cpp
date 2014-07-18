@@ -92,6 +92,10 @@ void WebUIPlugin::setInterfaces(RsPlugInInterfaces &interfaces)
 	std::cerr << "Setting plugin interfaces for WebUI plugin..." << std::endl;
 	plugin_interfaces = interfaces ;
 
+    // TODO: change data directory
+    // it would be better to save data for this plugin in its own folder
+    // (like zeroreserve: <sslid>/zeroreserve)
+    // idea: use different folders for different plugin versions
     std::cerr << "Starting p3WallService" << std::endl;
     wall_ds = new RsDataService(interfaces.mGxsDir, "wall_db",
                                 RsWall::RS_SERVICE_TYPE_WALL, NULL, "todo: encrypt db with secure password");

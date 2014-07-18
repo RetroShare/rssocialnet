@@ -2,7 +2,6 @@
 
 #include <Wt/WContainerWidget>
 #include <Wt/WComboBox>
-#include <Wt/WTimer>
 
 #include <retroshare/rsidentity.h>
 
@@ -17,7 +16,6 @@ public:
     RsGxsId getSelectedId();
 
 private:
-    Wt::WTimer mTimer;
     Wt::WComboBox* _idCombo;
     std::list<RsGxsId> _ownIds;
 };

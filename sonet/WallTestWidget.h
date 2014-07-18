@@ -6,6 +6,8 @@
 #include "WallWidget.h"
 
 namespace RsWall{
+// show a dropdown to select a group id
+// then show a wall for the selected id
 class WallTestWidget: public Wt::WContainerWidget
 {
 public:

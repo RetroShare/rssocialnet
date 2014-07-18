@@ -35,8 +35,13 @@ WallRootPostWidget::WallRootPostWidget(RsGxsGroupId grpId, Wt::WContainerWidget 
     Wt::WPushButton* button = new Wt::WPushButton("share this post (with selected author-id on selected wall)", _mCenterContainer);
     button->clicked().connect(this, &WallRootPostWidget::onShareButtonClicked);
 
+    // hide old controls
+    // those controls will should be replaced with the single share button
+    _mIdChooser->hide();
+    _mWallChooser->hide();
+    button->hide();
+
     new Wt::WBreak(_mCenterContainer);
-    new Wt::WLabel("the new share button:", _mCenterContainer);
     _mShareButton = new ShareButton(_mCenterContainer);
 
     new Wt::WBreak(_mCenterContainer);

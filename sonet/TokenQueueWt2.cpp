@@ -1,13 +1,13 @@
 #include "TokenQueueWt2.h"
 
+#include "WebUITimer.h"
+
 namespace RsWall{
 
 TokenQueueWt2::TokenQueueWt2(RsTokenService *tokenService):
     mTokenService(tokenService)
 {
-    mTimer.setInterval(200);// ms
-    mTimer.timeout().connect(this, &TokenQueueWt2::onTimer);
-    mTimer.start();
+    WebUITimer::singleShotNextTick(this, &TokenQueueWt2::onTimer);
 }
 
 void TokenQueueWt2::onTimer()
@@ -47,5 +47,7 @@ void TokenQueueWt2::onTimer()
             }
         }
     }
+
+    WebUITimer::singleShotNextTick(this, &TokenQueueWt2::onTimer);
 }
 }//namespace RsWall

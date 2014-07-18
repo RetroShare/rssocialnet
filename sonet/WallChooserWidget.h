@@ -9,6 +9,8 @@
 #include "TokenQueueWt2.h"
 
 namespace RsWall{
+// old widget
+// shows a dropdown menu with a list of wall group ids
 class WallChooserWidget: public Wt::WContainerWidget
 {
 public:

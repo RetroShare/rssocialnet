@@ -1,22 +1,23 @@
 #include "IdentityLabelWidget.h"
 
 #include "RSWApplication.h"
+#include "WebUITimer.h"
 
 namespace RsWall{
 
 IdentityLabelWidget::IdentityLabelWidget(Wt::WContainerWidget *parent):
     WLabel(parent)
 {
-    mTimer.setInterval(100);
-    mTimer.timeout().connect(this, &IdentityLabelWidget::tryLoadIdentity);
-    mTimer.setSingleShot(true);
+    // does not make sense to load identity until the id is set
+    //tryLoadIdentity();
 }
 
 void IdentityLabelWidget::setIdentity(const RsGxsId &id)
 {
     mIdentity = id;
-    mTimer.start();
     setText(id.toStdString().substr(0,5));
+    setToolTip("id="+id.toStdString());
+    tryLoadIdentity();
 }
 
 void IdentityLabelWidget::tryLoadIdentity()
@@ -29,7 +30,7 @@ void IdentityLabelWidget::tryLoadIdentity()
     else
     {
         // id not cached, try again later
-        mTimer.start();
+        WebUITimer::singleShotNextTick(this, &IdentityLabelWidget::tryLoadIdentity);
     }
 }
 }//namespace RsWall

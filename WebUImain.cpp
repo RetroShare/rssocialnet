@@ -7,7 +7,9 @@
 #include <Wt/WEnvironment>
 
 #include "RSWApplication.h"
+#include "WebUITimer.h"
 #include "WebUImain.h"
+#include "sonet/RsGxsUpdateBroadcastWt.h"
 
 bool c ;
 std::vector<RSWebUI::IPRange>  RSWebUI::_ip(1,RSWebUI::IPRange::make_range("127.0.0.1",c));
@@ -23,6 +25,9 @@ class RSWAppThread: public RsThread
 		}
 		virtual void run()
 		{
+            // tell Wt to always use UTF8 when convertion to and from a Wt::WString
+            Wt::WString::setDefaultEncoding(Wt::UTF8);
+
 			std::string s1 ( "./Hello" );
 			std::string s2 ( "--docroot" );
 #ifdef WINDOWS_SYS
@@ -40,16 +45,21 @@ class RSWAppThread: public RsThread
 			std::string s6("--http-port") ;
 			std::string s7( os2.str() ) ;
 
+            std::string s8("--accesslog") ;
+            std::string s9("rssocialnet_plugin_wt_accesslog.txt") ;
+
 			std::cerr << "RSWEBUI: Using http address " << s5 << ", and port " << s7 << std::endl;
 
-            int argc = 7 ;
+            int argc = 9 ;
 			char *argv[] = {  strdup(s1.c_str()),
 									strdup(s2.c_str()), 
 									strdup(s3.c_str()), 
 									strdup(s4.c_str()),
 									strdup(s5.c_str()),
 									strdup(s6.c_str()),
-                                    strdup(s7.c_str())
+                                    strdup(s7.c_str()),
+                                    strdup(s8.c_str()),
+                                    strdup(s9.c_str())
                            } ;
 
 			std::cerr << "RSWEBUI: In server thread. Launching..." << std::endl;
@@ -59,22 +69,33 @@ class RSWAppThread: public RsThread
 			// WTHTTP_CONFIGURATION is e.g. "/etc/wt/wthttpd"
 			server.setServerConfiguration(argc, argv, WTHTTP_CONFIGURATION);
 
+            // init server side timer
+            timer.setServer(&server);
+
 			// add a single entry point, at the default location (as determined by the server configuration's deploy-path)
             server.addEntryPoint(Wt::Application, createApplication, std::string(), std::string("sonet-ressources/logo_64.png"));
 
 			if(!server.start()) 
 			{
+                timer.reset();
 				std::cerr << "RSWEBUI: Server failed to start. Giving up." << std::endl;
 				join() ;
 				stop() ;
 			}
 
-			while(!_should_stop)
+            while(!_should_stop)
+            {
+                RsWall::RsGxsUpdateBroadcastWt::tick();
+                timer.tick();
 #ifdef WINDOWS_SYS
-				Sleep(1000) ;
+                //Sleep(1000) ; // milliseconds
+                Sleep(300); // have to test what a good update frequency is
 #else
 				sleep(1) ;
 #endif
+            }
+
+            timer.reset();
 
 			//Wt::WServer::waitForShutdown();
 
@@ -100,7 +121,7 @@ class RSWAppThread: public RsThread
 				found = (*it).contains(r) ;
 
 			if(found)
-				return new RSWApplication(env,*plg_interfaces);
+                return new RSWApplication(env,*plg_interfaces, &timer);
 			else
 				return NULL ;
 		}
@@ -114,6 +135,7 @@ class RSWAppThread: public RsThread
 		static const uint32_t RSWAPP_THREAD_STATUS_RUNNING = 0x02 ;
 
 		static RsPlugInInterfaces *plg_interfaces ;
+        static WebUITimer timer;
 	private:
 
 		bool 		_should_stop ;
@@ -123,6 +145,8 @@ class RSWAppThread: public RsThread
 // Needs to be constructed on heap, so that it's not copy+writed in the thread.
 //
 RsPlugInInterfaces *RSWAppThread::plg_interfaces = new RsPlugInInterfaces;
+
+WebUITimer RSWAppThread::timer;
 
 bool RSWebUI::isRunning() 
 { 

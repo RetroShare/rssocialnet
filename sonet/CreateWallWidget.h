@@ -10,6 +10,8 @@
 namespace RsWall{
 // experimental widget to create a new wall
 // it shows a box to select an identity and a TextArea for the profile text
+// this widget was usefull in the development phase
+// walls should now be created automatically by the wallservice
 class CreateWallWidget: public Wt::WContainerWidget
 {
 public:

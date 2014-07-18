@@ -4,18 +4,13 @@
 
 #include "SonetUtil.h"
 #include "RSWApplication.h"
+#include "WebUITimer.h"
 
 namespace RsWall{
 
 GxsIdChooserWt::GxsIdChooserWt(Wt::WContainerWidget *parent):
-    WContainerWidget(parent)
+    WContainerWidget(parent), _idCombo(new Wt::WComboBox(this))
 {
-    _idCombo = new Wt::WComboBox(this);
-
-    mTimer.setInterval(100);
-    mTimer.setSingleShot(true);
-    mTimer.timeout().connect(this, &GxsIdChooserWt::loadIds);
-
     loadIds();
 }
 
@@ -43,7 +38,7 @@ void GxsIdChooserWt::loadIds()
     else
     {
         // id details not cached, try later
-        mTimer.start();
+        WebUITimer::singleShotNextTick(this, &GxsIdChooserWt::loadIds);
     }
 }
 

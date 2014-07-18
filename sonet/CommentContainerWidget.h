@@ -14,7 +14,7 @@
 namespace RsWall{
 // generic widget to show existing comments and to create a new one
 // it uses the RsGxsCommentService
-// todo: handle events, display only the last x comments
+// todo: display only the last x comments
 class CommentContainerWidget: public Wt::WContainerWidget
 {
 public:
