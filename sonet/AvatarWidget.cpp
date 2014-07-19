@@ -173,7 +173,10 @@ void AvatarWidgetWt::onTokenReady(uint32_t token, bool ok)
         }
         // get a copy of the shared ptr, to prevent the ressource from getting deleted
         _mAvatarImageRessource = resPtr;
-        _mAvatarImage->setImageLink(Wt::WLink(resPtr.get()));
+        if(resPtr.get())
+        {
+            _mAvatarImage->setImageLink(Wt::WLink(resPtr.get()));
+        }
     }
     else
     {
