@@ -3,6 +3,7 @@
 
 #include <Wt/WBreak>
 #include <Wt/WFileUpload>
+#include <Wt/WTemplate>
 #include <fstream>
 
 #include <retroshare/rsidentity.h>
@@ -15,6 +16,10 @@ WallWidget::WallWidget(Wt::WContainerWidget *parent):
     WContainerWidget(parent), _TokenQueue(rsWall->getTokenService()),
     isEditing(false), subscribed(false), _WallGroupToken(0), _PostMsgToken(0)
 {
+    Wt::WTemplate* templ = new Wt::WTemplate("<h1>Wall of ${name}</h1>", this);
+    _HeaderIdentityLabel = new IdentityLabelWidget();
+    templ->bindWidget("name", _HeaderIdentityLabel);
+
     _AvatarWidget = new AvatarWidgetWt(false, this);
 
     // the container contains the wall posts
@@ -169,8 +174,6 @@ void WallWidget::tokenCallback(uint32_t token, bool ok)
             if(!wgs.empty())
             {
                 _ProfileContainer->clear();
-                new Wt::WLabel("Wall Page of ", _ProfileContainer);
-                IdentityLabelWidget* identityLabel = new IdentityLabelWidget(_ProfileContainer);
                 new Wt::WBreak(_ProfileContainer);
                 new Wt::WLabel("Profile text:", _ProfileContainer);
                 new Wt::WBreak(_ProfileContainer);
@@ -181,7 +184,7 @@ void WallWidget::tokenCallback(uint32_t token, bool ok)
                 WallGroup& wg = wgs.front();
                 _Grp = wg;
                 _GrpId = wg.mMeta.mGroupId;
-                identityLabel->setIdentity(_AuthorId);
+                _HeaderIdentityLabel->setIdentity(_AuthorId);
                 profileText->setText(wg.mProfileText);
                 _ProfileEdit->setText(wg.mProfileText);
                 // load this wall group

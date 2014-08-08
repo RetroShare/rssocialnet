@@ -10,6 +10,7 @@
 #include "WebUITimer.h"
 #include "WebUImain.h"
 #include "sonet/RsGxsUpdateBroadcastWt.h"
+#include "api/ApiServer.h"
 
 bool c ;
 std::vector<RSWebUI::IPRange>  RSWebUI::_ip(1,RSWebUI::IPRange::make_range("127.0.0.1",c));
@@ -65,6 +66,9 @@ class RSWAppThread: public RsThread
 			std::cerr << "RSWEBUI: In server thread. Launching..." << std::endl;
 
             Wt::WServer server(argv[0]);
+
+            new_api::ApiServer* res = new new_api::ApiServer(*plg_interfaces);
+            server.addResource(res, "/api");
 
 			// WTHTTP_CONFIGURATION is e.g. "/etc/wt/wthttpd"
 			server.setServerConfiguration(argc, argv, WTHTTP_CONFIGURATION);

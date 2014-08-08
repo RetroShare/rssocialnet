@@ -45,7 +45,16 @@ SOURCES = RSWApplication.cpp \
     util/jpge.cpp \
     util/jpgd.cpp \
     util/imageresize.cpp \
-    util/lodepng.cpp
+    util/lodepng.cpp \
+    api/ApiServer.cpp \
+    api/json.cpp \
+    api/JsonStream.cpp \
+    api/ResourceRouter.cpp \
+    api/PeersHandler.cpp \
+    api/Operators.cpp \
+    api/IdentityHandler.cpp \
+    api/WallHandler.cpp \
+    api/ServiceControlHandler.cpp
 
 HEADERS = RSWApplication.h \
           WebUImain.h \
@@ -85,7 +94,18 @@ HEADERS = RSWApplication.h \
     util/jpge.h \
     util/jpgd.h \
     util/imageresize.h \
-    util/lodepng.h
+    util/lodepng.h \
+    api/ApiServer.h \
+    api/json.h \
+    api/JsonStream.h \
+    api/ApiTypes.h \
+    api/ResourceRouter.h \
+    api/PeersHandler.h \
+    api/Operators.h \
+    api/IdentityHandler.h \
+    api/WallHandler.h \
+    api/ServiceControlHandler.h \
+    api/GxsMetaOperators.h
 
 FORMS += gui/RsWebUIConfig.ui
 
@@ -121,3 +141,6 @@ win32 {
         #LIBS += -lboost_date_time-mgw44-mt-1_54 -lboost_filesystem-mgw44-mt-1_54 -lboost_program_options-mgw44-mt-1_54 -lboost_random-mgw44-mt-1_54 -lboost_regex-mgw44-mt-1_54 -lboost_system-mgw44-mt-1_54 -lboost_thread-mgw44-mt-1_54
         #LIBS += -lboost_signals-mgw44-mt-1_54
 }
+
+OTHER_FILES += \
+    api/ConvertToStringStream.h

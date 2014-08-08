@@ -48,6 +48,7 @@ COMPILATION on Windows
 
 	- compile boost. Run these commands in Windows cmd
 		cd d:\retroshare_dev\boost_1_5_55
+		bootstrap.bat mingw
 		bjam.exe toolset=gcc link=static threading=multi --layout=versioned --prefix=d:/retroshare_dev/boost-build --without-context install
 
 	- download Wt and unzip it into your development folder

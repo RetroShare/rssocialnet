@@ -3,6 +3,7 @@
 
 #include <retroshare/rsplugin.h>
 #include <util/rsversion.h>
+#include <util/rsdir.h>
 
 #include "WebUIPlugin.h"
 #include "WebUImain.h"
@@ -97,7 +98,9 @@ void WebUIPlugin::setInterfaces(RsPlugInInterfaces &interfaces)
     // (like zeroreserve: <sslid>/zeroreserve)
     // idea: use different folders for different plugin versions
     std::cerr << "Starting p3WallService" << std::endl;
-    wall_ds = new RsDataService(interfaces.mGxsDir + "rssocialnet_v0", "wall_db",
+    std::string dataDir = interfaces.mGxsDir + "rssocialnet_v0";
+    RsDirUtil::checkCreateDirectory(dataDir);
+    wall_ds = new RsDataService(dataDir, "wall_db",
                                 RsWall::RS_SERVICE_TYPE_WALL, NULL, "todo: encrypt db with secure password");
     wall = new RsWall::p3WallService(wall_ds, NULL, interfaces.mGxsIdService, interfaces.mIdentity);
     wall_ns = new RsGxsNetService(

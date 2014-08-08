@@ -178,6 +178,8 @@ class FriendListModel : public Wt::WAbstractTableModel
 				std::string base64_string ;
 				Radix64::encode((const char *)data,size,base64_string) ;
 
+                delete[] data;
+
 				_friend_avatars.push_back(std::string("data:image/jpeg;base64,"+base64_string)) ;
 
 #ifdef DEBUG_FRIENDSPAGE	

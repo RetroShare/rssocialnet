@@ -36,6 +36,7 @@ private:
     RsGxsId _AuthorId;
     RsGxsGroupId _GrpId;
     TokenQueueWt2 _TokenQueue;
+    IdentityLabelWidget* _HeaderIdentityLabel;
     AvatarWidgetWt* _AvatarWidget;
     Wt::WContainerWidget* _ProfileContainer;
     Wt::WTextArea* _ProfileEdit;
