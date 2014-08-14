@@ -418,7 +418,11 @@ void ApiServer::handleRequest(const Wt::Http::Request &request, Wt::Http::Respon
             response.out() <<
                               "Retroshare JSON over http interface\n"
                               "===================================\n"
+                              "Note: this api is experimental and not well tested.\n"
+                              "It is just a proof of concept to show how a JSON over http interface could work.\n"
+                              "\n"
                               "available subresources:\n"
+                              "/help   -- this page\n"
                               "/peers\n"
                               "/identity\n"
                               "/wall\n"

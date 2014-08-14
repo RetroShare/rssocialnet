@@ -11,7 +11,7 @@ class IdentityHandler: public ResourceRouter
 {
 public:
     IdentityHandler(RsIdentity* identity);
-
+    virtual std::string help();
 private:
     RsIdentity* mRsIdentity;
     void handleWildcard(Request& req, Response& resp);

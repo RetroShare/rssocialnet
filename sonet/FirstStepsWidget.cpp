@@ -29,7 +29,7 @@ FirstStepsWidget::FirstStepsWidget(Wt::WContainerWidget *parent):
                 "<p>The widget below shows all currently known identities with a wall."
                 " Later a Filter should be applied to show only interesting identities. Like \"People you may know\"."
                 " The social network starts by subscribing to another wall.</p>"
-                "<p>NOTE: the event handling is buggy. For an unknown reason it can happen that the timer which should check if the ui needs updates stops working. Then reload the page.</p>"
+                "<p>Preview of the new <a href='api/v2/help'>JSON over http interface for Retroshare</a></p>"
                 );
 
     new Wt::WBreak(container);

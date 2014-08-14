@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <stack>
+#include <stdint.h>
 
 
 namespace resource_api

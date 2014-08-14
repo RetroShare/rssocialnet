@@ -27,7 +27,9 @@ class RSWAppThread: public RsThread
 		virtual void run()
 		{
             // tell Wt to always use UTF8 when convertion to and from a Wt::WString
+#if WT_VERSION >= 0x03030200
             Wt::WString::setDefaultEncoding(Wt::UTF8);
+#endif
 
 			std::string s1 ( "./Hello" );
 			std::string s2 ( "--docroot" );

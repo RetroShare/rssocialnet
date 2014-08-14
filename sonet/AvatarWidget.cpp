@@ -12,6 +12,8 @@
 #include "RsGxsUpdateBroadcastWt.h"
 #include "util/imageresize.h"
 
+#include <fstream>
+
 namespace RsWall{
 
 AvatarWidgetWt::AvatarWidgetWt(bool small, Wt::WContainerWidget *parent):

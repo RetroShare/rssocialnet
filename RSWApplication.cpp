@@ -39,7 +39,7 @@ RSWApplication::RSWApplication(const Wt::WEnvironment& env,const RsPlugInInterfa
 {
     enableUpdates(true);// required for server side events (WebUITimer)
 
-    setTitle(Wt::WString("Retroshare Social Network Plugin. Version {1} TODO: use git version id").arg(SVN_REVISION_NUMBER)); // application title
+    setTitle(Wt::WString("Retroshare Social Network Plugin. Version {1} TODO: use git version id").arg(0/*SVN_REVISION_NUMBER*/)); // application title
 
 	Wt::WContainerWidget *container = new Wt::WContainerWidget();
 

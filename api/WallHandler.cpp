@@ -7,6 +7,9 @@
 #include <retroshare/rsidentity.h>
 
 #include <algorithm>
+#ifndef WINDOWS_SYS
+#include "unistd.h"
+#endif
 
 namespace resource_api
 {
@@ -19,7 +22,11 @@ bool waitForTokenOrTimeout(uint32_t token, RsTokenService* tokenService)
           && (time(NULL) < (start+10))
           )
     {
+#ifdef WINDOWS_SYS
         Sleep(500);
+#else
+        usleep(500*1000) ;
+#endif
     }
     if(tokenService->requestStatus(token) == RsTokenService::GXS_REQUEST_V2_STATUS_COMPLETE)
     {
@@ -125,7 +132,11 @@ void WallHandler::handleActivities(Request &req, Response &resp)
           &&((time(NULL) < (start+10)))
           )
     {
+#ifdef WINDOWS_SYS
         Sleep(500);
+#else
+        usleep(500*1000) ;
+#endif
     }
 
     std::list<RsGroupMetaData> postGrpMetas;
@@ -157,7 +168,11 @@ void WallHandler::handleActivities(Request &req, Response &resp)
             ready &= (mRsWall->getTokenService()->requestStatus(*vit) == RsTokenService::GXS_REQUEST_V2_STATUS_COMPLETE)
                     ||(mRsWall->getTokenService()->requestStatus(*vit) == RsTokenService::GXS_REQUEST_V2_STATUS_FAILED);
         }
+#ifdef WINDOWS_SYS
         Sleep(500);
+#else
+        usleep(500*1000) ;
+#endif
     }
 
     // get the msgs
@@ -307,7 +322,11 @@ void WallHandler::handleWall(Request &req, Response &resp)
                             << makeKeyValue("avatar_address", avatar_address)
                                ;
                 }
+#ifdef WINDOWS_SYS
                 Sleep(500);
+#else
+                usleep(500*1000) ;
+#endif
             }
         }
     }

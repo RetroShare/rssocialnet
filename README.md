@@ -1,5 +1,5 @@
 Retroshare social network plugin
-===============================
+================================
 
 This is a Retroshare v0.6 plugin, designed to provide social network features. It provides a webinterface based on Wt, the Qt-style library for web UIs.
 
@@ -8,11 +8,16 @@ This plugin extends the code of RSWebUI.
 Download the sources
 --------------------
 
-	cd retroshare_source/plugins
+This Plugin only works with the v0.6-rssocialnet branch of Retroshare.
+
+	svn co svn://svn.code.sf.net/p/retroshare/code/branches/v0.6-rssocialnet v0.6-rssocialnet
+	cd v0.6-rssocialnet/plugins
 	git clone https://git.gitorious.org/rssocialnet/rssocialnet.git
 
 COMPILATION on Ubuntu
 ---------------------
+
+	- compile Retroshare as usual, ses the Retroshare wiki for help: http://retroshare.sourceforge.net/wiki/index.php/UnixCompile
 
 	- install packages 
 			> sudo apt-get install witty-dev libwt-dev
@@ -40,6 +45,8 @@ COMPILATION on Ubuntu
 COMPILATION on Windows
 ----------------------
 
+	- compile Retroshare as usual, ses the Retroshare wiki for help: http://retroshare.sourceforge.net/wiki/index.php/Win32Compile
+	
 	- download and install cmake
 		http://cmake.org/
 
@@ -58,8 +65,9 @@ COMPILATION on Windows
 		cd d:\retroshare_dev\wt-3.3.2
 		mkdir build
 		cd build
-		cmake -DBOOST_DIR=d:/retroshare_dev/boost-build -DBOOST_VERSION=1_55 -DBOOST_COMPILER=mgw44 -G "MinGW Makefiles" ..
-		ming32-make
+		cmake -DBOOST_DIR=d:/retroshare_dev/boost-build -DBOOST_VERSION=1_55 -DBOOST_COMPILER=mgw44 -DCMAKE_INSTALL_PREFIX=d:/retroshare_dev/wt-3.3.2-install -G "MinGW Makefiles" ..
+		mingw32-make
+		mingw32-make install
 
 	- you can set the versions and directories of boost and Wt in rssocialnet.pro
 

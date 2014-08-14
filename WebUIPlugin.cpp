@@ -72,7 +72,7 @@ QDialog *WebUIPlugin::qt_about_page() const
 		about_dialog = new QMessageBox() ;
 
 		QString text ;
-		text += QObject::tr("<h3>RetroShare WebUI plugin</h3>* Contributors: Cyril Soler<br/>") ;
+        text += QObject::tr("<h3>RetroShare Social network plugin, based on the WebUI plugin</h3>* Contributors: Cyril Soler<br/>") ;
 		text += QObject::tr("<p>The WebUI plugin provides a web interface to Retroshare.") ;
 		text += QObject::tr("It is easily configurable from the Config->WebUI page, and is based on Wt (Witty)</p>.") ;
 

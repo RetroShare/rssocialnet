@@ -1,5 +1,4 @@
-#ifndef _AUDIOINPUTCONFIG_H
-#define _AUDIOINPUTCONFIG_H
+#pragma once
 
 #include <stdint.h>
 #include <QWidget>
@@ -41,5 +40,3 @@ class RsWebUIConfig : public ConfigPage
 		uint16_t _old_port ;
 		bool _ip_list_changed ;
 };
-
-#endif

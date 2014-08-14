@@ -4,6 +4,9 @@
 
 #include "Operators.h"
 #include "ApiTypes.h"
+#ifndef WINDOWS_SYS
+#include "unistd.h"
+#endif
 
 namespace resource_api
 {
@@ -13,6 +16,22 @@ IdentityHandler::IdentityHandler(RsIdentity *identity):
 {
     addResourceHandler("*", this, &IdentityHandler::handleWildcard);
     addResourceHandler("own", this, &IdentityHandler::handleOwn);
+}
+
+std::string IdentityHandler::help()
+{
+    return
+            "GET /\n"
+            "return a list of gxs-identities\n"
+            "\n"
+            "GET /own\n"
+            "return a list of own gxs-identities\n"
+            "\n"
+            "POST /\n"
+            "{'name':'<somename>'}\n"
+            "\n"
+            "create a new gxs-identity\n"
+;
 }
 
 void IdentityHandler::handleWildcard(Request &req, Response &resp)
@@ -48,7 +67,11 @@ void IdentityHandler::handleWildcard(Request &req, Response &resp)
               &&((time(NULL) < (start+10)))
               )
         {
+#ifdef WINDOWS_SYS
             Sleep(500);
+#else
+            usleep(500*1000) ;
+#endif
         }
 
         if(mRsIdentity->getTokenService()->requestStatus(token) == RsTokenService::GXS_REQUEST_V2_STATUS_COMPLETE)
@@ -117,7 +140,11 @@ void IdentityHandler::handleOwn(Request &req, Response &resp)
                 }
             }
         }
+#ifdef WINDOWS_SYS
         Sleep(500);
+#else
+        usleep(500*1000) ;
+#endif
     }
     resp.mReturnCode = 0;
 }
