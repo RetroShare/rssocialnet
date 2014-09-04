@@ -105,7 +105,10 @@ void RsGxsUpdateBroadcastWt::_tick()
 
     if(mIfaceImpl->updated(true, true)){
         std::list<RsGxsGroupId> grpIds;
-        mIfaceImpl->groupsChanged(grpIds);
+        std::list<RsGxsGroupId> grpIdsMeta;
+        mIfaceImpl->groupsChanged(grpIds, grpIdsMeta);
+        // merge ids of meta changes and data changes
+        grpIds.merge(grpIdsMeta);
         if(!grpIds.empty()){
             std::cerr << "RsGxsUpdateBroadcastWt::_tick(): emitting grps Changed" << std::endl;
             std::map<Wt::WApplication*, GrpsChangedSignal* >::iterator mit;
@@ -135,7 +138,21 @@ void RsGxsUpdateBroadcastWt::_tick()
         }
 
         std::map<RsGxsGroupId, std::vector<RsGxsMessageId> > msgIds;
-        mIfaceImpl->msgsChanged(msgIds);
+        std::map<RsGxsGroupId, std::vector<RsGxsMessageId> > msgsIdsMeta;
+        mIfaceImpl->msgsChanged(msgIds, msgsIdsMeta);
+        // merge meta changes and data changes
+        for(std::map<RsGxsGroupId, std::vector<RsGxsMessageId> >::iterator mit = msgsIdsMeta.begin(); mit != msgsIdsMeta.end(); mit++)
+        {
+            std::map<RsGxsGroupId, std::vector<RsGxsMessageId> >::iterator mit2 = msgIds.find(mit->first);
+            if(mit2 != msgIds.end())
+            {
+                mit2->second.insert(mit2->second.end(), mit->second.begin(), mit->second.end());
+            }
+            else
+            {
+                msgIds[mit->first] = mit->second;
+            }
+        }
         if(!msgIds.empty()){
             std::cerr << "RsGxsUpdateBroadcastWt::_tick(): emitting msgs Changed" << std::endl;
             std::map<Wt::WApplication*, MsgsChangedSignal*>::iterator mit;

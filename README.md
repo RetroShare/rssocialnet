@@ -8,10 +8,7 @@ This plugin extends the code of RSWebUI.
 Download the sources
 --------------------
 
-This Plugin only works with the v0.6-rssocialnet branch of Retroshare.
-
-	svn co svn://svn.code.sf.net/p/retroshare/code/branches/v0.6-rssocialnet v0.6-rssocialnet
-	cd v0.6-rssocialnet/plugins
+	cd retroshare-trunk/plugins
 	git clone https://git.gitorious.org/rssocialnet/rssocialnet.git
 
 COMPILATION on Ubuntu
