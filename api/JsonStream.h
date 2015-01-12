@@ -47,12 +47,14 @@ public:
     virtual bool serialise(); // let external operators find out they should serialise or deserialise
     // return true if no serialisation/deserialisation error occoured
     virtual bool isOK();
-    virtual bool setError(); // let external operators set the failed bit
+    virtual void setError(); // let external operators set the failed bit
     virtual void addLogMsg(std::string msg);
     virtual void addErrorMsg(std::string msg);
     virtual std::string getLog();
     virtual std::string getErrorLog();
 
+    virtual bool isRawData();
+    virtual std::string getRawData();
 private:
     bool mSerialise;
     enum DataType{ TYPE_UNDEFINED, TYPE_ARRAY, TYPE_OBJECT, TYPE_RAW };

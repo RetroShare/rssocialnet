@@ -11,6 +11,9 @@
 #include "WebUImain.h"
 #include "sonet/RsGxsUpdateBroadcastWt.h"
 #include "api/ApiServer.h"
+#ifdef ENABLE_FILESTREAMER
+    #include "api/FileStreamerWt.h"
+#endif
 
 bool c ;
 std::vector<RSWebUI::IPRange>  RSWebUI::_ip(1,RSWebUI::IPRange::make_range("127.0.0.1",c));
@@ -69,8 +72,13 @@ class RSWAppThread: public RsThread
 
             Wt::WServer server(argv[0]);
 
-            new_api::ApiServer* res = new new_api::ApiServer(*plg_interfaces);
+            resource_api::ApiServerWt* res = new resource_api::ApiServerWt(*plg_interfaces);
             server.addResource(res, "/api");
+
+#ifdef ENABLE_FILESTREAMER
+            FileStreamerWt* fstr = new FileStreamerWt(*plg_interfaces);
+            server.addResource(fstr, "/fstream");
+#endif
 
 			// WTHTTP_CONFIGURATION is e.g. "/etc/wt/wthttpd"
 			server.setServerConfiguration(argc, argv, WTHTTP_CONFIGURATION);

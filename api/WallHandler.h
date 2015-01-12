@@ -18,7 +18,7 @@ public:
 private:
     RsWall::RsWall* mRsWall;
     RsIdentity* mRsIdentity;
-    void handleWildcard(Request& req, Response& resp);
+    ResponseTask* handleWildcard(Request& req, Response& resp);
     void handleOwn(Request& req, Response& resp);
     void handleActivities(Request& req, Response& resp);
     void handleWall(Request& req, Response& resp);

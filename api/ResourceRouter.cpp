@@ -12,13 +12,22 @@ public:
     {
         addResourceHandler("eins", this, &TestResource::eins);
     }
-    void eins(Request& req, Response& resp)
+    ResponseTask* eins(Request& req, Response& resp)
     {
-        //
+        return 0;
     }
 };
 
-void ResourceRouter::handleRequest(Request& req, Response& resp)
+ResourceRouter::~ResourceRouter()
+{
+    std::vector<std::pair<std::string, HandlerBase*> >::iterator vit;
+    for(vit = mHandlers.begin(); vit != mHandlers.end(); vit++)
+    {
+        delete vit->second;
+    }
+}
+
+ResponseTask* ResourceRouter::handleRequest(Request& req, Response& resp)
 {
     std::vector<std::pair<std::string, HandlerBase*> >::iterator vit;
     if(!req.mPath.empty())
@@ -28,8 +37,7 @@ void ResourceRouter::handleRequest(Request& req, Response& resp)
             if(vit->first == req.mPath.top())
             {
                 req.mPath.pop();
-                vit->second->handleRequest(req, resp);
-                return;
+                return vit->second->handleRequest(req, resp);
             }
         }
     }
@@ -40,10 +48,10 @@ void ResourceRouter::handleRequest(Request& req, Response& resp)
         {
             // don't pop the path component, because it may contain usefull info for the wildcard handler
             //req.mPath.pop();
-            vit->second->handleRequest(req, resp);
-            return;
+            return vit->second->handleRequest(req, resp);
         }
     }
+    return 0;
 }
 
 } // namespace resource_api

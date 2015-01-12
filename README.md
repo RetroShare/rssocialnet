@@ -5,6 +5,14 @@ This is a Retroshare v0.6 plugin, designed to provide social network features. I
 
 This plugin extends the code of RSWebUI.
 
+New plan:
+
+	- deprecate RsWebUI
+	- make an interface wich serves JSON data over http (see ./api)
+	- make a new webinterface with react.js (see ./webui)
+
+Please read the readmes in ./api and ./webui.
+
 Download the sources
 --------------------
 

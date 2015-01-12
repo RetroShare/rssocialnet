@@ -1,0 +1,79 @@
+The output data from RsWall will be very similar to this.
+
+Notation:
+	Oject:
+	{
+		member: Type
+	}
+
+Identity: someone doing something like making a post, a comment or sharing something
+Post: small piece of content. Can get commented, forwarded to friends and pinned on a Wall (or multiple Walls if desired).
+Wall: place which belongs to an Identity. Own posts get pinned here, Friends can pin posts here.
+
+Private Posts are very important.
+Everything in the backend is prepared for this.
+But unfortunately it is not completed yet.
+
+Identity:
+{
+	// this id can be used to
+	// - request Wall of this Identity
+	// - start a chat or send a message
+	// - subscribe/unsubscribe from the Wall of this Identity
+	gxs_id: String
+
+	name: String
+	is_own: bool
+	avatar_adress: String
+}
+
+Comment:
+{
+	author: Identity
+	message: String
+}
+
+Post:
+small piece of content
+{
+	(optional) author: Identity
+	message: String
+	comments: [Comment, Comment, ...]
+
+	// use this id to add a comment or to share this post
+	id: String
+
+	// TODO: allow to share images
+}
+
+Activity:
+what happens?
+Activities appear on a list.
+{
+	// list of Identities who (re)shared this post
+	shared: [Identity, Identity, ...]
+	// list of Identities who made a comment on this post
+	commented: [Identity, Identity, ...]
+
+	post: Post
+}
+
+PostReference:
+pins a Post to a Wall
+{
+	post: Post
+
+	// who has put this post on this Wall?
+	author: Identity
+}
+
+Wall
+{
+	owner: Identity
+	profile_text: String
+	wall_image_adress: String
+
+	// do i want to receive updates from this Wall?
+	// do i want to distribute the content of this Wall?
+	subscribed: bool
+}

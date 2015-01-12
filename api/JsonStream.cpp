@@ -37,6 +37,8 @@ std::string JsonStream::getJsonString()
             return json::Serialize(mObject);
         case TYPE_RAW:
             return mRawString;
+        default:
+            return "";
         }
     }
 }
@@ -249,6 +251,7 @@ StreamBase& JsonStream::operator<<(std::vector<uint8_t>& data)
             mIsOk = false;
         }
     }
+    return *this;
 }
 
 // return true if there are more members in this object/array
@@ -268,7 +271,7 @@ bool JsonStream::isOK()
     return mIsOk;
 }
 
-bool JsonStream::setError()
+void JsonStream::setError()
 {
     mIsOk = false;
 }
@@ -282,11 +285,23 @@ void JsonStream::addErrorMsg(std::string msg)
 }
 
 std::string JsonStream::getLog()
-{}
+{
+    return "not implemented yet";
+}
 
 std::string JsonStream::getErrorLog()
 {
     return mErrorLog;
+}
+
+bool JsonStream::isRawData()
+{
+    return mDataType == TYPE_RAW;
+}
+
+std::string JsonStream::getRawData()
+{
+    return mRawString;
 }
 
 void JsonStream::setType(DataType type)
@@ -325,23 +340,27 @@ bool JsonStream::checkObjectMember(std::string key)
 
 bool JsonStream::arrayBoundsOk()
 {
-    if(mDataType == TYPE_ARRAY)
+    if(checkDeserialisation())
     {
-        if(mArrayNextRead < mArray.size())
+        if(mDataType == TYPE_ARRAY)
         {
-            return true;
+            if(mArrayNextRead < mArray.size())
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
         else
         {
+            mIsOk = false;
+            mErrorLog += "JsonStream::arrayBoundsOk() Error: type is not TYPE_ARRAY\n";
             return false;
         }
     }
-    else
-    {
-        mIsOk = false;
-        mErrorLog += "JsonStream::arrayBoundsOk() Error: type is not TYPE_ARRAY\n";
-        return false;
-    }
+    return false;
 }
 
 bool JsonStream::checkDeserialisation()
@@ -481,6 +500,8 @@ json::Value JsonStream::getJsonValue()
         return mObject;
     case TYPE_RAW:
         return mRawString;
+    default:
+        return json::Value();
     }
 }
 

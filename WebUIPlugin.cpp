@@ -111,10 +111,8 @@ void WebUIPlugin::setInterfaces(RsPlugInInterfaces &interfaces)
             );
     RsWall::rsWall = wall;
 
-    // see rsinit.cc:1733
-    // why is it createThread and not wall->start()?
-    createThread(*wall);
-    createThread(*wall_ns);
+    wall->start();
+    wall_ns->start();
 
 	std::cerr << "Starting the WebUI" << std::endl;
     RSWebUI::start(interfaces) ;

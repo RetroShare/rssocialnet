@@ -38,7 +38,7 @@ void IdentityHandler::handleWildcard(Request &req, Response &resp)
 {
     bool ok = true;
 
-    if(req.mMethod == Request::POST)
+    if(req.mMethod == Request::PUT)
     {
         RsIdentityParameters params;
         req.mStream << makeKeyValueReference("name", params.nickname);
@@ -86,7 +86,7 @@ void IdentityHandler::handleWildcard(Request &req, Response &resp)
                 // not very happy about this, i think the flags should stay hidden in rsidentities
                 bool own = (grp.mMeta.mSubscribeFlags & GXS_SERV::GROUP_SUBSCRIBE_ADMIN);
                 bool pgp_linked = (grp.mMeta.mGroupFlags & RSGXSID_GROUPFLAG_REALID);
-                resp.mStream.getStreamToMember()
+                resp.mDataStream.getStreamToMember()
                         << id
                         << pgp_id
                         << makeKeyValueReference("name", grp.mMeta.mGroupName)
@@ -102,11 +102,11 @@ void IdentityHandler::handleWildcard(Request &req, Response &resp)
 
     if(ok)
     {
-        resp.mReturnCode = 0;
+        resp.mReturnCode = Response::OK;
     }
     else
     {
-        resp.mReturnCode = 1;
+        resp.mReturnCode = Response::FAIL;
     }
 }
 
@@ -129,7 +129,7 @@ void IdentityHandler::handleOwn(Request &req, Response &resp)
                 ok &= mRsIdentity->getIdDetails(*lit, details);
                 if(ok)
                 {
-                    resp.mStream.getStreamToMember()
+                    resp.mDataStream.getStreamToMember()
                             << makeKeyValueReference("name",    details.mNickname)
                             << makeKeyValueReference("id",      details.mId)
                             << makeKeyValueReference("pgp_id",  details.mPgpId)
@@ -146,7 +146,7 @@ void IdentityHandler::handleOwn(Request &req, Response &resp)
         usleep(500*1000) ;
 #endif
     }
-    resp.mReturnCode = 0;
+    resp.mReturnCode = Response::OK;
 }
 
 } // namespace resource_api

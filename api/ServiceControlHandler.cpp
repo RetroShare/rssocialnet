@@ -74,22 +74,22 @@ void ServiceControlHandler::handleWildcard(Request &req, Response &resp)
                 ok &= mRsServiceControl->getServicePermissions(mit->first, perms);
                 if(ok)
                 {
-                    servicePermissionToStream(resp.mStream.getStreamToMember(), perms);
+                    servicePermissionToStream(resp.mDataStream.getStreamToMember(), perms);
                 }
             }
         }
-        else if(req.mMethod == Request::POST)
+        else if(req.mMethod == Request::PUT)
         {
 
         }
     }
     if(ok)
     {
-        resp.mReturnCode = 0;
+        resp.mReturnCode = Response::OK;
     }
     else
     {
-        resp.mReturnCode = 1;
+        resp.mReturnCode = Response::FAIL;
     }
 }
 

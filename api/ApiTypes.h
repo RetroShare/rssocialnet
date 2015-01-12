@@ -5,7 +5,6 @@
 #include <stack>
 #include <stdint.h>
 
-
 namespace resource_api
 {
 // things to clean up:
@@ -14,7 +13,6 @@ namespace resource_api
 // - add help functions
 // - remove unused functions or implement them
 // - add operators or functions for std::set, std::list, std::vector, std::map
-
 
 
 // idea:
@@ -124,11 +122,14 @@ public:
     virtual bool serialise() = 0; // let external operators find out they should serialise or deserialise
     // return true if no serialisation/deserialisation error occoured
     virtual bool isOK() = 0;
-    virtual bool setError() = 0; // let external operators set the failed bit
+    virtual void setError() = 0; // let external operators set the failed bit
     virtual void addLogMsg(std::string msg) = 0;
     virtual void addErrorMsg(std::string msg) = 0;
     virtual std::string getLog() = 0;
     virtual std::string getErrorLog() = 0;
+
+    virtual bool isRawData() = 0;
+    virtual std::string getRawData() = 0;// HACK, remove this
 };
 
 // todo:
@@ -163,12 +164,25 @@ public:
 // - stream
 // - binary data, for example files
 
+// TODO: record a timestamp for each token, to allow garbage collection of very old tokens
+class StateToken{
+public:
+    StateToken(): value(0){}
+    StateToken(uint32_t value): value(value){}
+    std::string toString();
+
+    uint32_t getValue() const {return value;}
+    bool isNull() const {return value == 0;}
+private:
+    uint32_t value; // 0 is reserved for invalid token
+};
+
 class Request
 {
 public:
     Request(StreamBase& stream): mStream(stream){}
 
-    enum Method { GET, POST, DELETE_AA};// something is wrong with DELETE, it won't compile with it
+    enum Method { GET, PUT, DELETE_AA, EXEC};// something is wrong with DELETE, it won't compile with it
     Method mMethod;
 
     // path is the adress to the resource
@@ -178,27 +192,54 @@ public:
 
     // parameters should be used to influence the result
     // for example include or exclude some information
+    // question: when to use parameters, and when to use the data field?
+    // it would be easier to have only one thing...
     std::vector<std::pair<std::string, std::string> > mParameters;
 
     // contains data for new resources
     StreamBase& mStream;
 };
 
+// new notes on responses
+// later we want to send multiple requests over the same link
+// and we want to be able to send the responses in a different order than the requests
+// for this we need a unique token in every request which gets returned in the response
+
+// response:
+// message token
+// status (ok, warning, fail)
+// data (different for different resources)
+// debugstring (a human readable error message in case something went wrong)
+
 class Response
 {
 public:
-    Response(StreamBase& stream): mReturnCode(0), mStream(stream){}
+    Response(StreamBase& stream, std::ostream& debug): mReturnCode(NOT_SET), mDataStream(stream), mDebug(debug){}
 
-    // have to think about what format is good
-    // maybe a bool is enough?
-    uint32_t mReturnCode;
+    // WARNING means: a valid result is available, but an error occoured
+    // FAIL means: the result is not valid
+    enum ReturnCode{ NOT_SET, OK, WARNING, FAIL};
+    ReturnCode mReturnCode;
+
+    StateToken mStateToken;
 
     // the result
-    StreamBase& mStream;
+    StreamBase& mDataStream;
+
+    // humand readable string for debug messages/logging
+    std::ostream& mDebug;
 };
 
-
-
+// if a response can not be handled immediately,
+// then the handler should return a ResponseTask object
+// the api server will then call the doWork() method periodically
+class ResponseTask
+{
+public:
+    // return true if function should get called again
+    // return false when finished
+    virtual bool doWork(Request& req, Response& resp) = 0;
+};
 
 // implementations
 

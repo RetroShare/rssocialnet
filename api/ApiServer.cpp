@@ -8,15 +8,13 @@
 #include <retroshare/rsmsgs.h>
 
 #include <time.h>
+#include <unistd.h>
 #include "json.h"
 
-#include "PeersHandler.h"
-#include "IdentityHandler.h"
-#include "WallHandler.h"
-#include "ServiceControlHandler.h"
 #include <retroshare/rsservicecontrol.h>
 #include "rswall.h"
 #include "JsonStream.h"
+#include "StateTokenServer.h" // for the state token serialisers
 
 /*
 data types in json       http://json.org/
@@ -86,8 +84,6 @@ there are two possible implementations:
 - with templates
 
 */
-
-// other http server library: libmicrohttpd
 
 /*
 
@@ -164,99 +160,11 @@ they are created on demand and know how to listen for changes which affect them
 
 */
 
-// new_api is the old api now
-// the new new api namespace is called resource_api
-namespace new_api{
+namespace resource_api{
+
+// old code, only to copy and paste from
+// to be removed
 /*
-{
-    "m1": [1, 2, 3],
-    "m2": [{"p1":1, "p2":2},{"p1":1, "p2":2}]
-}
-*/
-
-class Request
-{
-public:
-    std::string mMethod; // "GET" or "PUT"
-    std::string mAdress; // for example "org.retrohare.api.peers"
-    std::string mStateCode; // if this code is present, then don't return a full result if the data did not change
-};
-
-class Response
-{
-public:
-    int mReturnCode; // something like "200 OK", "304 Not Modified", "404 Not Found"
-    std::string mStateCode;
-    std::string mDebugString; // a humand readable error message
-};
-
-
-class JsonResponse
-{
-public:
-    class Array: public json::Array {};
-    class Object: public json::Object {};
-
-    void operator=(const Array& array)
-    {
-        mRootType = ROOT_TYPE_ARRAY;
-        mArray = array;
-    }
-    void operator=(const Object& object)
-    {
-        mRootType = ROOT_TYPE_OBJECT;
-        mObject = object;
-    }
-    std::string toStdString()
-    {
-        if(mRootType == ROOT_TYPE_ARRAY)
-        {
-            return json::Serialize(mArray);
-        }
-        else if(mRootType == ROOT_TYPE_OBJECT)
-        {
-            return json::Serialize(mObject);
-        }
-        else
-        {
-            return "";
-        }
-    }
-
-    enum RootType { ROOT_TYPE_UNDEFINED, ROOT_TYPE_ARRAY, ROOT_TYPE_OBJECT };
-    RootType mRootType;
-    Array mArray;
-    Object mObject;
-};
-
-class PeersHandler
-{
-public:
-    PeersHandler(RsPeers* peers): mPeers(peers) {}
-
-    template <class InputT, class OutputT>
-    void handleRequest(Request& req, /*InputT& reqData,*/ Response& resp, OutputT& respData)
-    {
-        if(req.mMethod == "GET")
-        {
-            typename OutputT::Array result;
-            std::list<RsPeerId> sslIds;
-            mPeers->getFriendList(sslIds);
-            for(std::list<RsPeerId>::iterator lit = sslIds.begin(); lit != sslIds.end(); lit++)
-            {
-                typename OutputT::Object peer;
-                peer["name"] = mPeers->getPeerName(*lit);
-                peer["online"] = mPeers->isOnline(*lit);
-                result.push_back(peer);
-            }
-            respData = result;
-            resp.mStateCode = 200;
-        }
-    }
-
-    RsPeers* mPeers;
-};
-
 class ChatlobbiesHandler
 {
 public:
@@ -312,19 +220,136 @@ public:
 
     RsMsgs* mMsgs;
 };
+*/
 
 ApiServer::ApiServer(const RsPlugInInterfaces &ifaces):
-    WResource(), ifaces(ifaces)
+    //mPlugInInterfaces(ifaces)
+    mStateTokenServer(),
+    mPeersHandler(&mStateTokenServer, ifaces.mNotify, ifaces.mPeers, ifaces.mMsgs),
+    mIdentityHandler(ifaces.mIdentity),
+    mWallHandler(RsWall::rsWall, ifaces.mIdentity),
+    mServiceControlHandler(rsServiceControl)
+{
+    // the dynamic cast is to not confuse the addResourceHandler template like this:
+    // addResourceHandler(derived class, parent class)
+    // the template would then be instantiated using derived class as parameter
+    // and then parent class would not match the type
+    mRouter.addResourceHandler("peers",dynamic_cast<ResourceRouter*>(&mPeersHandler),
+                               &PeersHandler::handleRequest);
+    mRouter.addResourceHandler("identity", dynamic_cast<ResourceRouter*>(&mIdentityHandler),
+                               &IdentityHandler::handleRequest);
+    mRouter.addResourceHandler("wall", dynamic_cast<ResourceRouter*>(&mWallHandler),
+                               &WallHandler::handleRequest);
+    mRouter.addResourceHandler("servicecontrol", dynamic_cast<ResourceRouter*>(&mServiceControlHandler),
+                               &ServiceControlHandler::handleRequest);
+    mRouter.addResourceHandler("statetokenservice", dynamic_cast<ResourceRouter*>(&mStateTokenServer),
+                               &StateTokenServer::handleRequest);
+
+    mRouter.addResourceHandler("help", this, &ApiServer::handleHelp);
+
+}
+
+std::string ApiServer::handleRequest(Request &request)
+{
+    resource_api::JsonStream outstream;
+    std::stringstream debugString;
+
+    StreamBase& data = outstream.getStreamToMember("data");
+    resource_api::Response resp(data, debugString);
+
+    ResponseTask* task = mRouter.handleRequest(request, resp);
+
+    time_t start = time(NULL);
+    while(task && task->doWork(request, resp))
+    {
+        usleep(10*1000);
+        /*if(time(NULL) > (start+5))
+        {
+            std::cerr << "ApiServer::handleRequest() Error: task timed out" << std::endl;
+            resp.mDebug << "Error: task timed out." << std::endl;
+            resp.mReturnCode = resource_api::Response::FAIL;
+            break;
+        }*/
+    }
+    if(task)
+        delete task;
+
+    std::string returncode;
+    switch(resp.mReturnCode){
+    case resource_api::Response::NOT_SET:
+        returncode = "not_set";
+        break;
+    case resource_api::Response::OK:
+        returncode = "ok";
+        break;
+    case resource_api::Response::WARNING:
+        returncode = "warning";
+        break;
+    case resource_api::Response::FAIL:
+        returncode = "fail";
+        break;
+    }
+
+    // evil HACK, remove this
+    if(data.isRawData())
+        return data.getRawData();
+
+    outstream << resource_api::makeKeyValueReference("returncode", returncode);
+    if(!resp.mStateToken.isNull())
+        outstream << resource_api::makeKeyValueReference("statetoken", resp.mStateToken);
+    return outstream.getJsonString();
+}
+
+void ApiServer::handleHelp(Request &req, Response &resp)
+{
+    // TODO: maybe let the resource router generate the help text
+    // because the resource router can loop over the registered paths and the handler objects
+    // downside: the resource router can not print modules which are not started
+    std::string h;
+    h =     "\n\n"
+            "Retroshare JSON over http interface\n"
+            "===================================\n"
+            "Note: this API is experimental and not well tested. It is also very likely that this API changes.\n"
+            "It is a proof of concept to show how a JSON over http interface could work.\n"
+            "If it works well, it is planned to extend it and keep maintaining it.\n"
+            "\n"
+            "available subresources:\n"
+            "/help   -- this page\n"
+            "/peers\n"
+            "/identity\n"
+            "/wall\n"
+            "/servicecontrol\n"
+            "\n"
+            "/peers\n"
+            "------\n"
+            + mPeersHandler.help() +
+            "\n"
+            "/identity\n"
+            "---------\n"
+            + mIdentityHandler.help() +
+            "\n"
+            "/wall\n"
+            "-----\n"
+            + mWallHandler.help() +
+            "\n"
+            "/servicecontrol\n"
+            "---------------\n"
+            + mServiceControlHandler.help() +
+            "\n";
+
+    resp.mDataStream << makeValue(h);
+    resp.mReturnCode = Response::OK;
+}
+
+ApiServerWt::ApiServerWt(const RsPlugInInterfaces &ifaces):
+    WResource(), mApiServer(ifaces)
 {
     setDispositionType(Inline);
 }
 
-void ApiServer::handleRequest(const Wt::Http::Request &request, Wt::Http::Response &response)
+void ApiServerWt::handleRequest(const Wt::Http::Request &request, Wt::Http::Response &response)
 {
     std::cerr << "TestRessource::handleRequest() pathInfo=" << request.pathInfo() << std::endl;
-
-    PeersHandler peersHandler(ifaces.mPeers);
-    ChatlobbiesHandler chatlobbiesHandler(ifaces.mMsgs);
 
     std::string path = request.pathInfo();
     std::string path1;
@@ -341,32 +366,17 @@ void ApiServer::handleRequest(const Wt::Http::Request &request, Wt::Http::Respon
         path1 = path;
     }
 
-    response.setMimeType("text/plain");
-    Request req; req.mMethod = request.method(); req.mAdress = path2;
-    Response resp;
-    JsonResponse responseData;
+    //response.setMimeType("text/plain");
+    //response.setMimeType(("application/json"));
 
     std::istreambuf_iterator<char> eos;
     std::string reqDataStr(std::istreambuf_iterator<char>(request.in()), eos);
 
-    json::Value reqData = json::Deserialize(reqDataStr);
-
-
-    if(path1 == "/peers")
-    {
-        peersHandler.handleRequest<JsonResponse>(req, resp, responseData);
-    }
-    else if(path1 == "/chatlobbies")
-    {
-        chatlobbiesHandler.handleRequest<json::Value, JsonResponse>(req, reqData, resp, responseData);
-    }
-    else if(path1 == "/v2")
+    if(path1 == "/v2")
     {
         resource_api::JsonStream instream;
         instream.setJsonString(reqDataStr);
-        resource_api::JsonStream outstream;
         resource_api::Request req(instream);
-        resource_api::Response resp(outstream);
 
         if(request.method() == "GET")
         {
@@ -374,7 +384,7 @@ void ApiServer::handleRequest(const Wt::Http::Request &request, Wt::Http::Respon
         }
         else if(request.method() == "POST")
         {
-            req.mMethod = resource_api::Request::POST;
+            req.mMethod = resource_api::Request::PUT;
         }
         else if(request.method() == "DELETE")
         {
@@ -405,125 +415,17 @@ void ApiServer::handleRequest(const Wt::Http::Request &request, Wt::Http::Respon
         }
         req.mPath = stack;
 
+        std::string result = mApiServer.handleRequest(req);
 
-        // pop the part wich gets consumed by this class
-        req.mPath.pop();
+        // EVIL HACK remove
+        if(result[0] != '{')
+            response.setMimeType("image/png");
+        else
+            response.setMimeType("text/plain");
 
-        if(!stack.empty() && stack.top() == "help")
-        {
-            resource_api::PeersHandler peers_handler(ifaces.mPeers, ifaces.mMsgs);
-            resource_api::IdentityHandler identity_handler(ifaces.mIdentity);
-            resource_api::WallHandler wall_handler(RsWall::rsWall, ifaces.mIdentity);
-            resource_api::ServiceControlHandler control_handler(rsServiceControl);
-            response.out() <<
-                              "Retroshare JSON over http interface\n"
-                              "===================================\n"
-                              "Note: this api is experimental and not well tested.\n"
-                              "It is just a proof of concept to show how a JSON over http interface could work.\n"
-                              "\n"
-                              "available subresources:\n"
-                              "/help   -- this page\n"
-                              "/peers\n"
-                              "/identity\n"
-                              "/wall\n"
-                              "/servicecontrol\n"
-                              "\n"
-                              "/peers\n"
-                              "------\n"
-                              + peers_handler.help() +
-                              "\n"
-                              "/identity\n"
-                              "---------\n"
-                              + identity_handler.help() +
-                              "\n"
-                              "/wall\n"
-                              "-----\n"
-                              + wall_handler.help() +
-                              "\n"
-                              "/servicecontrol\n"
-                              "---------------\n"
-                              + control_handler.help() +
-                              "\n"
-                              ;
-        }
-        else if(!stack.empty() && stack.top() == "peers")
-        {
-            resource_api::PeersHandler handler(ifaces.mPeers, ifaces.mMsgs);
-            handler.handleRequest(req, resp);
-        }
-        else if(!stack.empty() && stack.top() == "identity")
-        {
-            resource_api::IdentityHandler handler(ifaces.mIdentity);
-            handler.handleRequest(req, resp);
-        }
-        else if(!stack.empty() && stack.top() == "wall")
-        {
-            resource_api::WallHandler handler(RsWall::rsWall, ifaces.mIdentity);
-            handler.handleRequest(req, resp);
-        }
-        else if(!stack.empty() && stack.top() == "servicecontrol")
-        {
-            resource_api::ServiceControlHandler handler(rsServiceControl);
-            handler.handleRequest(req, resp);
-        }
+        response.out() << result;
 
-        response.out() << outstream.getJsonString();
-
-
-        // this does not work, the it gives compile error on addResourceHandler
-        /*
-        resource_api::ResourceRouter router;
-
-        resource_api::PeersHandler peers_handler(ifaces.mPeers, ifaces.mMsgs);
-        router.addResourceHandler("peers", &peers_handler, &resource_api::PeersHandler::handleRequest);
-
-        resource_api::IdentityHandler identity_handler(ifaces.mIdentity);
-        router.addResourceHandler("identity", &identity_handler, &resource_api::IdentityHandler::handleRequest);
-
-        resource_api::WallHandler wall_handler(RsWall::rsWall, ifaces.mIdentity);
-        router.addResourceHandler("wall", &wall_handler, &resource_api::WallHandler::handleRequest);
-
-        resource_api::ServiceControlHandler control_handler(rsServiceControl);// todo: maybe add service control to plugin ifaces
-        router.addResourceHandler("servicecontrol", &control_handler, &resource_api::ServiceControlHandler::handleRequest);
-
-        router.handleRequest(req, resp);
-        response.out() << outstream.getJsonString();
-        */
     }
-    response.out() << responseData.toStdString();
-
-/*
-    if(request.pathInfo() == "/peers")
-    {
-        response.setMimeType("text/plain");
-        json::Array result;
-        std::list<RsPeerId> sslIds;
-        ifaces.mPeers->getFriendList(sslIds);
-        for(std::list<RsPeerId>::iterator lit = sslIds.begin(); lit != sslIds.end(); lit++)
-        {
-            json::Object peer;
-            peer["name"] = ifaces.mPeers->getPeerName(*lit);
-            peer["online"] = ifaces.mPeers->isOnline(*lit);
-            result.push_back(peer);
-        }
-        response.out() << json::Serialize(result) << std::endl;
-    }
-    else if(request.pathInfo() == "/chatlobbies")
-    {
-        response.setMimeType("text/plain");
-        json::Array result;
-        std::vector<VisibleChatLobbyRecord> lobbies;
-        ifaces.mMsgs->getListOfNearbyChatLobbies(lobbies);
-        for(std::vector<VisibleChatLobbyRecord>::iterator vit = lobbies.begin(); vit != lobbies.end(); vit++)
-        {
-            json::Object lobby;
-            VisibleChatLobbyRecord& lobbyRecord = *vit;
-            lobby["name"] = lobbyRecord.lobby_name;
-            result.push_back(lobby);
-        }
-        response.out() << json::Serialize(result) << std::endl;
-    }
-    */
 
     /*
     if(request.pathInfo() == "/wait")
@@ -554,123 +456,4 @@ void ApiServer::handleRequest(const Wt::Http::Request &request, Wt::Http::Respon
     */
 }
 
-
-
-// too complicated
-
-/*
-class Request
-{
-public:
-    std::string mMethod; // "GET" or "PUT"
-    std::string mAdress; // for example "org.retrohare.api.peers"
-    std::string mStateCode; // if this code is present, then don't return a full result if the data did not change
-};
-
-class Response
-{
-public:
-    int mReturnCode; // something like "200 OK", "304 Not Modified", "404 Not Found"
-    std::string mStateCode;
-    std::string mDebugString; // a humand readable error message
-};
-
-template <class ValueT>
-class KeyValueReference
-{
-public:
-    KeyValueReference(const std::string& key, const ValueT& value): key(key), value(value){}
-    const std::string& key;
-    const ValueT& value;
-};
-
-template <class ValueT>
-KeyValueReference<T> makeKeyValueReference(const std::string& k, const ValueT& v)
-{
-    return KeyValueReference<ValueT>(k, v);
-}
-
-// markers
-class BEGIN_OBJECT {};
-class END_OBJECT {};
-
-class BEGIN_ARRAY {};
-class END_ARRAY {};
-
-class JsonOutstream
-{
-public:
-    JsonOutstream& operator << (BEGIN_OBJECT)
-    {
-        mLog += "BEGIN_OBJECT\n";
-        mTypeStack.push_back(OBJECT);
-        mObjectStack.push_back(json::Object());
-        return *this;
-    }
-
-    JsonOutstream& operator << (END_OBJECT)
-    {
-        mLog += "END_OBJECT\n";
-        if(mTypeStack.size() == 0)
-        {
-            mLog += "Error: type stack is empty";
-            return *this;
-        }
-        if(mObjectStack.size() == 0)
-        {
-            mLog += "Error: object stack is empty";
-            return *this;
-        }
-        if(mTypeStack.back() != OBJECT)
-        {
-            mLog += "Error: top of the stack is not an object";
-        }
-        mTypeStack.erase(mTypeStack.end()--);
-        // todo
-
-        return *this;
-    }
-
-    JsonOutstream& operator << (const KeyValueReference<std::string>& kv)
-    {
-        return *this;
-    }
-    const uint8_t OBJECT = 0;
-    const uint8_t ARRAY = 1;
-    std::vector<uint8_t> mTypeStack;
-    std::vector<json::Object> mObjectStack;
-    std::vector<json::Array> mArrayStack;
-
-    std::string mLog;
-};
-
-class PeersHandler
-{
-public:
-    PeersHandler(RsPeers* peers): mPeers(peers) {}
-
-    template <class InputT, class OutputT>
-    void handleRequest(Request& req, InputT& reqData, Response& resp, OutputT& respData)
-    {
-        if(req.mMethod == "GET")
-        {
-            std::list<RsPeerId> sslIds;
-            mPeers->getFriendList(sslIds);
-            respData << BEGIN_ARRAY();
-            for(std::list<RsPeerId>::iterator lit = sslIds.begin(); lit != sslIds.end(); lit++)
-            {
-                respData << BEGIN_OBJECT();
-                respData << makeKeyValueReference("name", mPeers->getPeerName(*lit));
-                respData << makeKeyValueReference("online", mPeers->isOnline(*lit));
-                respData << END_OBJECT();
-            }
-            respData << END_ARRAY();
-        }
-    }
-
-    RsPeers* mPeers;
-};
-
-*/
-
-}
+} // namespace resource_api

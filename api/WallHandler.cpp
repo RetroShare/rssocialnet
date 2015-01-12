@@ -5,14 +5,79 @@
 
 #include "rswall.h"
 #include <retroshare/rsidentity.h>
+#include <util/radix64.h>
+#include "GxsResponseTask.h"
 
 #include <algorithm>
-#ifndef WINDOWS_SYS
-#include "unistd.h"
-#endif
+#include <unistd.h>
 
 namespace resource_api
 {
+
+//using namespace RsWall;
+
+class WallTask: public GxsResponseTask
+{
+public:
+    WallTask(RsWall::RsWall* wall, RsIdentity* identities, RsGxsId id):
+        GxsResponseTask(identities, wall->getTokenService()),
+        mWall(wall), mId(id), mState(BEGIN){}
+private:
+    RsWall::RsWall* mWall;
+    RsGxsId mId;
+    enum State {BEGIN, WAITING};
+    State mState;
+    uint32_t mToken;
+protected:
+    virtual void gxsDoWork(Request &req, Response &resp)
+    {
+        switch(mState)
+        {
+        case BEGIN:
+        {
+            mWall->requestWallGroups(mToken, mId);
+            addWaitingToken(mToken);
+            requestGxsId(mId);
+            mState = WAITING;
+            break;
+        }
+        case WAITING:
+        {
+            std::vector<RsWall::WallGroup> wgs;
+            mWall->getWallGroups(mToken, wgs);
+            if(!wgs.empty())
+            {
+                // for now only the first group
+                RsWall::WallGroup& wg = wgs.front();
+
+                // make base63 string out of images
+                // TODO: find and implement better solution
+                // TODO: use correct mime type, don't assume jpeg
+                std::string wi_b64;
+                Radix64::encode((const char *)wg.mWallImage.mData.data(),wg.mWallImage.mData.size(),wi_b64);
+                wi_b64 = "data:image/jpeg;base64," + wi_b64;
+
+                std::string ai_b64;
+                Radix64::encode((const char *)wg.mAvatarImage.mData.data(),wg.mAvatarImage.mData.size(),ai_b64);
+                ai_b64 = "data:image/jpeg;base64," + ai_b64;
+
+                streamGxsId(mId, resp.mDataStream.getStreamToMember("identity"));
+                resp.mDataStream << makeKeyValueReference("profile_text", wg.mProfileText)
+                                 << makeKeyValueReference("wall_image", wi_b64)
+                                 << makeKeyValueReference("avatar_image", ai_b64);
+                resp.mReturnCode = Response::OK;
+            }
+            else
+            {
+                resp.mReturnCode = Response::FAIL;
+                resp.mDebug << "Error: no wall group" << std::endl;
+            }
+            done();
+            break;
+        }
+        }
+    }
+};
 
 bool waitForTokenOrTimeout(uint32_t token, RsTokenService* tokenService)
 {
@@ -57,15 +122,18 @@ std::string WallHandler::help()
 ;
 }
 
-using namespace RsWall;
-
-void WallHandler::handleWildcard(Request &req, Response &resp)
+ResponseTask* WallHandler::handleWildcard(Request &req, Response &resp)
 {
-    resp.mStream << makeValue(std::string("see /../help"));
-
     bool ok = true;
-    if(req.mMethod == Request::POST)
+    ResponseTask* ret = 0;
+    if(req.mMethod == Request::GET && !req.mPath.empty())
     {
+        RsGxsId id(req.mPath.top());
+        if(!id.isNull())
+        {
+            ret = new WallTask(mRsWall, mRsIdentity, id);
+        }
+        else ok = false;
     }
     else
     {
@@ -73,19 +141,27 @@ void WallHandler::handleWildcard(Request &req, Response &resp)
 
     if(ok)
     {
-        resp.mReturnCode = 0;
+        resp.mReturnCode = Response::OK;
     }
     else
     {
-        resp.mReturnCode = 1;
+        resp.mReturnCode = Response::FAIL;
     }
+    return ret;
 }
 
 void WallHandler::handleOwn(Request &req, Response &resp)
 {
     bool ok = true;
 
-    resp.mReturnCode = 0;
+    if(ok)
+    {
+        resp.mReturnCode = Response::OK;
+    }
+    else
+    {
+        resp.mReturnCode = Response::FAIL;
+    }
 }
 
 // this function is the absolute horror
@@ -108,14 +184,14 @@ void WallHandler::handleOwn(Request &req, Response &resp)
 // better idea: other handlers like identity handler expose a funktion to write the identity details to a stream
 void WallHandler::handleActivities(Request &req, Response &resp)
 {
-    std::vector<Activity> activities;
+    std::vector<RsWall::Activity> activities;
     mRsWall->getCurrentActivities(activities);
 
     // collect ids of referenced post grps
     std::list<RsGxsGroupId> postGrpIds;
-    for(std::vector<Activity>::iterator vit = activities.begin(); vit != activities.end(); vit++)
+    for(std::vector<RsWall::Activity>::iterator vit = activities.begin(); vit != activities.end(); vit++)
     {
-        Activity& activity = *vit;
+        RsWall::Activity& activity = *vit;
         postGrpIds.push_back(activity.mReferencedGroup);
     }
 
@@ -144,9 +220,9 @@ void WallHandler::handleActivities(Request &req, Response &resp)
 
     // request the msgs
     std::vector<uint32_t> postMsgTokens;
-    for(std::vector<Activity>::iterator vit = activities.begin(); vit != activities.end(); vit++)
+    for(std::vector<RsWall::Activity>::iterator vit = activities.begin(); vit != activities.end(); vit++)
     {
-        Activity& activity = *vit;
+        RsWall::Activity& activity = *vit;
 
         RsTokReqOptions opts;
         opts.mReqType = GXS_REQUEST_TYPE_MSG_DATA;
@@ -178,19 +254,19 @@ void WallHandler::handleActivities(Request &req, Response &resp)
     // get the msgs
     // it could happend that a mesage is not available
     // maybe should handle this
-    std::vector<PostMsg> postMsgs;
+    std::vector<RsWall::PostMsg> postMsgs;
     for(std::vector<uint32_t>::iterator vit = postMsgTokens.begin(); vit != postMsgTokens.end(); vit++)
     {
-        PostMsg pm;
+        RsWall::PostMsg pm;
         mRsWall->getPostMsg(*vit, pm);
         postMsgs.push_back(pm);
     }
 
     // collect the involved author ids to get their names
     std::map<RsGxsId, std::string> authors;
-    for(std::vector<Activity>::iterator vit = activities.begin(); vit != activities.end(); vit++)
+    for(std::vector<RsWall::Activity>::iterator vit = activities.begin(); vit != activities.end(); vit++)
     {
-        Activity& activity = *vit;
+        RsWall::Activity& activity = *vit;
         for(std::vector<RsGxsId>::iterator vit = activity.mShared.begin(); vit != activity.mShared.end(); vit++)
         {
             authors[*vit] = "";
@@ -230,10 +306,10 @@ void WallHandler::handleActivities(Request &req, Response &resp)
     }
 
     // put everything together in one response
-    for(std::vector<Activity>::iterator vit = activities.begin(); vit != activities.end(); vit++)
+    for(std::vector<RsWall::Activity>::iterator vit = activities.begin(); vit != activities.end(); vit++)
     {
-        StreamBase& stream = resp.mStream.getStreamToMember();
-        Activity& activity = *vit;
+        StreamBase& stream = resp.mDataStream.getStreamToMember();
+        RsWall::Activity& activity = *vit;
         StreamBase& stream_shared = stream.getStreamToMember("names_shared");
         for(std::vector<RsGxsId>::iterator vit = activity.mShared.begin(); vit != activity.mShared.end(); vit++)
         {
@@ -253,10 +329,10 @@ void WallHandler::handleActivities(Request &req, Response &resp)
                 postGrpMeta = *postGrpMetaIt;
             }
         }
-        PostMsg pm;
-        for(std::vector<PostMsg>::iterator pmvit = postMsgs.begin(); pmvit != postMsgs.end(); pmvit++)
+        RsWall::PostMsg pm;
+        for(std::vector<RsWall::PostMsg>::iterator pmvit = postMsgs.begin(); pmvit != postMsgs.end(); pmvit++)
         {
-            PostMsg& pmref = *pmvit;
+            RsWall::PostMsg& pmref = *pmvit;
             if(pmref.mMeta.mGroupId == activity.mReferencedGroup)
             {
                 pm = pmref;
@@ -294,7 +370,7 @@ void WallHandler::handleWall(Request &req, Response &resp)
         for(std::vector<RsGroupMetaData>::iterator vit = metas.begin(); vit != metas.end(); vit++)
         {
             RsGroupMetaData& meta = *vit;
-            StreamBase& stream = resp.mStream.getStreamToMember();
+            StreamBase& stream = resp.mDataStream.getStreamToMember();
 
             KeyValueReference<RsGxsGroupId> wallId("wall_id", meta.mGroupId);
             KeyValueReference<RsGxsCircleId> circleId("todo_circle_id", meta.mCircleId);
@@ -343,13 +419,13 @@ void WallHandler::handleAvatarImage(Request &req, Response &resp)
 
         waitForTokenOrTimeout(token, mRsWall->getTokenService());
 
-        std::vector<WallGroup> wgs;
+        std::vector<RsWall::WallGroup> wgs;
         mRsWall->getWallGroups(token, wgs);
 
         if(!wgs.empty())
         {
-            WallGroup& grp = wgs.front();
-            resp.mStream << grp.mAvatarImage.mData;
+            RsWall::WallGroup& grp = wgs.front();
+            resp.mDataStream << grp.mAvatarImage.mData;
         }
     }
 }

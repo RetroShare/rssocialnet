@@ -154,9 +154,7 @@ class DownloadsTransfersListModel : public Wt::WAbstractTableModel
 			_last_time_update = now ;
 
             std::list<RsFileHash> hashes ;
-
-			if(!mFiles->FileDownloads(hashes)) 
-				std::cerr << "(EE) " << __PRETTY_FUNCTION__ << ": can't get list of downloads." << std::endl;
+            mFiles->FileDownloads(hashes);
 
 			_downloads.clear() ;
 

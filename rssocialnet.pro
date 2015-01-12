@@ -2,12 +2,17 @@
 
 CONFIG += qt qrc resources
 
+# stream files over http
+# requires patched libretroshare
+#CONFIG += filestreamer
+
 INCLUDEPATH += ../../libretroshare/src
 
 QMAKE_CXXFLAGS *= -Wall
 
 DEFINES *= BOOST_SIGNALS_NO_DEPRECATION_WARNING
 
+# note: equal here, because retroshare_plugin.pri adds upnp to source (no idea why)
 SOURCES = RSWApplication.cpp \
           WebUImain.cpp \
 			 RSWappFriendsPage.cpp \
@@ -54,7 +59,9 @@ SOURCES = RSWApplication.cpp \
     api/Operators.cpp \
     api/IdentityHandler.cpp \
     api/WallHandler.cpp \
-    api/ServiceControlHandler.cpp
+    api/ServiceControlHandler.cpp \
+    api/StateTokenServer.cpp \
+	api/GxsResponseTask.cpp
 
 HEADERS = RSWApplication.h \
           WebUImain.h \
@@ -105,7 +112,15 @@ HEADERS = RSWApplication.h \
     api/IdentityHandler.h \
     api/WallHandler.h \
     api/ServiceControlHandler.h \
-    api/GxsMetaOperators.h
+    api/GxsMetaOperators.h \
+    api/StateTokenServer.h \
+	api/GxsResponseTask.h
+
+filestreamer {
+	DEFINES += ENABLE_FILESTREAMER
+	SOURCES += api/FileStreamerWt.cpp
+	HEADERS += api/FileStreamerWt.h
+}
 
 FORMS += gui/RsWebUIConfig.ui
 
@@ -143,4 +158,6 @@ win32 {
 }
 
 OTHER_FILES += \
-    api/ConvertToStringStream.h
+	README.md		\
+	api/README.md	\
+	webui/README.md
