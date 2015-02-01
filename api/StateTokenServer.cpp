@@ -62,14 +62,6 @@ StateTokenServer::StateTokenServer():
     addResourceHandler("*", this, &StateTokenServer::handleWildcard);
 }
 
-std::string StateTokenServer::help()
-{
-    std::string help =
-            "ask this service to learn if a token has expired"
-            ;
-    return help;
-}
-
 StateToken StateTokenServer::getNewToken()
 {
     RsStackMutex stack(mMtx); /********** STACK LOCKED MTX ******/
@@ -135,7 +127,7 @@ void StateTokenServer::handleWildcard(Request &req, Response &resp)
             resp.mDataStream << token;
         }
     }
-    resp.mReturnCode = Response::OK;
+    resp.setOk();
 }
 
 } // namespace resource_api

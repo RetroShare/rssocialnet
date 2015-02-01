@@ -4,6 +4,7 @@
 #include <vector>
 #include <stack>
 #include <stdint.h>
+#include <ostream>
 
 namespace resource_api
 {
@@ -123,7 +124,7 @@ public:
     // return true if no serialisation/deserialisation error occoured
     virtual bool isOK() = 0;
     virtual void setError() = 0; // let external operators set the failed bit
-    virtual void addLogMsg(std::string msg) = 0;
+    //virtual void addLogMsg(std::string msg) = 0;
     virtual void addErrorMsg(std::string msg) = 0;
     virtual std::string getLog() = 0;
     virtual std::string getErrorLog() = 0;
@@ -182,13 +183,16 @@ class Request
 public:
     Request(StreamBase& stream): mStream(stream){}
 
-    enum Method { GET, PUT, DELETE_AA, EXEC};// something is wrong with DELETE, it won't compile with it
-    Method mMethod;
+    bool isGet(){ return mMethod == GET;}
+    bool isPut(){ return mMethod == PUT;}
+    bool isDelete(){ return mMethod == DELETE_AA;}
+    bool isExec(){ return mMethod == EXEC;}
 
     // path is the adress to the resource
     // if the path has multiple parts which get handled by different handlers,
     // then each handler should pop the top element
     std::stack<std::string> mPath;
+    std::string mFullPath;
 
     // parameters should be used to influence the result
     // for example include or exclude some information
@@ -198,6 +202,11 @@ public:
 
     // contains data for new resources
     StreamBase& mStream;
+
+    // use the is*() methods to query the method type
+//private:
+    enum Method { GET, PUT, DELETE_AA, EXEC};// something is wrong with DELETE, it won't compile with it
+    Method mMethod;
 };
 
 // new notes on responses
@@ -228,6 +237,14 @@ public:
 
     // humand readable string for debug messages/logging
     std::ostream& mDebug;
+
+    inline void setOk(){mReturnCode = OK;}
+    inline void setWarning(){ mReturnCode = WARNING;}
+    inline void setFail(std::string msg = ""){
+        mReturnCode = FAIL;
+        if(msg != "")
+            mDebug << msg << std::endl;
+    }
 };
 
 // if a response can not be handled immediately,

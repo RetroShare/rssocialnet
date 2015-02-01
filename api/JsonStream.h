@@ -48,7 +48,7 @@ public:
     // return true if no serialisation/deserialisation error occoured
     virtual bool isOK();
     virtual void setError(); // let external operators set the failed bit
-    virtual void addLogMsg(std::string msg);
+    //virtual void addLogMsg(std::string msg); // mayb remove? (put log messages to error log einstead)
     virtual void addErrorMsg(std::string msg);
     virtual std::string getLog();
     virtual std::string getErrorLog();

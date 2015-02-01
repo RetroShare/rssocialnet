@@ -27,9 +27,6 @@ class StateTokenServer: public ResourceRouter
 public:
     StateTokenServer();
 
-    // from ResourceRouter
-    virtual std::string help();
-
     // thread safe
     // this allows tokens to be created and destroyed from arbitrary threads
     StateToken getNewToken();

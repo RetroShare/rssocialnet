@@ -245,8 +245,6 @@ ApiServer::ApiServer(const RsPlugInInterfaces &ifaces):
     mRouter.addResourceHandler("statetokenservice", dynamic_cast<ResourceRouter*>(&mStateTokenServer),
                                &StateTokenServer::handleRequest);
 
-    mRouter.addResourceHandler("help", this, &ApiServer::handleHelp);
-
 }
 
 std::string ApiServer::handleRequest(Request &request)
@@ -300,47 +298,6 @@ std::string ApiServer::handleRequest(Request &request)
     return outstream.getJsonString();
 }
 
-void ApiServer::handleHelp(Request &req, Response &resp)
-{
-    // TODO: maybe let the resource router generate the help text
-    // because the resource router can loop over the registered paths and the handler objects
-    // downside: the resource router can not print modules which are not started
-    std::string h;
-    h =     "\n\n"
-            "Retroshare JSON over http interface\n"
-            "===================================\n"
-            "Note: this API is experimental and not well tested. It is also very likely that this API changes.\n"
-            "It is a proof of concept to show how a JSON over http interface could work.\n"
-            "If it works well, it is planned to extend it and keep maintaining it.\n"
-            "\n"
-            "available subresources:\n"
-            "/help   -- this page\n"
-            "/peers\n"
-            "/identity\n"
-            "/wall\n"
-            "/servicecontrol\n"
-            "\n"
-            "/peers\n"
-            "------\n"
-            + mPeersHandler.help() +
-            "\n"
-            "/identity\n"
-            "---------\n"
-            + mIdentityHandler.help() +
-            "\n"
-            "/wall\n"
-            "-----\n"
-            + mWallHandler.help() +
-            "\n"
-            "/servicecontrol\n"
-            "---------------\n"
-            + mServiceControlHandler.help() +
-            "\n";
-
-    resp.mDataStream << makeValue(h);
-    resp.mReturnCode = Response::OK;
-}
-
 ApiServerWt::ApiServerWt(const RsPlugInInterfaces &ifaces):
     WResource(), mApiServer(ifaces)
 {
@@ -349,6 +306,16 @@ ApiServerWt::ApiServerWt(const RsPlugInInterfaces &ifaces):
 
 void ApiServerWt::handleRequest(const Wt::Http::Request &request, Wt::Http::Response &response)
 {
+    // TODO: protect againts handling untrusted content to the browser
+    // see:
+    // http://www.dotnetnoob.com/2012/09/security-through-http-response-headers.html
+    // http://www.w3.org/TR/CSP2/
+    // https://code.google.com/p/doctype-mirror/wiki/ArticleContentSniffing
+
+    // tell Internet Explorer to not do content sniffing
+    response.addHeader("X-Content-Type-Options", "nosniff");
+    // lots of TODO
+
     std::cerr << "TestRessource::handleRequest() pathInfo=" << request.pathInfo() << std::endl;
 
     std::string path = request.pathInfo();
@@ -414,6 +381,7 @@ void ApiServerWt::handleRequest(const Wt::Http::Request &request, Wt::Http::Resp
             stack.push(str);
         }
         req.mPath = stack;
+        req.mFullPath = path2;
 
         std::string result = mApiServer.handleRequest(req);
 

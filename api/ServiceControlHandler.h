@@ -13,7 +13,6 @@ class ServiceControlHandler: public ResourceRouter
 public:
     ServiceControlHandler(RsServiceControl* control);
 
-    virtual std::string help();
 private:
     RsServiceControl* mRsServiceControl;
     void handleWildcard(Request& req, Response& resp);

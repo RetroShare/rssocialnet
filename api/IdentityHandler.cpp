@@ -4,12 +4,41 @@
 
 #include "Operators.h"
 #include "ApiTypes.h"
+#include "GxsResponseTask.h"
 #ifndef WINDOWS_SYS
 #include "unistd.h"
 #endif
 
 namespace resource_api
 {
+
+class SendIdentitiesListTask: public GxsResponseTask
+{
+public:
+    SendIdentitiesListTask(RsIdentity* idservice, std::list<RsGxsId> ids):
+        GxsResponseTask(idservice, 0)
+    {
+        for(std::list<RsGxsId>::iterator vit = ids.begin(); vit != ids.end(); ++vit)
+        {
+            requestGxsId(*vit);
+            mIds.push_back(*vit);// convert fro list to vector
+        }
+    }
+private:
+    std::vector<RsGxsId> mIds;
+protected:
+    virtual void gxsDoWork(Request &req, Response &resp)
+    {
+        resp.mDataStream.getStreamToMember();
+        for(std::vector<RsGxsId>::iterator vit = mIds.begin(); vit != mIds.end(); ++vit)
+        {
+            streamGxsId(*vit, resp.mDataStream.getStreamToMember());
+        }
+        resp.setOk();
+        done();
+    }
+
+};
 
 IdentityHandler::IdentityHandler(RsIdentity *identity):
     mRsIdentity(identity)
@@ -18,27 +47,11 @@ IdentityHandler::IdentityHandler(RsIdentity *identity):
     addResourceHandler("own", this, &IdentityHandler::handleOwn);
 }
 
-std::string IdentityHandler::help()
-{
-    return
-            "GET /\n"
-            "return a list of gxs-identities\n"
-            "\n"
-            "GET /own\n"
-            "return a list of own gxs-identities\n"
-            "\n"
-            "POST /\n"
-            "{'name':'<somename>'}\n"
-            "\n"
-            "create a new gxs-identity\n"
-;
-}
-
 void IdentityHandler::handleWildcard(Request &req, Response &resp)
 {
     bool ok = true;
 
-    if(req.mMethod == Request::PUT)
+    if(req.isPut())
     {
         RsIdentityParameters params;
         req.mStream << makeKeyValueReference("name", params.nickname);
@@ -102,51 +115,19 @@ void IdentityHandler::handleWildcard(Request &req, Response &resp)
 
     if(ok)
     {
-        resp.mReturnCode = Response::OK;
+        resp.setOk();
     }
     else
     {
-        resp.mReturnCode = Response::FAIL;
+        resp.setFail();
     }
 }
 
-void IdentityHandler::handleOwn(Request &req, Response &resp)
+ResponseTask* IdentityHandler::handleOwn(Request &req, Response &resp)
 {
     std::list<RsGxsId> ids;
     mRsIdentity->getOwnIds(ids);
-    time_t start = time(NULL);
-    bool ok = false;
-    // have to try to get the identity details multiple times, until they are cached
-    while(!ok && (time(NULL)< (start+10)))
-    {
-        ok = true;
-        for(std::list<RsGxsId>::iterator lit = ids.begin(); lit != ids.end(); lit++)
-        {
-            RsIdentityDetails details;
-            if(!lit->isNull())
-            {
-                // this returns cached data and false if the data is not yet cached
-                ok &= mRsIdentity->getIdDetails(*lit, details);
-                if(ok)
-                {
-                    resp.mDataStream.getStreamToMember()
-                            << makeKeyValueReference("name",    details.mNickname)
-                            << makeKeyValueReference("id",      details.mId)
-                            << makeKeyValueReference("pgp_id",  details.mPgpId)
-                            << makeKeyValueReference("pgp_linked", details.mPgpLinked)
-                            << makeKeyValueReference("own",     details.mIsOwnId);
-                    // set the id null, to mark it as done
-                    lit->clear();
-                }
-            }
-        }
-#ifdef WINDOWS_SYS
-        Sleep(500);
-#else
-        usleep(500*1000) ;
-#endif
-    }
-    resp.mReturnCode = Response::OK;
+    return new SendIdentitiesListTask(mRsIdentity, ids);
 }
 
 } // namespace resource_api

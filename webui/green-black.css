@@ -1,0 +1,23 @@
+body {
+	background-color: black;
+	color: lime;
+	font-family: monospace;
+	margin: 0em;
+	padding: 1.5em;
+}
+
+.nav{
+	list-style-type: none;
+	padding: 0em;
+	margin: 0em;
+}
+
+.nav li{
+	display: inline;
+	padding: 0.1em;
+	margin-right: 1em;
+	border-width: 0.1em;
+	border-color: blue;
+	border-bottom-style: solid;
+	cursor: pointer;
+}

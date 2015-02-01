@@ -3,8 +3,8 @@
 CONFIG += qt qrc resources
 
 # stream files over http
-# requires patched libretroshare
-#CONFIG += filestreamer
+# compiles only with patched libretroshare
+CONFIG += filestreamer
 
 INCLUDEPATH += ../../libretroshare/src
 
@@ -33,7 +33,6 @@ SOURCES = RSWApplication.cpp \
     sonet/WallWidget.cpp \
     sonet/WallRootPostWidget.cpp \
     sonet/RsGxsUpdateBroadcastWt.cpp \
-    sonet/AvatarWidget.cpp \
     sonet/CreateWallWidget.cpp \
     sonet/TokenQueueWt2.cpp \
     sonet/WallChooserWidget.cpp \
@@ -61,7 +60,8 @@ SOURCES = RSWApplication.cpp \
     api/WallHandler.cpp \
     api/ServiceControlHandler.cpp \
     api/StateTokenServer.cpp \
-	api/GxsResponseTask.cpp
+	api/GxsResponseTask.cpp \
+    sonet/AvatarWidgetWt.cpp
 
 HEADERS = RSWApplication.h \
           WebUImain.h \
@@ -114,7 +114,8 @@ HEADERS = RSWApplication.h \
     api/ServiceControlHandler.h \
     api/GxsMetaOperators.h \
     api/StateTokenServer.h \
-	api/GxsResponseTask.h
+	api/GxsResponseTask.h \
+    api/Pagination.h
 
 filestreamer {
 	DEFINES += ENABLE_FILESTREAMER

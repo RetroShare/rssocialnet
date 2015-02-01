@@ -115,7 +115,7 @@ void limitImageSize(const std::vector<uint8_t>& in, std::vector<uint8_t>& out, u
 
     // current algorithm can only handle downscaling
     // todo: still resize when one direction is larger than allowed
-    if((srcheight <= dstheight) || (srcheight <= dstheight))
+    if((srcwidth <= dstwidth) || (srcheight <= dstheight))
     {
         if(imageFormat == JPEG)
         {

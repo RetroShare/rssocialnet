@@ -17,9 +17,6 @@ public:
     PeersHandler(StateTokenServer* sts, RsNotify* notify, RsPeers* peers, RsMsgs* msgs);
     virtual ~PeersHandler();
 
-    // from ResourceRouter
-    virtual std::string help();
-
     // from NotifyClient
     // note: this may get called from foreign threads
     virtual void notifyListChange(int list, int type); // friends list change

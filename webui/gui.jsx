@@ -75,8 +75,18 @@ var Peers2 = React.createClass({
 
 React.render(
 	<div>
-		<h1>the list updates itself when something changes. Lots of magic happens here!</h1>
-		<Peers2 />
+		<ul className="nav">
+			<li onClick={function(e){alert("Hi");}}>
+				Friends
+			</li>
+			<li>
+				test2
+			</li>
+		</ul>
+		<div>
+			<p>the list updates itself when something changes. Lots of magic happens here!</p>
+			<Peers2 />
+		</div>
 	</div>,
 	document.body
 );

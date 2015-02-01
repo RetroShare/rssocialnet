@@ -46,13 +46,6 @@ ServiceControlHandler::ServiceControlHandler(RsServiceControl* control):
     addResourceHandler("*", this, &ServiceControlHandler::handleWildcard);
 }
 
-std::string ServiceControlHandler::help()
-{
-    return  "GET /\n"
-            "return array of service info objects\n"
-            ;
-}
-
 void ServiceControlHandler::handleWildcard(Request &req, Response &resp)
 {
     bool ok = false;
@@ -62,7 +55,7 @@ void ServiceControlHandler::handleWildcard(Request &req, Response &resp)
     else
     {
         // no more path element
-        if(req.mMethod == Request::GET)
+        if(req.isGet())
         {
             // list all peers
             ok = true;
@@ -78,18 +71,18 @@ void ServiceControlHandler::handleWildcard(Request &req, Response &resp)
                 }
             }
         }
-        else if(req.mMethod == Request::PUT)
+        else if(req.isPut())
         {
 
         }
     }
     if(ok)
     {
-        resp.mReturnCode = Response::OK;
+        resp.setOk();
     }
     else
     {
-        resp.mReturnCode = Response::FAIL;
+        resp.setFail();
     }
 }
 

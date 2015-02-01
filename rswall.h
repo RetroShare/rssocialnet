@@ -250,6 +250,7 @@ public:
     virtual void getPostGroup(const uint32_t &token, PostGroup &pg) = 0;
     virtual void getPostReferenceMsgs(const uint32_t &token, std::vector<ReferenceMsg> &refMsgs) = 0;
     virtual void getPostMsg(const uint32_t &token, PostMsg &pm) = 0;
+    virtual void getPostMsgs(const uint32_t & token, std::vector<PostMsg> & pms) = 0;
 
     virtual void requestAvatarImage(uint32_t &token, const RsGxsId &identity) = 0;
     virtual bool getAvatarImage(const uint32_t &token, WallImage &image) = 0;

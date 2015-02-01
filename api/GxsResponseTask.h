@@ -14,6 +14,7 @@ namespace resource_api
 class GxsResponseTask: public ResponseTask
 {
 public:
+    // token service is allowed to be null if no token functions are wanted
     GxsResponseTask(RsIdentity* id_service, RsTokenService* token_service);
     virtual bool doWork(Request &req, Response& resp);
 

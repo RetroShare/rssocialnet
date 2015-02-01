@@ -200,6 +200,7 @@ public:
         virtual void getPostGroup(const uint32_t &token, PostGroup &pg);
         virtual void getPostReferenceMsgs(const uint32_t &token, std::vector<ReferenceMsg> &refMsgs);
         virtual void getPostMsg(const uint32_t &token, PostMsg &pm);
+        virtual void getPostMsgs(const uint32_t & token, std::vector<PostMsg> & pms);
 
         virtual void requestAvatarImage(uint32_t &token, const RsGxsId &identity);
         virtual bool getAvatarImage(const uint32_t &token, WallImage &image);

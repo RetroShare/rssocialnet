@@ -94,6 +94,7 @@ void AvatarWidgetWt::setIdentity(RsGxsId &identity)
     _mAvatarImage->setImageLink(Wt::WLink(_mImg));
     */
 
+#ifdef OLD_AVATAR_IN_WALL_REMOVE
     // get identity info from rsindetities
     //   repeat this step if the info is not cached yet
     //     this is now outsourced to IdentityLabelWidget
@@ -104,6 +105,17 @@ void AvatarWidgetWt::setIdentity(RsGxsId &identity)
     //     use token system, because these functions are already there atm
     uint32_t token;
     rsWall->requestWallGroups(token, identity);
+    _mTokenQueue.queueToken(token);
+#endif
+
+    RsTokReqOptions opts;
+    opts.mReqType = GXS_REQUEST_TYPE_GROUP_DATA;
+
+    std::list<RsGxsGroupId> groupIds;
+    groupIds.push_back(RsGxsGroupId(identity));
+
+    uint32_t token;
+    rsIdentity->getTokenService()->requestGroupInfo(token, RS_TOKREQ_ANSTYPE_DATA, opts, groupIds);
     _mTokenQueue.queueToken(token);
 
     _mIdentityLabel->setIdentity(identity);
@@ -119,6 +131,7 @@ void AvatarWidgetWt::onTokenReady(uint32_t token, bool ok)
 {
     if(ok)
     {
+#ifdef OLD_AVATAR_FROM_WALL_REMOVE
         // load image from memory
         std::vector<WallGroup> grps;
         rsWall->getWallGroups(token, grps);
@@ -129,6 +142,18 @@ void AvatarWidgetWt::onTokenReady(uint32_t token, bool ok)
 
         boost::shared_ptr<Wt::WMemoryResource> resPtr;
         if(grp.mAvatarImage.mData.empty())
+#endif
+        // get details from libretroshare
+        std::vector<RsGxsIdGroup> datavector;
+        if (!rsIdentity->getGroupData(token, datavector))
+        {
+            std::cerr << "PROBLEM in AvatarWidgetWt::onTokenReady(): failed to retrieve group data" << std::endl;
+            return;
+        }
+
+        boost::shared_ptr<Wt::WMemoryResource> resPtr;
+        if(datavector.size() == 0 || datavector[0].mImage.mSize == 0)
+
         {
             // load default image
             std::string key = "AvatarImage,defaultImage,size=" + boost::lexical_cast<std::string>(_mImageSize);
@@ -158,6 +183,8 @@ void AvatarWidgetWt::onTokenReady(uint32_t token, bool ok)
         }
         else
         {
+            const RsGxsIdGroup& grp = datavector[0];
+            std::vector<uint8_t> imgdata(grp.mImage.mData, grp.mImage.mData + grp.mImage.mSize);
             // have to cache avatar images,
             // because ImageUtil::limitImageSize is way to slow
             std::string key = "AvatarImage,grpId=" + grp.mMeta.mGroupId.toStdString()
@@ -167,7 +194,7 @@ void AvatarWidgetWt::onTokenReady(uint32_t token, bool ok)
             if(resPtr.get() == NULL)
             {
                 std::vector<uint8_t> buf;
-                ImageUtil::limitImageSize(grp.mAvatarImage.mData, buf, _mImageSize, _mImageSize);
+                ImageUtil::limitImageSize(imgdata, buf, _mImageSize, _mImageSize);
                 resPtr.reset(new Wt::WMemoryResource());
                 resPtr->setData(buf);
                 RSWApplication::instance()->cacheRessource(key, resPtr);

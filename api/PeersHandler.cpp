@@ -67,33 +67,6 @@ PeersHandler::~PeersHandler()
     mStateTokenServer->unregisterTickClient(this);
 }
 
-std::string PeersHandler::help()
-{
-    std::string help =
-            "GET /\n"
-            "returns a list of objects with the following members:\n"
-            "peer_id:   string\n"
-            "name:      string\n"
-            "location:  string\n"
-            "pgp_id:    string\n"
-            "is_online: bool\n"
-            "avatar_address: string with an address where to get the avatar image\n"
-            "groups: array of objects, objects have two string members: group_name and group_id\n"
-            "\n"
-            "POST /examine_cert\n"
-            "cert_string: string\n"
-            "returns an object with the following string members: peer_id, name, location, pgp_id\n"
-            "\n"
-            "DELETE /<peer_id>\n"
-            "remove friend from friendslist\n"
-            "\n"
-            "POST /\n"
-            "cert_string: string\n"
-            "adds a friend to keyring and friendslist\n"
-    ;
-    return help;
-}
-
 void PeersHandler::notifyListChange(int list, int type)
 {
     RsStackMutex stack(mMtx); /********** STACK LOCKED MTX ******/
@@ -143,7 +116,7 @@ void PeersHandler::handleWildcard(Request &req, Response &resp)
                 delete[] data;
                 resp.mDataStream << avatar;
             }
-            else if(req.mMethod == Request::DELETE_AA)
+            else if(req.isDelete())
             {
                 mRsPeers->removeFriend(RsPgpId(str));
             }
@@ -160,7 +133,7 @@ void PeersHandler::handleWildcard(Request &req, Response &resp)
     else
     {
         // no more path element
-        if(req.mMethod == Request::GET)
+        if(req.isGet())
         {
             // list all peers
             ok = true;
@@ -191,7 +164,7 @@ void PeersHandler::handleWildcard(Request &req, Response &resp)
             }
             resp.mStateToken = getCurrentStateToken();
         }
-        else if(req.mMethod == Request::PUT)
+        else if(req.isPut())
         {
             std::string cert_string;
             req.mStream << makeKeyValueReference("cert_string", cert_string);
@@ -214,11 +187,11 @@ void PeersHandler::handleWildcard(Request &req, Response &resp)
     }
     if(ok)
     {
-        resp.mReturnCode = Response::OK;
+        resp.setOk();
     }
     else
     {
-        resp.mReturnCode = Response::FAIL;
+        resp.setOk();
     }
 }
 
@@ -231,11 +204,11 @@ void PeersHandler::handleExamineCert(Request &req, Response &resp)
     if(mRsPeers->loadDetailsFromStringCert(cert_string, details, error_code))
     {
         peerDetailsToStream(resp.mDataStream, details);
-        resp.mReturnCode = Response::OK;
+        resp.setOk();
     }
     else
     {
-        resp.mReturnCode = Response::FAIL;
+        resp.setFail();
     }
 }
 

@@ -1,4 +1,5 @@
 #include "JsonStream.h"
+#include <iostream>
 
 namespace resource_api
 {
@@ -41,6 +42,8 @@ std::string JsonStream::getJsonString()
             return "";
         }
     }
+    std::cerr << "JsonStream::getJsonString() Warning: stream not ok, will return empty string." << std::endl;
+    return "";
 }
 
 
@@ -276,8 +279,10 @@ void JsonStream::setError()
     mIsOk = false;
 }
 
+/*
 void JsonStream::addLogMsg(std::string msg)
 {}
+*/
 
 void JsonStream::addErrorMsg(std::string msg)
 {
@@ -327,6 +332,7 @@ bool JsonStream::checkObjectMember(std::string key)
         }
         else
         {
+            mErrorLog += "JsonStream::checkObjectMember() Warning: missing key \""+key+"\"\n";
             return false;
         }
     }
@@ -466,7 +472,9 @@ void JsonStream::deleteCurrentChild()
         {
             if(mDataType == TYPE_ARRAY)
             {
-                mArray.push_back(mChild->getJsonValue());
+                // don't add empty value
+                if(mChild->getJsonValue().GetType() != json::NULLVal)
+                    mArray.push_back(mChild->getJsonValue());
             }
             else if(mDataType == TYPE_OBJECT)
             {

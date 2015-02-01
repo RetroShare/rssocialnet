@@ -2,7 +2,7 @@
 #include <QMessageBox>
 
 #include <retroshare/rsplugin.h>
-#include <util/rsversion.h>
+#include <retroshare/rsversion.h>
 #include <util/rsdir.h>
 
 #include "WebUIPlugin.h"
@@ -30,7 +30,7 @@ extern "C" {
 	// It will be tested by RS to load the plugin automatically, since it is safe to load plugins
 	// with same revision numbers, assuming that the revision numbers are up-to-date.
 	//
-	uint32_t RETROSHARE_PLUGIN_revision = SVN_REVISION_NUMBER ;
+    uint32_t RETROSHARE_PLUGIN_revision = RS_REVISION_NUMBER ;
 
 	// This symbol contains the svn revision number grabbed from the executable. 
 	// It will be tested by RS to load the plugin automatically, since it is safe to load plugins
@@ -46,11 +46,11 @@ QIcon *WebUIPlugin::qt_icon() const
 	return icon ;
 }
 
-void WebUIPlugin::getPluginVersion(int& major,int& minor,int& svn_rev) const
+void WebUIPlugin::getPluginVersion(int& major,int& minor,int& build,int& svn_rev) const
 {
     major = 0 ;
     minor = 0 ;
-	svn_rev = SVN_REVISION_NUMBER ;
+    svn_rev = RS_REVISION_NUMBER ;
 }
 
 ConfigPage *WebUIPlugin::qt_config_page() const

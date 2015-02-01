@@ -38,8 +38,6 @@ public:
     std::string handleRequest(Request& request);
 
 private:
-    void handleHelp(Request& req, Response& resp);
-
     //RsPlugInInterfaces mPlugInInterfaces;
     StateTokenServer mStateTokenServer; // goes first, as others may depend on it
     PeersHandler mPeersHandler;

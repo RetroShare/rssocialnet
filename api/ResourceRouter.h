@@ -19,10 +19,6 @@ public:
     void addResourceHandler(std::string name, T* instance, ResponseTask* (T::*callback)(Request& req, Response& resp));
     template <class T>
     void addResourceHandler(std::string name, T* instance, void (T::*callback)(Request& req, Response& resp));
-
-    // implement this to return an help text
-    virtual std::string help(){return "ResourceRouter: help not implemented";}
-
 private:
     class HandlerBase
     {

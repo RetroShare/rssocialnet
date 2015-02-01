@@ -14,12 +14,12 @@ class WallHandler: public ResourceRouter
 {
 public:
     WallHandler(RsWall::RsWall* mRsWall, RsIdentity* identity);
-    virtual std::string help();
+
 private:
     RsWall::RsWall* mRsWall;
     RsIdentity* mRsIdentity;
     ResponseTask* handleWildcard(Request& req, Response& resp);
-    void handleOwn(Request& req, Response& resp);
+    ResponseTask* handleActivitiesNew(Request& req, Response& resp);
     void handleActivities(Request& req, Response& resp);
     void handleWall(Request& req, Response& resp);
     void handleAvatarImage(Request &req, Response &resp);

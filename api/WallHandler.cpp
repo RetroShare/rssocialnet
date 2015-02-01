@@ -16,6 +16,7 @@ namespace resource_api
 
 //using namespace RsWall;
 
+// returns the first wall for a given gxs identity
 class WallTask: public GxsResponseTask
 {
 public:
@@ -45,33 +46,32 @@ protected:
         {
             std::vector<RsWall::WallGroup> wgs;
             mWall->getWallGroups(mToken, wgs);
-            if(!wgs.empty())
+            if(wgs.empty())
             {
-                // for now only the first group
-                RsWall::WallGroup& wg = wgs.front();
-
-                // make base63 string out of images
-                // TODO: find and implement better solution
-                // TODO: use correct mime type, don't assume jpeg
-                std::string wi_b64;
-                Radix64::encode((const char *)wg.mWallImage.mData.data(),wg.mWallImage.mData.size(),wi_b64);
-                wi_b64 = "data:image/jpeg;base64," + wi_b64;
-
-                std::string ai_b64;
-                Radix64::encode((const char *)wg.mAvatarImage.mData.data(),wg.mAvatarImage.mData.size(),ai_b64);
-                ai_b64 = "data:image/jpeg;base64," + ai_b64;
-
-                streamGxsId(mId, resp.mDataStream.getStreamToMember("identity"));
-                resp.mDataStream << makeKeyValueReference("profile_text", wg.mProfileText)
-                                 << makeKeyValueReference("wall_image", wi_b64)
-                                 << makeKeyValueReference("avatar_image", ai_b64);
-                resp.mReturnCode = Response::OK;
+                resp.setOk();// not sure if should set ok, fail or warning. the response is ok, but it is empty
+                resp.mDebug << "WallPostsTask::gxsDoWork() Warning: no wall group for author id=" << mId.toStdString() << " found." << std::endl;
+                done();
+                break;
             }
-            else
-            {
-                resp.mReturnCode = Response::FAIL;
-                resp.mDebug << "Error: no wall group" << std::endl;
-            }
+            // for now only the first group
+            RsWall::WallGroup& wg = wgs.front();
+
+            // make base63 string out of images
+            // TODO: find and implement better solution
+            // TODO: use correct mime type, don't assume jpeg
+            std::string wi_b64;
+            Radix64::encode((const char *)wg.mWallImage.mData.data(),wg.mWallImage.mData.size(),wi_b64);
+            wi_b64 = "data:image/jpeg;base64," + wi_b64;
+
+            std::string ai_b64;
+            Radix64::encode((const char *)wg.mAvatarImage.mData.data(),wg.mAvatarImage.mData.size(),ai_b64);
+            ai_b64 = "data:image/jpeg;base64," + ai_b64;
+
+            streamGxsId(mId, resp.mDataStream.getStreamToMember("identity"));
+            resp.mDataStream << makeKeyValueReference("profile_text", wg.mProfileText)
+                             << makeKeyValueReference("wall_image", wi_b64)
+                             << makeKeyValueReference("avatar_image", ai_b64);
+            resp.setOk();
             done();
             break;
         }
@@ -79,6 +79,330 @@ protected:
     }
 };
 
+class ActivitiesTask: public GxsResponseTask
+{
+public:
+    ActivitiesTask(RsWall::RsWall* wall, RsIdentity* identities):
+        GxsResponseTask(identities, wall->getTokenService()),
+        mWall(wall), mState(BEGIN), mPostGroupToken(0){}
+private:
+    RsWall::RsWall* mWall;
+    enum State {BEGIN, WAITING_POST_GROUP, WAITING_POST_MSGS, WAITING_IDENTITIES};
+    State mState;
+
+    std::vector<RsWall::Activity> mActivities;
+
+    uint32_t mPostGroupToken;
+    std::list<RsGroupMetaData> mPostGrpMetas;
+    std::vector<uint32_t> mPostMsgTokens;
+    std::vector<RsWall::PostMsg> mPostMsgs;
+protected:
+    virtual void gxsDoWork(Request &req, Response &resp)
+    {
+        switch(mState)
+        {
+        case BEGIN:
+        {
+            mWall->getCurrentActivities(mActivities);
+
+            if(mActivities.empty())
+            {
+                // mark result as list and return
+                resp.mDataStream.getStreamToMember();
+                resp.setOk();
+                done();
+            }
+
+            // collect ids of referenced post grps
+            std::list<RsGxsGroupId> postGrpIds;
+            for(std::vector<RsWall::Activity>::iterator vit = mActivities.begin(); vit != mActivities.end(); vit++)
+            {
+                RsWall::Activity& activity = *vit;
+                postGrpIds.push_back(activity.mReferencedGroup);
+            }
+            // request post grps
+            RsTokReqOptions opts;
+            opts.mReqType = GXS_REQUEST_TYPE_GROUP_META;
+            mWall->getTokenService()->requestGroupInfo(mPostGroupToken, RS_TOKREQ_ANSTYPE_SUMMARY, opts, postGrpIds);
+            addWaitingToken(mPostGroupToken);
+            mState = WAITING_POST_GROUP;
+            break;
+        }
+        case WAITING_POST_GROUP:
+        {
+            mWall->getGroupSummary(mPostGroupToken, mPostGrpMetas);
+
+            // request the msgs
+            for(std::vector<RsWall::Activity>::iterator vit = mActivities.begin(); vit != mActivities.end(); vit++)
+            {
+                RsWall::Activity& activity = *vit;
+
+                RsTokReqOptions opts;
+                opts.mReqType = GXS_REQUEST_TYPE_MSG_DATA;
+                uint32_t token;
+                std::list<RsGxsGroupId> grpIdList;
+                grpIdList.push_back(activity.mReferencedGroup);
+                mWall->getTokenService()->requestMsgInfo(token, RS_TOKREQ_ANSTYPE_DATA, opts, grpIdList);
+                mPostMsgTokens.push_back(token);
+                addWaitingToken(token);
+            }
+            mState = WAITING_POST_MSGS;
+            break;
+        }
+        case WAITING_POST_MSGS:
+        {
+            // get the msgs
+            // it could happend that a mesage is not available
+            // maybe should handle this
+            for(std::vector<uint32_t>::iterator vit = mPostMsgTokens.begin(); vit != mPostMsgTokens.end(); vit++)
+            {
+                RsWall::PostMsg pm;
+                mWall->getPostMsg(*vit, pm);
+                mPostMsgs.push_back(pm);
+            }
+
+            // request the names for the involved author ids
+            for(std::vector<RsWall::Activity>::iterator vit = mActivities.begin(); vit != mActivities.end(); vit++)
+            {
+                RsWall::Activity& activity = *vit;
+                for(std::vector<RsGxsId>::iterator vit = activity.mShared.begin(); vit != activity.mShared.end(); vit++)
+                {
+                    requestGxsId(*vit);
+                }
+                for(std::vector<RsGxsId>::iterator vit = activity.mCommented.begin(); vit != activity.mCommented.end(); vit++)
+                {
+                    requestGxsId(*vit);
+                }
+            }
+            for(std::list<RsGroupMetaData>::iterator lit = mPostGrpMetas.begin(); lit != mPostGrpMetas.end(); lit++)
+            {
+                RsGroupMetaData& meta = *lit;
+                requestGxsId(meta.mAuthorId);
+            }
+            mState = WAITING_IDENTITIES;
+            break;
+        }
+        case WAITING_IDENTITIES:
+        {
+            // put everything together in one response
+            for(std::vector<RsWall::Activity>::iterator vit = mActivities.begin(); vit != mActivities.end(); vit++)
+            {
+                StreamBase& stream = resp.mDataStream.getStreamToMember();
+                RsWall::Activity& activity = *vit;
+                StreamBase& stream_shared = stream.getStreamToMember("shared");
+                stream_shared.getStreamToMember();
+                for(std::vector<RsGxsId>::iterator vit = activity.mShared.begin(); vit != activity.mShared.end(); vit++)
+                {
+                    streamGxsId(*vit, stream_shared.getStreamToMember());
+                }
+                StreamBase& stream_commented = stream.getStreamToMember("commented");
+                stream_commented.getStreamToMember();
+                for(std::vector<RsGxsId>::iterator vit = activity.mCommented.begin(); vit != activity.mCommented.end(); vit++)
+                {
+                    streamGxsId(*vit, stream_commented.getStreamToMember());
+                }
+
+                RsGroupMetaData postGrpMeta;
+                for(std::list<RsGroupMetaData>::iterator postGrpMetaIt = mPostGrpMetas.begin(); postGrpMetaIt != mPostGrpMetas.end(); postGrpMetaIt++)
+                {
+                    if(postGrpMetaIt->mGroupId == activity.mReferencedGroup)
+                    {
+                        postGrpMeta = *postGrpMetaIt;
+                    }
+                }
+                RsWall::PostMsg pm;
+                for(std::vector<RsWall::PostMsg>::iterator pmvit = mPostMsgs.begin(); pmvit != mPostMsgs.end(); pmvit++)
+                {
+                    RsWall::PostMsg& pmref = *pmvit;
+                    if(pmref.mMeta.mGroupId == activity.mReferencedGroup)
+                    {
+                        pm = pmref;
+                    }
+                }
+                StreamBase& stream_post = stream.getStreamToMember("post");
+                streamGxsId(postGrpMeta.mAuthorId, stream_post.getStreamToMember("author"));
+                stream_post << makeKeyValueReference("post_text", pm.mPostText)
+                            << makeKeyValueReference("id", postGrpMeta.mGroupId);
+                resp.setOk();
+                done();
+            }
+        }
+        }
+    }
+};
+
+// this task does not make sense for normal operation
+// but is may be usefull for debugging
+// to see what walls are in the database
+class ListWallsTask: public GxsResponseTask
+{
+public:
+    ListWallsTask(RsWall::RsWall* wall, RsIdentity* identities):
+        GxsResponseTask(identities, wall->getTokenService()),
+        mWall(wall), mState(BEGIN), mToken(0){}
+private:
+    RsWall::RsWall* mWall;
+    enum State {BEGIN, WAITING_METAS, WAITING_IDENTITIES};
+    State mState;
+
+    uint32_t mToken;
+    std::vector<RsGroupMetaData> mMetas;
+protected:
+    virtual void gxsDoWork(Request &req, Response &resp)
+    {
+        switch(mState)
+        {
+        case BEGIN:
+        {
+            // list walls
+            mWall->requestWallGroupMetas(mToken, RsGxsId());
+            addWaitingToken(mToken);
+            mState = WAITING_METAS;
+            break;
+        }
+        case WAITING_METAS:
+        {
+            mWall->getWallGroupMetas(mToken, mMetas);
+            for(std::vector<RsGroupMetaData>::iterator vit = mMetas.begin(); vit != mMetas.end(); vit++)
+            {
+                requestGxsId(vit->mAuthorId);
+            }
+            mState = WAITING_IDENTITIES;
+            break;
+        }
+        case WAITING_IDENTITIES:
+        {
+            for(std::vector<RsGroupMetaData>::iterator vit = mMetas.begin(); vit != mMetas.end(); vit++)
+            {
+                RsGroupMetaData& meta = *vit;
+                StreamBase& stream = resp.mDataStream.getStreamToMember();
+
+                KeyValueReference<RsGxsGroupId> wallId("wall_id", meta.mGroupId);
+                KeyValueReference<RsGxsCircleId> circleId("todo_circle_id", meta.mCircleId);
+                stream << wallId << circleId;
+                streamGxsId(meta.mAuthorId, stream.getStreamToMember("owner"));
+            }
+            resp.setOk();
+            done();
+            break;
+        }
+        }
+    }
+};
+
+class WallPostsTask: public GxsResponseTask
+{
+public:
+    WallPostsTask(RsWall::RsWall* wall, RsIdentity* identities, RsGxsId id):
+        GxsResponseTask(identities, wall->getTokenService()),
+        mWall(wall), mState(BEGIN), mId(id), mWallGrpsToken(0), mReferenceMsgsToken(0){}
+private:
+    RsWall::RsWall* mWall;
+    enum State {BEGIN, WAITING_WALL_GRPS, WAITING_REF_MSGS, WAITING_POST_MSGS, WAITING_IDENTITIES};
+    State mState;
+
+    RsGxsId mId;
+
+    uint32_t mWallGrpsToken;
+    uint32_t mReferenceMsgsToken;
+    std::vector<RsWall::ReferenceMsg> mRefMsgs;
+    uint32_t mPostMsgsToken;
+    std::vector<RsWall::PostMsg> mPostMsgs;
+protected:
+    virtual void gxsDoWork(Request &req, Response &resp)
+    {
+        switch(mState)
+        {
+        case BEGIN:
+        {
+            mWall->requestWallGroups(mWallGrpsToken, mId);
+            addWaitingToken(mWallGrpsToken);
+            requestGxsId(mId);
+            mState = WAITING_WALL_GRPS;
+            break;
+        }
+        case WAITING_WALL_GRPS:
+        {
+
+            std::vector<RsWall::WallGroup> wgs;
+            mWall->getWallGroups(mWallGrpsToken, wgs);
+            if(wgs.empty())
+            {
+                resp.setOk();// not sure if should set ok, fail or warning. the response is ok, but it is empty
+                resp.mDebug << "WallPostsTask::gxsDoWork() Warning: no wall group for author id=" << mId.toStdString() << " found." << std::endl;
+                done();
+                break;
+            }
+            RsWall::WallGroup& wg = wgs.front();
+
+            RsTokReqOptions opts;
+            opts.mReqType = GXS_REQUEST_TYPE_MSG_DATA;
+            std::list<RsGxsGroupId> grpIds;
+            grpIds.push_back(wg.mMeta.mGroupId);
+            mWall->getTokenService()->requestMsgInfo(mReferenceMsgsToken, RS_TOKREQ_ANSTYPE_DATA, opts, grpIds);
+            addWaitingToken(mReferenceMsgsToken);
+            mState = WAITING_REF_MSGS;
+            break;
+        }
+        case WAITING_REF_MSGS:
+        {
+            mWall->getPostReferenceMsgs(mReferenceMsgsToken, mRefMsgs);
+            std::list<RsGxsGroupId> postGrpsToFetch;
+            for(std::vector<RsWall::ReferenceMsg>::iterator vit = mRefMsgs.begin(); vit != mRefMsgs.end(); ++vit)
+            {
+                RsWall::ReferenceMsg& rmsg = *vit;
+                postGrpsToFetch.push_back(rmsg.mReferencedGroup);
+                requestGxsId(rmsg.mMeta.mAuthorId);
+            }
+            RsTokReqOptions opts;
+            opts.mReqType = GXS_REQUEST_TYPE_MSG_DATA;
+            mWall->getTokenService()->requestMsgInfo(mPostMsgsToken, RS_TOKREQ_ANSTYPE_DATA, opts, postGrpsToFetch);
+            addWaitingToken(mPostMsgsToken);
+            mState = WAITING_POST_MSGS;
+            break;
+        }
+        case WAITING_POST_MSGS:
+        {
+            mWall->getPostMsgs(mPostMsgsToken, mPostMsgs);
+            for(std::vector<RsWall::PostMsg>::iterator vit = mPostMsgs.begin(); vit != mPostMsgs.end(); ++vit)
+            {
+                RsWall::PostMsg& pm = *vit;
+                requestGxsId(pm.mMeta.mAuthorId);
+            }
+            // TODO: what about comments? load comments in extra call? oder insert here?
+
+            mState = WAITING_IDENTITIES;
+            break;
+        }
+        case WAITING_IDENTITIES:
+        {
+            resp.mDataStream.getStreamToMember();
+            for(std::vector<RsWall::ReferenceMsg>::iterator vit = mRefMsgs.begin(); vit != mRefMsgs.end(); ++vit)
+            {
+                StreamBase& refMsgStream = resp.mDataStream.getStreamToMember();
+                RsWall::ReferenceMsg& rmsg = *vit;
+                refMsgStream << makeKeyValueReference("id", rmsg.mMeta.mMsgId);
+                streamGxsId(rmsg.mMeta.mAuthorId, refMsgStream.getStreamToMember("author"));
+                StreamBase& pmstream = refMsgStream.getStreamToMember("post");
+                RsWall::PostMsg pm;
+                // have to search the matching post message
+                for(std::vector<RsWall::PostMsg>::iterator vit = mPostMsgs.begin(); vit != mPostMsgs.end(); ++vit)
+                {
+                    if(vit->mMeta.mGroupId == rmsg.mReferencedGroup)
+                        pm = *vit;
+                }
+                streamGxsId(pm.mMeta.mAuthorId, pmstream.getStreamToMember("author"));
+                pmstream << makeKeyValueReference("post_text", pm.mPostText);
+            }
+            resp.setOk();
+            done();
+            break;
+        }
+        }
+    }
+};
+
+// OLD REMOVE
 bool waitForTokenOrTimeout(uint32_t token, RsTokenService* tokenService)
 {
     time_t start = time(NULL);
@@ -107,61 +431,37 @@ WallHandler::WallHandler(RsWall::RsWall* wall, RsIdentity* identity):
     mRsWall(wall), mRsIdentity(identity)
 {
     addResourceHandler("*", this, &WallHandler::handleWildcard);
-    addResourceHandler("own", this, &WallHandler::handleOwn);
     addResourceHandler("activities", this, &WallHandler::handleActivities);
     addResourceHandler("wall", this, &WallHandler::handleWall);
     addResourceHandler("avatar_image", this, &WallHandler::handleAvatarImage);
-}
-
-std::string WallHandler::help()
-{
-    return
-            "GET /activities\n"
-            "return a list of the current activities\n"
-            "\n"
-;
+    addResourceHandler("activities_new", this, &WallHandler::handleActivitiesNew);
 }
 
 ResponseTask* WallHandler::handleWildcard(Request &req, Response &resp)
 {
-    bool ok = true;
-    ResponseTask* ret = 0;
-    if(req.mMethod == Request::GET && !req.mPath.empty())
+    if(req.isGet() && !req.mPath.empty())
     {
         RsGxsId id(req.mPath.top());
-        if(!id.isNull())
+        req.mPath.pop();
+        if(!id.isNull() && req.mPath.empty())
         {
-            ret = new WallTask(mRsWall, mRsIdentity, id);
+            return new WallTask(mRsWall, mRsIdentity, id);
         }
-        else ok = false;
+        if(!id.isNull() && req.mPath.top() == "posts")
+        {
+            return new WallPostsTask(mRsWall, mRsIdentity, id);
+        }
     }
     else
     {
+        return new ListWallsTask(mRsWall, mRsIdentity);
     }
-
-    if(ok)
-    {
-        resp.mReturnCode = Response::OK;
-    }
-    else
-    {
-        resp.mReturnCode = Response::FAIL;
-    }
-    return ret;
+    return 0;
 }
 
-void WallHandler::handleOwn(Request &req, Response &resp)
+ResponseTask* WallHandler::handleActivitiesNew(Request &req, Response &resp)
 {
-    bool ok = true;
-
-    if(ok)
-    {
-        resp.mReturnCode = Response::OK;
-    }
-    else
-    {
-        resp.mReturnCode = Response::FAIL;
-    }
+    return new ActivitiesTask(mRsWall, mRsIdentity);
 }
 
 // this function is the absolute horror
@@ -184,6 +484,7 @@ void WallHandler::handleOwn(Request &req, Response &resp)
 // better idea: other handlers like identity handler expose a funktion to write the identity details to a stream
 void WallHandler::handleActivities(Request &req, Response &resp)
 {
+#ifdef REMOVE
     std::vector<RsWall::Activity> activities;
     mRsWall->getCurrentActivities(activities);
 
@@ -344,14 +645,15 @@ void WallHandler::handleActivities(Request &req, Response &resp)
 
 
     }
+#endif
 }
 
 void WallHandler::handleWall(Request &req, Response &resp)
 {
+#ifdef REMOVE
     if(!req.mPath.empty())
     {
         RsGxsId author(req.mPath.top());
-        uint32_t token;
         // todo
         //mRsWall->requestWallGroups();
     }
@@ -406,6 +708,7 @@ void WallHandler::handleWall(Request &req, Response &resp)
             }
         }
     }
+#endif
 }
 
 void WallHandler::handleAvatarImage(Request &req, Response &resp)

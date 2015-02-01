@@ -1248,13 +1248,16 @@ void p3WallService::getPostReferenceMsgs(const uint32_t &token, std::vector<Refe
 
 void p3WallService::getPostMsg(const uint32_t &token, PostMsg &pm)
 {
-    // todo: allow get many msgs at once
-    // are many msgs neede here?
-    // i think not, because there is only one msg PotsMsg in the group
-    // this is nearly a copy of the fn above
+    std::vector<PostMsg> pms;
+    getPostMsgs(token, pms);
+    if(!pms.empty())
+        pm = pms.front();
+}
+
+void p3WallService::getPostMsgs(const uint32_t &token, std::vector<PostMsg> &pms)
+{
     std::map<RsGxsGroupId, std::vector<PostMsgItem*> > msgMap;
     getMsgDataT<PostMsgItem>(token, msgMap);
-    // again there should be only one item, else something went wrong
     std::map<RsGxsGroupId, std::vector<PostMsgItem*> >::iterator mit;
     for(mit = msgMap.begin(); mit != msgMap.end(); mit++)
     {
@@ -1263,8 +1266,10 @@ void p3WallService::getPostMsg(const uint32_t &token, PostMsg &pm)
         for(vit = msgVec.begin(); vit != msgVec.end(); vit++)
         {
             PostMsgItem* item = *vit;
+            PostMsg pm;
             pm = item->mPostMsg;
             pm.mMeta = item->meta;
+            pms.push_back(pm);
             delete item;
         }
     }
