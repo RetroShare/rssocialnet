@@ -31,12 +31,17 @@ public:
     // this allows tokens to be created and destroyed from arbitrary threads
     StateToken getNewToken();
     void discardToken(StateToken token);
+    // discard the token and fill in a new one
+    void replaceToken(StateToken& token);
 
     void registerTickClient(Tickable* c);
     void unregisterTickClient(Tickable* c);
 
 private:
     void handleWildcard(Request& req, Response& resp);
+
+    StateToken locked_getNewToken();
+    void locked_discardToken(StateToken token);
 
     RsMutex mMtx;
 

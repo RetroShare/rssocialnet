@@ -198,7 +198,8 @@ public:
     // for example include or exclude some information
     // question: when to use parameters, and when to use the data field?
     // it would be easier to have only one thing...
-    std::vector<std::pair<std::string, std::string> > mParameters;
+    // UNUSED: was never implemented
+    //std::vector<std::pair<std::string, std::string> > mParameters;
 
     // contains data for new resources
     StreamBase& mStream;

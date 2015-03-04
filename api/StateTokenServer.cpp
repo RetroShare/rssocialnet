@@ -65,22 +65,20 @@ StateTokenServer::StateTokenServer():
 StateToken StateTokenServer::getNewToken()
 {
     RsStackMutex stack(mMtx); /********** STACK LOCKED MTX ******/
-    StateToken token(mNextToken);
-    mValidTokens.push_back(token);
-    mNextToken++;
-    if(mNextToken == 0) // 0 is a reserved value, don't ever use it
-        mNextToken = 1;
-    return token;
+    return locked_getNewToken();
 }
 
 void StateTokenServer::discardToken(StateToken token)
 {
     RsStackMutex stack(mMtx); /********** STACK LOCKED MTX ******/
-    std::vector<StateToken>::iterator toDelete = std::find(mValidTokens.begin(), mValidTokens.end(), token);
-    if(toDelete != mValidTokens.end())
-    {
-        mValidTokens.erase(toDelete);
-    }
+    locked_discardToken(token);
+}
+
+void StateTokenServer::replaceToken(StateToken &token)
+{
+    RsStackMutex stack(mMtx); /********** STACK LOCKED MTX ******/
+    locked_discardToken(token);
+    token = locked_getNewToken();
 }
 
 void StateTokenServer::registerTickClient(Tickable *c)
@@ -128,6 +126,25 @@ void StateTokenServer::handleWildcard(Request &req, Response &resp)
         }
     }
     resp.setOk();
+}
+
+StateToken StateTokenServer::locked_getNewToken()
+{
+    StateToken token(mNextToken);
+    mValidTokens.push_back(token);
+    mNextToken++;
+    if(mNextToken == 0) // 0 is a reserved value, don't ever use it
+        mNextToken = 1;
+    return token;
+}
+
+void StateTokenServer::locked_discardToken(StateToken token)
+{
+    std::vector<StateToken>::iterator toDelete = std::find(mValidTokens.begin(), mValidTokens.end(), token);
+    if(toDelete != mValidTokens.end())
+    {
+        mValidTokens.erase(toDelete);
+    }
 }
 
 } // namespace resource_api

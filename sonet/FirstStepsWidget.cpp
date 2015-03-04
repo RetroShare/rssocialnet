@@ -16,6 +16,7 @@ FirstStepsWidget::FirstStepsWidget(Wt::WContainerWidget *parent):
     setImplementation(container);
     Wt::WTemplate* templ = new Wt::WTemplate(container);
     templ->setTemplateText(
+                "<p style=\"font-family: monospace; color: lime; background-color: black; padding: 0.3em; border-radius: 0.5em;\"><b>Note: new webinterface and json interface</b><br/>A new webinterface is being developed. If you installed all files correctly, it should be available <a href=\"webui/index.html\">here</a>.</p>"
                 "<h1>Retroshare social network plugin: first steps</h1>"
                 "<p>(goal: these steps should be very easy and obvious to do.)</p>"
                 "<p>1. connect to your friends (we can't remove this step, only can make it simple)</p>"
@@ -29,7 +30,6 @@ FirstStepsWidget::FirstStepsWidget(Wt::WContainerWidget *parent):
                 "<p>The widget below shows all currently known identities with a wall."
                 " Later a Filter should be applied to show only interesting identities. Like \"People you may know\"."
                 " The social network starts by subscribing to another wall.</p>"
-                "<p>Preview of the new <a href='api/v2/help'>JSON over http interface for Retroshare</a></p>"
                 );
 
     new Wt::WBreak(container);

@@ -3,11 +3,6 @@
 #include <Wt/WTabWidget>
 #include <Wt/WTextArea>
 #include <Wt/WBreak>
-
-#if WT_VERSION < 0x03030000
-#error rssocialnet needs at least Wt version 3.3.0 because of Wt::WNavigationBar
-#endif
-#include <Wt/WNavigationBar>
 #include <Wt/WStackedWidget>
 
 #if WT_VERSION >= 0x03030200
@@ -15,6 +10,13 @@
 #endif
 
 #include "RSWApplication.h"
+
+//#if WT_VERSION < 0x03030000
+//#error rssocialnet needs at least Wt version 3.3.0 because of Wt::WNavigationBar
+//#endif
+#ifndef NO_NAVBAR
+#include <Wt/WNavigationBar>
+#endif
 
 #include "RSWappFriendsPage.h"
 #include "RSWappTransfersPage.h"
@@ -43,6 +45,7 @@ RSWApplication::RSWApplication(const Wt::WEnvironment& env,const RsPlugInInterfa
 
 	Wt::WContainerWidget *container = new Wt::WContainerWidget();
 
+#ifndef NO_NAVBAR
     Wt::WNavigationBar *navigation = new Wt::WNavigationBar(container);
 
     stackW = new Wt::WStackedWidget(container);
@@ -59,7 +62,7 @@ RSWApplication::RSWApplication(const Wt::WEnvironment& env,const RsPlugInInterfa
 
     wallWidget = new RsWall::WallWidget();
     stackW->addWidget(wallWidget);
-
+#endif
     // IdentityPopupMenue and the idRootMenue is good for:
     // - display the currently selected id in a menu item of the root menu
     // - show popup menue when the user clicks on the root menue item
@@ -69,16 +72,18 @@ RSWApplication::RSWApplication(const Wt::WEnvironment& env,const RsPlugInInterfa
     idMenu->identitySelectionChanged().connect(this, &RSWApplication::onIdSelectionChanged);
 
     Wt::WMenu* idRootMenu = new Wt::WMenu();
+#ifndef NO_NAVBAR
     idRootMenu->addStyleClass("navbar-nav navbar-right");// bootstrap class to make the menu horizontal
     navigation->addMenu(idRootMenu, Wt::AlignRight);
+#endif
 
     currentIdentity = idMenu->getCurrentIdentity();
     idRootMenuItem = new Wt::WMenuItem("");
     idRootMenuItem->setMenu(idMenu);
     idRootMenu->addItem(idRootMenuItem);
 
-
-/*    tabW = new Wt::WTabWidget(container);
+#ifdef NO_NAVBAR
+    tabW = new Wt::WTabWidget(container);
     //tabW->setInternalPathEnabled();
 
     tabW->addTab(new RSWappSocialNetworkPage(container), "SocialNetwork", Wt::WTabWidget::PreLoading)->setPathComponent("sonet");
@@ -90,7 +95,7 @@ RSWApplication::RSWApplication(const Wt::WEnvironment& env,const RsPlugInInterfa
 	tabW->addTab(new RSWappTransfersPage(container,interf.mFiles),"Transfers", Wt::WTabWidget::PreLoading);
 	tabW->addTab(new RSWappSharedFilesPage(container,interf.mFiles,interf.mPeers),"Shared files", Wt::WTabWidget::PreLoading);
     tabW->addTab(searchFilesPage = new RSWappSearchFilesPage(container,interf.mFiles),"Search", Wt::WTabWidget::PreLoading);
-    */
+#endif
 //	tabW->addTab(new RSWappChatLobbiesPage(container),"Chat lobbies", Wt::WTabWidget::PreLoading);
 //	tabW->addTab(new RSWappConfigPage(container),"Config", Wt::WTabWidget::PreLoading);
 

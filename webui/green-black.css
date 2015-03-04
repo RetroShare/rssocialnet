@@ -4,6 +4,7 @@ body {
 	font-family: monospace;
 	margin: 0em;
 	padding: 1.5em;
+	font-size: 1.1em;
 }
 
 .nav{
@@ -20,4 +21,24 @@ body {
 	border-color: blue;
 	border-bottom-style: solid;
 	cursor: pointer;
+}
+td{
+	padding: 0.3em;
+	border-style: solid;
+	border-width: 0.1em;
+	border-color: lime;
+}
+.btn{
+	border-style: solid;
+	border-color: lime;
+	border-width: 0.1em;
+	cursor: pointer;
+	padding: 0.1em;
+}
+
+input, textarea{
+	color: lime;
+	font-family: monospace;
+	background-color: black;
+	border-color: lime;
 }

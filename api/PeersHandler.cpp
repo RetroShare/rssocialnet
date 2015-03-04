@@ -116,7 +116,7 @@ void PeersHandler::handleWildcard(Request &req, Response &resp)
                 delete[] data;
                 resp.mDataStream << avatar;
             }
-            else if(req.isDelete())
+            else if(!req.mPath.empty() && req.mPath.top() == "delete")
             {
                 mRsPeers->removeFriend(RsPgpId(str));
             }
@@ -191,7 +191,7 @@ void PeersHandler::handleWildcard(Request &req, Response &resp)
     }
     else
     {
-        resp.setOk();
+        resp.setFail();
     }
 }
 
@@ -208,7 +208,7 @@ void PeersHandler::handleExamineCert(Request &req, Response &resp)
     }
     else
     {
-        resp.setFail();
+        resp.setFail("failed to load certificate");
     }
 }
 

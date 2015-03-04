@@ -10,9 +10,9 @@
 #include "WebUITimer.h"
 #include "WebUImain.h"
 #include "sonet/RsGxsUpdateBroadcastWt.h"
-#include "api/ApiServer.h"
+#include "apiwt/ApiServerWt.h"
 #ifdef ENABLE_FILESTREAMER
-    #include "api/FileStreamerWt.h"
+    #include "apiwt/FileStreamerWt.h"
 #endif
 
 bool c ;

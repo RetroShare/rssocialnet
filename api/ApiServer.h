@@ -1,7 +1,5 @@
 #pragma once
 
-#include <Wt/WResource>
-
 #include <retroshare/rsplugin.h>
 
 #include "ApiTypes.h"
@@ -10,8 +8,13 @@
 #include "WallHandler.h"
 #include "ServiceControlHandler.h"
 #include "StateTokenServer.h"
+#include "FileSearchHandler.h"
+#include "TransfersHandler.h"
 
 namespace resource_api{
+
+class ApiServerMainModules;
+class ApiServerWallModule;
 
 // main entry point for all resource api calls
 
@@ -28,7 +31,8 @@ namespace resource_api{
 class ApiServer
 {
 public:
-    ApiServer(const RsPlugInInterfaces& ifaces);
+    ApiServer();
+    ~ApiServer();
 
     // it is currently hard to separate into http and non http stuff
     // mainly because the http path is used in the api
@@ -37,28 +41,45 @@ public:
     // and the general apiserver part makes the response
     std::string handleRequest(Request& request);
 
+    // TODO
+    //void loadRsInitModules();
+
+    // load the main api modules
+    void loadMainModules(const RsPlugInInterfaces& ifaces);
+
+    // only after rswall was started!
+    void loadWallModule(const RsPlugInInterfaces& ifaces, RsWall::RsWall* wall);
+
+    // allows to add more handlers
+    // make sure the livetime of the handlers is longer than the api server
+    template <class T>
+    void addResourceHandler(std::string name, T* instance, ResponseTask* (T::*callback)(Request& req, Response& resp));
+    template <class T>
+    void addResourceHandler(std::string name, T* instance, void (T::*callback)(Request& req, Response& resp));
+
+    StateTokenServer* getStateTokenServer(){ return &mStateTokenServer; }
+
 private:
-    //RsPlugInInterfaces mPlugInInterfaces;
     StateTokenServer mStateTokenServer; // goes first, as others may depend on it
-    PeersHandler mPeersHandler;
-    IdentityHandler mIdentityHandler;
-    WallHandler mWallHandler;
-    ServiceControlHandler mServiceControlHandler;
+                                        // is always loaded, because it has no dependencies
+
+    // only pointers here, to load/unload modules at runtime
+    ApiServerMainModules* mMainModules; // loaded when RS is started
+    ApiServerWallModule* mWallModule; // only loaded in rssocialnet plugin
 
     ResourceRouter mRouter;
 };
 
-// main entry point of the http api
-class ApiServerWt: public Wt::WResource
+// implementations
+template <class T>
+void ApiServer::addResourceHandler(std::string name, T* instance, ResponseTask* (T::*callback)(Request& req, Response& resp))
 {
-public:
-    ApiServerWt(const RsPlugInInterfaces& ifaces);
-    ~ApiServerWt(){ beingDeleted(); } // Wt wants this
-
-    void handleRequest(const Wt::Http::Request &request, Wt::Http::Response &response);
-
-private:
-    ApiServer mApiServer;
-};
+    mRouter.addResourceHandler(name, instance, callback);
+}
+template <class T>
+void ApiServer::addResourceHandler(std::string name, T* instance, void (T::*callback)(Request& req, Response& resp))
+{
+    mRouter.addResourceHandler(name, instance, callback);
+}
 
 }

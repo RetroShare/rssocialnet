@@ -440,7 +440,7 @@ void JsonStream::valueToInt(json::Value &value, int &integer)
 
 void JsonStream::valueToDouble(json::Value &value, double &doubleVal)
 {
-    if(value.GetType() == json::DoubleVal)
+    if(value.IsNumeric())
     {
         doubleVal = value;
     }

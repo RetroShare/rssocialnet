@@ -32,13 +32,18 @@ function RsApi(connection)
      */
     this.unregister_token_listener = function(listener) // no token as parameter, assuming unregister from all listening tokens
     {
+        var to_delete = [];
         for(var i=0; i<tokenlisteners.length; i++){
             if(tokenlisteners[i].listener === listener){
-                // copy the last element to the current index
-                tokenlisteners[i] = tokenlisteners[tokenlisteners.length-1];
-                // remove LAST element
-                tokenlisteners.pop();
+                to_delete.push(i);
             }
+        }
+        for(var i=0; i<to_delete.length; i++){
+            // copy the last element to the current index
+            var index = to_delete[i];
+            tokenlisteners[index] = tokenlisteners[tokenlisteners.length-1];
+            // remove last element
+            tokenlisteners.pop();
         }
     };
     /**

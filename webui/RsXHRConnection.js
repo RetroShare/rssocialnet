@@ -6,8 +6,8 @@
 function RsXHRConnection()
 {
     var debug;
-    debug = function(str){console.log(str);};
-    //debug = function(str){};
+    //debug = function(str){console.log(str);};
+    debug = function(str){};
 
     var server_hostname = "localhost";
     var server_port = "9090";
@@ -30,10 +30,33 @@ function RsXHRConnection()
             // maybe want to have to set a state variable like ok=false
             // the gui could then display: "no connection to server"
             if (xhr.readyState === 4) {
+                if(xhr.status !== 200)
+                {
+                    console.log("RsXHRConnection: request failed with status: "+xhr.status);
+                    console.log("request was:");
+                    console.log(req);
+                    return;
+                }
                 // received response
                 debug("RsXHRConnection received response:");
                 debug(xhr.responseText);
-                cb(JSON.parse(xhr.responseText));
+                if(false)//if(xhr.responseText === "")
+                {
+                    debug("Warning: response is empty");
+                    return;
+                }
+                try
+                {
+                    var respObj = JSON.parse(xhr.responseText);
+                }
+                catch(e)
+                {
+                    debug("Exception during response handling: "+e);
+                }
+                if(cb === undefined)
+                    debug("No callback function specified");
+                else
+                    cb(respObj);
             }
         }
         // post is required for sending data

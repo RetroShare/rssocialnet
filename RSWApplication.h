@@ -12,6 +12,17 @@
 #include <retroshare/rsgxsifacetypes.h>
 #include <retroshare/rsidentity.h>
 
+#if WT_VERSION < 0x03030000
+//need least Wt version 3.3.0 to have Wt::WNavigationBar
+#error rssocialnet needs at least Wt version 3.3.0 because because Wt::WNavigationBar is missing in older versions
+
+// trying to use tabwidget instead of navbar
+// unfinished
+#define NO_NAVBAR
+#endif
+
+//#define NO_NAVBAR
+
 namespace RsWall{class RsWall; class WallWidget; class IdentityPopupMenu;}
 class RSWappSearchFilesPage;
 class RSWappSocialNetworkPage;
@@ -57,8 +68,11 @@ private:
 
     void onIdSelectionChanged(RsIdentityDetails details);
 
-    //Wt::WTabWidget *tabW;
+#ifdef NO_NAVBAR
+    Wt::WTabWidget *tabW;
+#else
     Wt::WStackedWidget *stackW;
+#endif
     RsPlugInInterfaces pluginInterfaces;
     WebUITimer* webUITimer;
     RsWall::WallWidget* wallWidget;
