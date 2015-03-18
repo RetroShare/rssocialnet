@@ -17,9 +17,10 @@ function RsXHRConnection()
      * Send a request to the backend
      * automatically encodes the request as JSON before sending it to the server
      * @param {object}  req - the request to send to the server
-     * @param {function} cb - callback function to be called to handle the response. The callback takes one object as parameter.
+     * @param {function} cb - callback function to be called to handle the response. The callback takes one object as parameter. Can be left undefined.
+     * @param {function} err_cb - callback function to signal a failed request. Can be undefined.
      */
-    this.request = function(req, cb)
+    this.request = function(req, cb, err_cb)
     {
         //var xhr = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP");
         // TODO: window is not available in QML
@@ -35,6 +36,8 @@ function RsXHRConnection()
                     console.log("RsXHRConnection: request failed with status: "+xhr.status);
                     console.log("request was:");
                     console.log(req);
+                    if(err_cb !== undefined)
+                        err_cb();
                     return;
                 }
                 // received response

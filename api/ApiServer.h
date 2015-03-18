@@ -41,9 +41,6 @@ public:
     // and the general apiserver part makes the response
     std::string handleRequest(Request& request);
 
-    // TODO
-    //void loadRsInitModules();
-
     // load the main api modules
     void loadMainModules(const RsPlugInInterfaces& ifaces);
 

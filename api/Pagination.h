@@ -6,10 +6,10 @@ namespace resource_api
 {
 
 // C must be a type with STL like iterator, a begin() and an end() method
-// additionally a function id() which takes gives a unique value for every container element
+// additionally a function id() which gives a unique value for every container element
 // the type of the id should be string
 // the type returned by dereferencing the iterator should have a stream operator for StreamBase
-// the stream operator must not add an element "id", this is deon by the pagination handler
+// the stream operator must not add an element "id", this is done by the pagination handler
 template<class C>
 void handlePaginationRequest(Request& req, Response& resp, const C& data)
 {
@@ -42,7 +42,7 @@ void handlePaginationRequest(Request& req, Response& resp, const C& data)
     }
 
     C::iterator it_last = data.begin();
-    if(first == "end")
+    if(last == "end")
     {
         it_last = data.end();
     }

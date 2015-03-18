@@ -69,14 +69,20 @@ function RsApi(connection)
                 var token = resp.data[i];
                 // search the listener for this token
                 for(var j=0; j<tokenlisteners.length; j++){
-                    if(tokenlisteners[i].token === token){
+                    if(tokenlisteners[j].token === token){
                         // call the listener
-                        tokenlisteners[i].listener();
+                        tokenlisteners[j].listener();
                     }
                 }
             }
         }
         // schedule new update
+        if(running)
+            setTimeout(tick, TICK_INTERVAL);
+    };
+    function received_error()
+    {
+        // try again, maybe want a better logic later
         if(running)
             setTimeout(tick, TICK_INTERVAL);
     };
@@ -91,7 +97,7 @@ function RsApi(connection)
         connection.request({
             path: "statetokenservice",
             data: data,
-        }, received_tokenstates);
+        }, received_tokenstates, received_error);
     };
 };
 
