@@ -42,3 +42,23 @@ input, textarea{
 	background-color: black;
 	border-color: lime;
 }
+#logo_splash{
+    -webkit-animation-fill-mode: forwards; /* Chrome, Safari, Opera */
+    animation-fill-mode: forwards;
+    -webkit-animation-name: logo_splash; /* Chrome, Safari, Opera */
+    -webkit-animation-duration: 3s; /* Chrome, Safari, Opera */
+    animation-name: logo_splash;
+    animation-duration: 3s;
+	text-align: center;
+}
+/* Chrome, Safari, Opera */
+@-webkit-keyframes logo_splash {
+    from {opacity: 0;}
+    to {opacity: 1;}
+}
+
+/* Standard syntax */
+@keyframes logo_splash {
+    from {opacity: 0;}
+    to {opacity: 1;}
+}
