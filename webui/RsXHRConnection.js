@@ -3,14 +3,14 @@
  * (could add other connections later, for example WebSockets)
  * @constructor
  */
-function RsXHRConnection()
+function RsXHRConnection(server_hostname, server_port)
 {
     var debug;
     //debug = function(str){console.log(str);};
     debug = function(str){};
 
-    var server_hostname = "localhost";
-    var server_port = "9090";
+    //server_hostname = "localhost";
+    //server_port = "9090";
     var api_root_path = "/api/v2/";
 
     /**

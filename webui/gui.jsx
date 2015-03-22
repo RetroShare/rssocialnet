@@ -1,6 +1,9 @@
-var connection = new RsXHRConnection();
+var connection = new RsXHRConnection(window.location.hostname, window.location.port);
 var RS = new RsApi(connection);
 RS.start();
+
+var api_url = window.location.protocol + "//" + window.location.hostname + ":" + window.location.port + "/api/v2/";
+var filestreamer_url = window.location.protocol + "//" +window.location.hostname + ":" + window.location.port + "/fstream/";
 
 // implements automatic update using the state token system
 // components using this mixin should have a member "getPath()" to specify the resource
@@ -145,7 +148,7 @@ var Peers = React.createClass({
 	render: function(){
 		var renderOne = function(f){
 			console.log("make one");
-			return <p>{f.name} <img src={"../api/v2/peers"+f.locations[0].avatar_address} /></p>;
+			return <p>{f.name} <img src={api_url+f.locations[0].avatar_address} /></p>;
 		};
 		return <div>{this.state.data.map(renderOne)}</div>;
 	},
@@ -185,7 +188,7 @@ var Peers2 = React.createClass({
 				// TODO: fix the url, should get the "../api/v2" prefix from a single variable
 				var avatar_url = "";
 				if(this.props.data.locations.length > 0 && this.props.data.locations[0].avatar_address !== "")
-					avatar_url = "../api/v2/peers" + this.props.data.locations[0].avatar_address
+					avatar_url = api_url + component.getPath() + this.props.data.locations[0].avatar_address
 				var remove_button_style = {
 					color: "red",
 					fontSize: "1.5em",
@@ -440,7 +443,7 @@ var AudioPlayerWidget = React.createClass({
 			return(
 				<div>
 					<p>{this.state.file.name}</p>
-					<audio controls src={"http://localhost:9090/fstream/"+this.state.file.hash} type="audio/mpeg">
+					<audio controls src={filestreamer_url+this.state.file.hash} type="audio/mpeg">
 					</audio>
 				</div>
 			);
