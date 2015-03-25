@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <unistd.h>
+#include <time.h>
 
 namespace resource_api
 {

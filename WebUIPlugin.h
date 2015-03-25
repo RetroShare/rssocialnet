@@ -5,6 +5,10 @@
 #include <gxs/rsgxsnetservice.h>
 #include <gxs/rsdataservice.h>
 
+#include "api/ApiServerMHD.h"
+#include "api/WallHandler.h"
+#include "api/RsControlModule.h"
+
 class PluginGUIHandler ;
 class PluginNotifier ;
 
@@ -42,6 +46,10 @@ class WebUIPlugin: public RsPlugin
         mutable RsGeneralDataService *wall_ds;
         mutable RsGxsNetService *wall_ns;
         mutable RsWall::p3WallService *wall;
+
+        mutable resource_api::ApiServerMHD* httpd;
+        mutable resource_api::RsControlModule* ctrlmodule;
+        mutable resource_api::WallHandler* wallhandler;
 
 		//mutable ConfigPage *config_page ;
 		//mutable QIcon *mIcon;

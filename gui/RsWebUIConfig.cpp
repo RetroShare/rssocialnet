@@ -1,15 +1,16 @@
 #include <iostream>
 #include <QTimer>
 #include "RsWebUIConfig.h"
-#include "WebUImain.h"
 
 RsWebUIConfig::RsWebUIConfig(QWidget * parent, Qt::WindowFlags flags)
     : ConfigPage(parent, flags)
 {
     /* Invoke the Qt Designer generated object setup routine */
     ui.setupUi(this);
+#ifdef USE_OLD_WITTY_CODE
 	 _current_ip_list.clear();
 	 _old_port = RSWebUI::port() ;
+#endif
 	 _ip_list_changed = false ;
 
 	 QObject::connect(ui.IPmask_LE,SIGNAL(textChanged(const QString&)),this,SLOT(on_IPmaskChanged(const QString&))) ;
@@ -24,7 +25,9 @@ void RsWebUIConfig::load()
     loadSettings();
 
 	 on_IPmaskChanged(ui.IPmask_LE->text()) ;
+#ifdef USE_OLD_WITTY_CODE
 	 ui.enableWebUI_CB->setChecked(RSWebUI::isRunning()) ;
+#endif
 }
 
 static QString IPmaskToString(uint32_t ip_mask)
@@ -77,13 +80,14 @@ static uint32_t stringToIPmask(const QString IP_string,bool& ok)
 
 void RsWebUIConfig::loadSettings() 
 {
+#ifdef USE_OLD_WITTY_CODE
 	ui.port_SB->setValue( RSWebUI::port() ) ;
-
 	QString str ;
 	for(std::vector<RSWebUI::IPRange>::const_iterator it(RSWebUI::ipMask().begin());it!=RSWebUI::ipMask().end();++it)
 		str += QString::fromStdString((*it).toStdString()) ;
 
 	ui.IPmask_LE->setText( str ) ;
+#endif
 }
 
 bool RsWebUIConfig::save(QString &/*errmsg*/) 
@@ -93,11 +97,12 @@ bool RsWebUIConfig::save(QString &/*errmsg*/)
 	if(_old_port != ui.port_SB->value() || _ip_list_changed)
 	{
 		//std::cerr << "RsWebUIConfig::save() setting new port to " << ui.port_SB->value() << ", and mask = " << _current_ip_list << std::endl;
-
+#ifdef USE_OLD_WITTY_CODE
 		RSWebUI::setPort(ui.port_SB->value()) ;
 		RSWebUI::setIPMask(_current_ip_list) ;
 
 		RSWebUI::restart() ;
+#endif
 
 		std::cerr << "Restarted Web UI." << std::endl;
 	}
@@ -110,7 +115,7 @@ bool RsWebUIConfig::save(QString &/*errmsg*/)
 void RsWebUIConfig::on_IPmaskChanged(const QString& IPmask)
 {
 	bool b =true;
-
+#ifdef USE_OLD_WITTY_CODE
 	std::cerr << "Checking IP mask..." ;
 	std::vector<RSWebUI::IPRange> iprlst ;
 
@@ -129,20 +134,25 @@ void RsWebUIConfig::on_IPmaskChanged(const QString& IPmask)
 			break ;
 		}
 	}
+#endif
 
 	QColor color ;
 
 	if(b)
 	{
+#ifdef USE_OLD_WITTY_CODE
 		_old_ip_list = _current_ip_list ;
 		_current_ip_list = iprlst ;
+#endif
 		_ip_list_changed = true ;
 
 		color = QApplication::palette().color(QPalette::Active,QPalette::Base) ;
 		std::cerr << " - ok. New mask = " ;
+#ifdef USE_OLD_WITTY_CODE
 		for(std::vector<RSWebUI::IPRange>::const_iterator it(iprlst.begin());it!=iprlst.end();++it)
 			std::cerr << (*it).toStdString() << " - " ;
 		std::cerr << std::endl;
+#endif
 	}
 	else
 	{
@@ -161,7 +171,9 @@ void RsWebUIConfig::on_enableSwitch(bool b)
 	if(!b)
 	{
 		std::cerr << "Stopping server." << std::endl;
+#ifdef USE_OLD_WITTY_CODE
 		RSWebUI::stop() ;
+#endif
 	}
 }
 

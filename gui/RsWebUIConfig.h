@@ -5,7 +5,9 @@
 
 #include "retroshare-gui/configpage.h"
 #include "ui_RsWebUIConfig.h"
+#ifdef USE_OLD_WITTY_CODE
 #include "WebUImain.h"
+#endif
 
 class RsWebUIConfig : public ConfigPage 
 {
@@ -34,9 +36,10 @@ class RsWebUIConfig : public ConfigPage
 		Ui::RsWebUIConfig ui;
 
 		void loadSettings();
-
+#ifdef USE_OLD_WITTY_CODE
 		std::vector<RSWebUI::IPRange> _current_ip_list ;
 		std::vector<RSWebUI::IPRange> _old_ip_list ;
+#endif
 		uint16_t _old_port ;
 		bool _ip_list_changed ;
 };

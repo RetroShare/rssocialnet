@@ -15,9 +15,8 @@ Please read the readmes in ./api and ./webui.
 
 Update:
 
-	- there are now two projects in this repository: resapi and socialnet
-	- resapi is a library which implements the json interface
-	- socialnet is a Retroshare plugin which contains social network functionality (wall) and the new json api
+	- all code which requires Wt is now disabled
+	- we use libmicrohttpd instead
 
 Download the sources
 --------------------

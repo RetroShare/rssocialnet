@@ -2,11 +2,21 @@
 
 CONFIG += qt qrc resources
 
+greaterThan(QT_MAJOR_VERSION, 4) {
+        # Qt 5
+        QT     += widgets
+}
+
 TARGET = rssocialnet
 
-# stream files over http
-# compiles only with patched libretroshare
-CONFIG += filestreamer
+# things marked with old_witty_code are going to be removed. they are just here to copy and paste from
+# this old stuff is not meant to compile
+old_witty_code  {
+    DENFINES *= USE_OLD_WITTY_CODE
+    # stream files over http
+    # compiles only with patched libretroshare
+    CONFIG += filestreamer
+}
 
 INCLUDEPATH += ../../libretroshare/src
 
@@ -15,18 +25,35 @@ QMAKE_CXXFLAGS *= -Wall
 DEFINES *= BOOST_SIGNALS_NO_DEPRECATION_WARNING
 
 # note: equal here, because retroshare_plugin.pri adds upnp to source (no idea why)
-SOURCES = RSWApplication.cpp \
+HEADERS = WebUIPlugin.h \
+        gui/RsWebUIConfig.h \
+        rswall.h \
+        p3wallservice.h \
+        rswallitems.h \
+
+SOURCES = WebUIPlugin.cpp \
+        gui/RsWebUIConfig.cpp \
+        p3wallservice.cc \
+        rswallitems.cc \
+
+# new webinterface
+INCLUDEPATH += ../../libresapi/src ../../libresapi/src/api
+LIBS += ../../libresapi/src/lib/libresapi.a -lmicrohttpd
+SOURCES += \
+        api/WallHandler.cpp
+
+HEADERS += \
+        api/WallHandler.h
+
+old_witty_code {
+SOURCES += RSWApplication.cpp \
 		  WebUImain.cpp \
 			 RSWappFriendsPage.cpp \
 			 RSWappTransfersPage.cpp \
-		  WebUIPlugin.cpp \
 			RSWappSearchFilesPage.cpp \
 			 RSWappSharedFilesPage.cpp \
-			 gui/RsWebUIConfig.cpp \
 	RSWappSocialNetworkPage.cpp \
 	RSWappTestPage.cpp \
-	p3wallservice.cc \
-	rswallitems.cc \
 	sonet/NewsfeedWidget.cpp \
 	sonet/FirstStepsWidget.cpp \
 	sonet/GxsCircleChooserWt.cpp \
@@ -55,19 +82,14 @@ SOURCES = RSWApplication.cpp \
 	sonet/AvatarWidgetWt.cpp \
     apiwt/ApiServerWt.cpp
 
-HEADERS = RSWApplication.h \
+HEADERS += RSWApplication.h \
 		  WebUImain.h \
 			 RSWappFriendsPage.h \
 			 RSWappTransfersPage.h \
-		  WebUIPlugin.h \
 			RSWappSearchFilesPage.h \
 			RSWappSharedFilesPage.h \
-			 gui/RsWebUIConfig.h \
 	RSWappSocialNetworkPage.h \
 	RSWappTestPage.h \
-	rswall.h \
-	p3wallservice.h \
-	rswallitems.h \
 	sonet/FirstStepsWidget.h \
 	sonet/NewsfeedWidget.h \
 	sonet/GxsCircleChooserWt.h \
@@ -96,10 +118,11 @@ HEADERS = RSWApplication.h \
 	util/lodepng.h \
     apiwt/ApiServerWt.h
 
-filestreamer {
-	DEFINES += ENABLE_FILESTREAMER
-	SOURCES += apiwt/FileStreamerWt.cpp
-	HEADERS += apiwt/FileStreamerWt.h
+    filestreamer {
+            DEFINES += ENABLE_FILESTREAMER
+            SOURCES += apiwt/FileStreamerWt.cpp
+            HEADERS += apiwt/FileStreamerWt.h
+    }
 }
 
 FORMS += gui/RsWebUIConfig.ui
@@ -108,14 +131,18 @@ TARGET = rssocialnet
 
 RESOURCES = WebUI_images.qrc
 
-LIBS += -lwthttp -lwt
+old_witty_code{
+    LIBS += -lwthttp -lwt
+}
 
-LIBS += ./lib/libresapi.a ../../retroshare-gui/src/lib/libretroshare-gui.a
+LIBS += ../../retroshare-gui/src/lib/libretroshare-gui.a
 
 ################################# Linux ##########################################
 
 linux-* {
-	INCLUDEPATH += /usr/include/Wt
+    old_witty_code{
+            INCLUDEPATH += /usr/include/Wt
+    }
 	LIBS += -L../../libretroshare/src/lib -lretroshare ../../libbitdht/src/lib/libbitdht.a
 }
 
@@ -125,6 +152,14 @@ win32 {
 		SQLITE_DIR = ../../../sqlcipher-2.2.0
 		INCLUDEPATH += $${SQLITE_DIR}
 
+        LIBS += -lws2_32 -lwsock32
+
+    # libmicrohttpd sets __declspec(dllexport) on its functions
+    # this causes only libmicrohttpd functions to apear in the dll
+    # this switches forces the linker to export all symbols
+    QMAKE_LFLAGS += -Wl,--export-all-symbols
+
+    old_witty_code{
 		WT_DIR = ../../../wt-3.3.3
 		BOOST_DIR = ../../../boost-build
 		BOOST_NAME = mgw44-mt-1_54
@@ -137,6 +172,7 @@ win32 {
 		LIBS += -lboost_signals-$${BOOST_NAME}
 		#LIBS += -lboost_date_time-mgw44-mt-1_54 -lboost_filesystem-mgw44-mt-1_54 -lboost_program_options-mgw44-mt-1_54 -lboost_random-mgw44-mt-1_54 -lboost_regex-mgw44-mt-1_54 -lboost_system-mgw44-mt-1_54 -lboost_thread-mgw44-mt-1_54
 		#LIBS += -lboost_signals-mgw44-mt-1_54
+    }
 }
 
 OTHER_FILES += \

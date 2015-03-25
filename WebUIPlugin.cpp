@@ -6,7 +6,9 @@
 #include <util/rsdir.h>
 
 #include "WebUIPlugin.h"
+#ifdef USE_OLD_WITTY_CODE
 #include "WebUImain.h"
+#endif
 #include <gui/RsWebUIConfig.h>
 
 #include "p3wallservice.h"
@@ -86,6 +88,9 @@ QDialog *WebUIPlugin::qt_about_page() const
 WebUIPlugin::WebUIPlugin()
 {
 	mPlugInHandler = NULL;
+    httpd = 0;
+    ctrlmodule = 0;
+    wallhandler = 0;
 }
 
 void WebUIPlugin::setInterfaces(RsPlugInInterfaces &interfaces)
@@ -114,16 +119,40 @@ void WebUIPlugin::setInterfaces(RsPlugInInterfaces &interfaces)
     wall->start();
     wall_ns->start();
 
+#ifdef USE_OLD_WITTY_CODE
 	std::cerr << "Starting the WebUI" << std::endl;
     RSWebUI::start(interfaces) ;
+#endif
+    httpd = new resource_api::ApiServerMHD("./", 9090);
+    httpd->getApiServer().loadMainModules(interfaces);
+
+    ctrlmodule = new resource_api::RsControlModule(0, 0, httpd->getApiServer().getStateTokenServer(),
+                                                   &httpd->getApiServer(), false);
+    httpd->getApiServer().addResourceHandler("control", dynamic_cast<resource_api::ResourceRouter*>(ctrlmodule), &resource_api::RsControlModule::handleRequest);
+
+    wallhandler = new resource_api::WallHandler(wall, interfaces.mIdentity);
+    httpd->getApiServer().addResourceHandler("wall", dynamic_cast<resource_api::ResourceRouter*>(wallhandler),
+                                                           &resource_api::WallHandler::handleRequest);
+
+    httpd->start();
 }
 
 void WebUIPlugin::stop()
-{
-    // shutdown in reverse order
+{   
+    httpd->stop();
+    delete httpd;
+    httpd = 0;
 
+    delete ctrlmodule;
+    ctrlmodule = 0;
+    delete wallhandler;
+    wallhandler = 0;
+
+    // shutdown in reverse order
+#ifdef USE_OLD_WITTY_CODE
 	std::cerr << "Stopping the WebUI" << std::endl;
 	RSWebUI::stop();
+#endif
 
     wall_ns->join();
     wall->join();
