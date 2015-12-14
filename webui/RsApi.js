@@ -7,7 +7,7 @@
  */
 function RsApi(connection)
 {
-    var runnign = true;
+    var running = true;
     /**
      * Send a request to the server
      * @param req - the request so send
