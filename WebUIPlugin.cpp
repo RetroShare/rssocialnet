@@ -9,7 +9,9 @@
 #ifdef USE_OLD_WITTY_CODE
 #include "WebUImain.h"
 #endif
+#ifdef WITH_GUI
 #include <gui/RsWebUIConfig.h>
+#endif
 
 #include "p3wallservice.h"
 
@@ -60,9 +62,13 @@ ConfigPage *WebUIPlugin::qt_config_page() const
 //	static RsWebUIConfig *cfg_widget = NULL ;
 	
 //	if(cfg_widget == NULL)
+#ifdef WITH_GUI
 RsWebUIConfig	*cfg_widget = new RsWebUIConfig ;
 
 	return cfg_widget ;
+#else
+    return 0;
+#endif
 }
 
 QDialog *WebUIPlugin::qt_about_page() const
@@ -104,6 +110,7 @@ void WebUIPlugin::setInterfaces(RsPlugInInterfaces &interfaces)
     // idea: use different folders for different plugin versions
     std::cerr << "Starting p3WallService" << std::endl;
     std::string dataDir = interfaces.mGxsDir + "rssocialnet_v0";
+    //std::string dataDir = "rssocialnet_v1";
     RsDirUtil::checkCreateDirectory(dataDir);
     wall_ds = new RsDataService(dataDir, "wall_db",
                                 RsWall::RS_SERVICE_TYPE_WALL, NULL, "todo: encrypt db with secure password");
@@ -123,6 +130,7 @@ void WebUIPlugin::setInterfaces(RsPlugInInterfaces &interfaces)
 	std::cerr << "Starting the WebUI" << std::endl;
     RSWebUI::start(interfaces) ;
 #endif
+#if 0
     httpd = new resource_api::ApiServerMHD("./", 9090);
     httpd->getApiServer().loadMainModules(interfaces);
 
@@ -135,10 +143,12 @@ void WebUIPlugin::setInterfaces(RsPlugInInterfaces &interfaces)
                                                            &resource_api::WallHandler::handleRequest);
 
     httpd->start();
+#endif
 }
 
 void WebUIPlugin::stop()
 {   
+#if 0
     httpd->stop();
     delete httpd;
     httpd = 0;
@@ -147,7 +157,7 @@ void WebUIPlugin::stop()
     ctrlmodule = 0;
     delete wallhandler;
     wallhandler = 0;
-
+#endif
     // shutdown in reverse order
 #ifdef USE_OLD_WITTY_CODE
 	std::cerr << "Stopping the WebUI" << std::endl;
@@ -161,6 +171,16 @@ void WebUIPlugin::stop()
     // delete wall_ns;
     delete wall;
     // delete wall_ds;
+}
+
+resource_api::ResourceRouter* WebUIPlugin::new_resource_api_handler(
+        const RsPlugInInterfaces& interfaces,
+        resource_api::StateTokenServer *sts,
+        std::string &entrypoint) const
+{
+    std::cerr << "rssocialnet plugin: creating new WallHandler" << std::endl;
+    entrypoint = "rssocialnet";
+    return new resource_api::WallHandler(sts, wall, interfaces.mIdentity);
 }
 
 void WebUIPlugin::setPlugInHandler(RsPluginHandler *pgHandler)

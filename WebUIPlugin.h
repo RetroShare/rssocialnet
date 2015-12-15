@@ -39,6 +39,8 @@ class WebUIPlugin: public RsPlugin
         virtual p3Config       *p3_config() 		const	{ return wall_ns; }
         virtual uint16_t        rs_service_id() 	   const	{ return RsWall::RS_SERVICE_TYPE_WALL; }
 
+        virtual resource_api::ResourceRouter* new_resource_api_handler(const RsPlugInInterfaces& ifaces, resource_api::StateTokenServer* sts, std::string &entrypoint) const;
+
 	private:
 		mutable RsPluginHandler *mPlugInHandler;
         mutable RsPlugInInterfaces plugin_interfaces;

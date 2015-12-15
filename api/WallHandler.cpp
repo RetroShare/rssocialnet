@@ -428,8 +428,8 @@ bool waitForTokenOrTimeout(uint32_t token, RsTokenService* tokenService)
     }
 }
 
-WallHandler::WallHandler(RsWall::RsWall* wall, RsIdentity* identity):
-    mRsWall(wall), mRsIdentity(identity)
+WallHandler::WallHandler(StateTokenServer* sts, RsWall::RsWall* wall, RsIdentity* identity):
+    mStateTokenServer(sts), mRsWall(wall), mRsIdentity(identity)
 {
     addResourceHandler("*", this, &WallHandler::handleWildcard);
     addResourceHandler("activities", this, &WallHandler::handleActivities);

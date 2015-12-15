@@ -26,15 +26,22 @@ DEFINES *= BOOST_SIGNALS_NO_DEPRECATION_WARNING
 
 # note: equal here, because retroshare_plugin.pri adds upnp to source (no idea why)
 HEADERS = WebUIPlugin.h \
-        gui/RsWebUIConfig.h \
         rswall.h \
         p3wallservice.h \
         rswallitems.h \
 
 SOURCES = WebUIPlugin.cpp \
-        gui/RsWebUIConfig.cpp \
         p3wallservice.cc \
         rswallitems.cc \
+
+# i disabled the Qt gui for now, because we don't need a gui with the http server inside main Retroshare
+with_gui{
+    HEADERS = \
+            gui/RsWebUIConfig.h \
+
+    SOURCES =  \
+            gui/RsWebUIConfig.cpp \
+}
 
 # new webinterface
 INCLUDEPATH += ../../libresapi/src ../../libresapi/src/api
@@ -125,7 +132,9 @@ HEADERS += RSWApplication.h \
     }
 }
 
+with_gui{
 FORMS += gui/RsWebUIConfig.ui
+}
 
 TARGET = rssocialnet
 
@@ -135,7 +144,9 @@ old_witty_code{
     LIBS += -lwthttp -lwt
 }
 
+with_gui{
 LIBS += ../../retroshare-gui/src/lib/libretroshare-gui.a
+}
 
 ################################# Linux ##########################################
 

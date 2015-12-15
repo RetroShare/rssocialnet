@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ResourceRouter.h"
+#include "StateTokenServer.h"
 
 class RsIdentity;
 namespace RsWall{
@@ -13,9 +14,10 @@ namespace resource_api
 class WallHandler: public ResourceRouter
 {
 public:
-    WallHandler(RsWall::RsWall* mRsWall, RsIdentity* identity);
+    WallHandler(StateTokenServer* sts, RsWall::RsWall* mRsWall, RsIdentity* identity);
 
 private:
+    StateTokenServer* mStateTokenServer;
     RsWall::RsWall* mRsWall;
     RsIdentity* mRsIdentity;
     ResponseTask* handleWildcard(Request& req, Response& resp);
